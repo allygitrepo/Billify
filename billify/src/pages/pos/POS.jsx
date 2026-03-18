@@ -110,7 +110,7 @@ const POS = () => {
         <div 
           className={flashOrderId > 0 ? 'animate-flash' : ''} 
           key={flashOrderId}
-          style={{ height: '100%', display: 'flex', flex: '0 0 380px' }}
+          style={{ height: '100%', display: 'flex', width: '100%' }}
         >
           <CartPanel 
             cart={cart}

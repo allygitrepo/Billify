@@ -1,3 +1,6 @@
+import React from 'react';
+import { formatCurrency } from '../../utils/formatCurrency';
+
 const TopProducts = ({ transactions = [] }) => {
   const salesMap = {};
   transactions.forEach(t => {

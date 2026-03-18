@@ -2,8 +2,8 @@ const StockAlerts = ({ products = [] }) => {
   const alerts = products.flatMap(p => 
     p.variants
       .filter(v => v.stock <= 5)
-      .map(v => ({
-        id: `${p.id}-${v.name}`,
+      .map((v, index) => ({
+        id: `${p.id}-${v.name}-${index}`,
         name: p.name,
         variant: v.name,
         stock: v.stock,

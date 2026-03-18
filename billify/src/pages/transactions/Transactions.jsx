@@ -40,7 +40,12 @@ const Transactions = () => {
         <div className="card mb-6">
           <div className="table-controls">
             <h3 className="card-title">Filter Transactions</h3>
-            <Button variant="secondary" onClick={handleExport}>📤 Export CSV</Button>
+            <Button variant="secondary" onClick={handleExport}>
+              <span style={{display: 'inline-flex', alignItems: 'center', gap: '6px'}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                Export CSV
+              </span>
+            </Button>
           </div>
           <div className="transactions-filter-grid">
             <Input 

@@ -1,3 +1,6 @@
+import React from 'react';
+import { formatCurrency } from '../../utils/formatCurrency';
+
 const RecentTransactions = ({ transactions = [] }) => {
   const recent = [...transactions]
     .sort((a, b) => new Date(b.date) - new Date(a.date))

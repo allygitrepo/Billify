@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useDataContext } from '../../hooks/useDataContext';
 import PageContainer from '../../components/layout/PageContainer';
 import FormWrapper from '../../components/common/FormWrapper';
@@ -21,6 +22,7 @@ const Users = () => {
   ];
 
   // State
+  const [activeForm, setActiveForm] = useState(null); // null | 'user' | 'role'
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
   const [userFormData, setUserFormData] = useState({
@@ -100,12 +102,14 @@ const Users = () => {
     setUserFormData({ name: '', email: '', mobile: '', role: '', status: 'active', photo: '' });
     setUserErrors({});
     setIsEditingUser(false);
+    setActiveForm(null);
   };
 
   const handleEditUser = (user) => {
     setIsEditingUser(true);
     setEditingUserId(user.id);
     setUserFormData({ ...user });
+    setActiveForm('user');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -135,6 +139,7 @@ const Users = () => {
     }
     addRole(roleFormData);
     setRoleFormData({ name: '', permissions: [] });
+    setActiveForm(null);
   };
 
   // Filtering
@@ -186,11 +191,50 @@ const Users = () => {
   ];
 
   return (
-    <PageContainer title="Users & Roles Management">
+    <PageContainer 
+      title="Users & Roles Management"
+      actions={
+        <div style={{ display: 'flex', gap: 'var(--spacing-4)', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div className="filters-row" style={{ maxWidth: '400px', margin: 0 }}>
+            <Input
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              options={[{label: 'All Roles', value: 'All'}, ...roles.map(r => ({ label: r.name, value: r.name }))]}
+              placeholder={null}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--spacing-3)' }}>
+            {activeForm === null ? (
+              <>
+                <Button variant="primary" onClick={() => { setActiveForm('user'); setIsEditingUser(false); }}>+ Add User</Button>
+                <Button variant="secondary" onClick={() => { setActiveForm('role'); setIsEditingUser(false); }}>+ Add Role</Button>
+              </>
+            ) : (
+              <Button variant="secondary" onClick={resetUserForm}>Back to List</Button>
+            )}
+          </div>
+        </div>
+      }
+    >
       <div className="animate-fade-in">
-        <div className="users-roles-grid">
-          {/* User Form */}
-          <div className="user-management-section">
+        <div className="users-roles-grid" style={{ marginBottom: activeForm ? 'var(--spacing-8)' : 0 }}>
+          <AnimatePresence mode="wait">
+            {/* User Form */}
+            {activeForm === 'user' && (
+              <motion.div
+                key="user-form"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div className="user-management-section">
             <FormWrapper 
               title={isEditingUser ? "Edit User" : "Add New User"}
               onSubmit={handleUserSubmit}
@@ -235,9 +279,20 @@ const Users = () => {
               </div>
             </FormWrapper>
           </div>
+              </motion.div>
+            )}
 
-          {/* Role Form */}
-          <div className="role-management-section">
+            {/* Role Form */}
+            {activeForm === 'role' && (
+              <motion.div
+                key="role-form"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div className="role-management-section">
             <div className="card">
               <h3 className="card-title mb-6">Create New Role</h3>
               <Input label="Role Name" value={roleFormData.name} onChange={handleRoleInputChange} placeholder="e.g. Supervisor" />
@@ -258,27 +313,25 @@ const Users = () => {
                 </div>
               </div>
               
-              <Button variant="secondary" onClick={handleRoleSubmit} style={{width: '100%', marginTop: 'var(--spacing-4)'}}>
-                Add Role
-              </Button>
+              <div style={{ display: 'flex', gap: 'var(--spacing-3)', marginTop: 'var(--spacing-6)' }}>
+                <Button variant="secondary" onClick={() => setActiveForm(null)} style={{flex: 1}}>
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={handleRoleSubmit} style={{flex: 1}}>
+                  Add Role
+                </Button>
+              </div>
             </div>
           </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Users Table */}
         <div className="card mt-8">
           <div className="table-controls">
             <h3 className="card-title">All Registered Users</h3>
-            <div className="filters-row">
-              <Input placeholder="Search name/email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ marginBottom: 0 }} />
-              <Select 
-                value={roleFilter} 
-                onChange={(e) => setRoleFilter(e.target.value)}
-                options={[{label: 'All Roles', value: 'All'}, ...roles.map(r => ({ label: r.name, value: r.name }))]}
-                placeholder={null}
-                style={{ marginBottom: 0 }}
-              />
-            </div>
           </div>
           <Table columns={columns} data={filteredUsers} />
         </div>

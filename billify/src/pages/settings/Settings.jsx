@@ -90,18 +90,16 @@ const Settings = () => {
             {/* Left Column: Business & Tax */}
             <div className="settings-column">
               <div className="card mb-6">
-                <div className="settings-header-with-avatar">
-                  <h3 className="card-title">Business Information</h3>
-                  <div className={`image-preview-circle ${errors.photo ? 'has-error' : ''}`}>
-                    {formData.photo ? (
-                      <img src={formData.photo} alt="Business Logo" />
-                    ) : (
-                      <span style={{ fontSize: '12px', color: 'var(--neutral-400)' }}>Logo</span>
-                    )}
-                  </div>
-                </div>
+                <h3 className="card-title" style={{ marginBottom: 'var(--spacing-6)' }}>Business Information</h3>
                 <div className="settings-group">
                   <div className="image-upload-wrapper">
+                    <div className={`image-preview-circle ${errors.photo ? 'has-error' : ''}`}>
+                      {formData.photo ? (
+                        <img src={formData.photo} alt="Business Logo" />
+                      ) : (
+                        <span style={{ fontSize: '12px', color: 'var(--neutral-400)' }}>Logo</span>
+                      )}
+                    </div>
                     <div className="upload-field-container">
                       <Input 
                         label="Business Logo"
@@ -200,11 +198,11 @@ const Settings = () => {
                       onChange={handleInputChange} 
                     />
                   </div>
-                  <div style={{marginTop: 'var(--spacing-4)'}}>
-                    <label className="input-label">Footer Note</label>
+                  <div className="input-group">
+                    <label className="label">Footer Note</label>
                     <textarea 
                       name="footerNote" 
-                      className="custom-textarea" 
+                      className="textarea" 
                       rows="3" 
                       value={formData.footerNote} 
                       onChange={handleInputChange}

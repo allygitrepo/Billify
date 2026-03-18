@@ -1,15 +1,17 @@
 import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useDataContext } from '../../hooks/useDataContext';
 import PageContainer from '../../components/layout/PageContainer';
 import FormWrapper from '../../components/common/FormWrapper';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
-import Table from '../../components/common/Table';
+import Table from '../../components/common/Table';import Button from '../../components/common/Button';
 
 const Categories = () => {
   const { categories, addCategory, updateCategory } = useDataContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [showForm, setShowForm] = useState(false);
 
   // Form State
   const [isEditing, setIsEditing] = useState(false);
@@ -45,8 +47,8 @@ const Categories = () => {
     } else {
       addCategory(formData);
     }
-
     setFormData({ name: '', description: '', status: 'active' });
+    setShowForm(false);
   };
 
   const handleEdit = (category) => {
@@ -57,6 +59,7 @@ const Categories = () => {
       description: category.description,
       status: category.status
     });
+    setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -65,6 +68,7 @@ const Categories = () => {
     setEditingId(null);
     setFormData({ name: '', description: '', status: 'active' });
     setErrors({});
+    setShowForm(false);
   };
 
   const handleStatusToggle = (id, currentStatus) => {
@@ -119,9 +123,47 @@ const Categories = () => {
   ];
 
   return (
-    <PageContainer title="Category Management">
+    <PageContainer 
+      title="Category Management"
+      actions={
+        <div style={{ display: 'flex', gap: 'var(--spacing-4)', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="filters-row" style={{ maxWidth: '400px', margin: 0 }}>
+            <Input
+              placeholder="Search by name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              options={[
+                { label: 'All Status', value: 'all' },
+                { label: 'Active', value: 'active' },
+                { label: 'Inactive', value: 'inactive' }
+              ]}
+              placeholder={null}
+            />
+          </div>
+          {!showForm ? (
+            <Button variant="primary" onClick={() => setShowForm(true)}>+ Add Category</Button>
+          ) : (
+            <Button variant="secondary" onClick={handleCancel}>Back to List</Button>
+          )}
+        </div>
+      }
+    >
       <div className="animate-fade-in">
-        <FormWrapper
+        <AnimatePresence>
+          {showForm && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              style={{ overflow: 'hidden' }}
+            >
+              <FormWrapper
           title={isEditing ? "Edit Category" : "Add New Category"}
           onSubmit={handleFormSubmit}
           onCancel={isEditing ? handleCancel : null}
@@ -154,32 +196,15 @@ const Categories = () => {
             ]}
           />
         </FormWrapper>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-6)', flexWrap: 'wrap', gap: 'var(--spacing-4)' }}>
+          <div style={{ marginBottom: 'var(--spacing-4)' }}>
             <h3 className="card-title">All Categories</h3>
-            <div style={{ display: 'flex', gap: 'var(--spacing-4)', flex: '1', maxWidth: '500px', justifyContent: 'flex-end' }}>
-              <Input
-                placeholder="Search by name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="search-input"
-                style={{ marginBottom: 0 }}
-              />
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                options={[
-                  { label: 'All Status', value: 'all' },
-                  { label: 'Active', value: 'active' },
-                  { label: 'Inactive', value: 'inactive' }
-                ]}
-                placeholder={null}
-                style={{ width: '150px', marginBottom: 0 }}
-              />
-            </div>
           </div>
-
+          
           <Table
             columns={columns}
             data={filteredCategories}

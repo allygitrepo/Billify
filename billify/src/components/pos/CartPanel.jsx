@@ -53,19 +53,23 @@ const CartPanel = ({ cart, onUpdateQty, onRemove, onCheckout, discount, onDiscou
 
       <div className="cart-summary">
         <div className="summary-row">
-          <span>Subtotal</span>
-          <span>{formatCurrency(subtotal)}</span>
+          <span className="summary-label">Subtotal</span>
+          <div className="summary-leader"></div>
+          <span className="summary-value">{formatCurrency(subtotal)}</span>
         </div>
         <div className="summary-row">
-          <span>Tax ({settings.taxPercentage || 0}%)</span>
-          <span>{formatCurrency(taxAmount)}</span>
+          <span className="summary-label">Tax ({settings.taxPercentage || 0}%)</span>
+          <div className="summary-leader"></div>
+          <span className="summary-value">{formatCurrency(taxAmount)}</span>
         </div>
         <div className="summary-row">
-          <span>GST ({settings.gstPercentage || 0}%)</span>
-          <span>{formatCurrency(gstAmount)}</span>
+          <span className="summary-label">GST ({settings.gstPercentage || 0}%)</span>
+          <div className="summary-leader"></div>
+          <span className="summary-value">{formatCurrency(gstAmount)}</span>
         </div>
         <div className="summary-row discount">
-          <span>Discount (₹)</span>
+          <span className="summary-label">Discount (₹)</span>
+          <div className="summary-leader"></div>
           <input 
             type="number" 
             value={discount} 
@@ -73,10 +77,11 @@ const CartPanel = ({ cart, onUpdateQty, onRemove, onCheckout, discount, onDiscou
             placeholder="0"
           />
         </div>
-        <div className="summary-row total">
-          <span>Total Amount</span>
-          <span>{formatCurrency(total > 0 ? total : 0)}</span>
-        </div>
+      </div>
+
+      <div className="cart-total-box">
+        <span className="cart-total-label">Total Amount</span>
+        <span className="cart-total-value">{formatCurrency(total > 0 ? total : 0)}</span>
       </div>
 
       <div className="payment-section">
@@ -86,18 +91,21 @@ const CartPanel = ({ cart, onUpdateQty, onRemove, onCheckout, discount, onDiscou
             className={`pay-btn ${paymentMethod === 'Cash' ? 'active' : ''}`}
             onClick={() => setPaymentMethod('Cash')}
           >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg>
             Cash
           </button>
           <button 
             className={`pay-btn ${paymentMethod === 'UPI' ? 'active' : ''}`}
             onClick={() => setPaymentMethod('UPI')}
           >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
             UPI
           </button>
           <button 
             className={`pay-btn ${paymentMethod === 'Card' ? 'active' : ''}`}
             onClick={() => setPaymentMethod('Card')}
           >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
             Card
           </button>
         </div>

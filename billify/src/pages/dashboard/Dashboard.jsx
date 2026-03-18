@@ -1,0 +1,133 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import { useDataContext } from '../../hooks/useDataContext';
+import PageContainer from '../../components/layout/PageContainer';
+import StatCard from '../../components/dashboard/StatCard';
+import RevenueChart from '../../components/dashboard/RevenueChart';
+import StockAlerts from '../../components/dashboard/StockAlerts';
+import RecentTransactions from '../../components/dashboard/RecentTransactions';
+import TopProducts from '../../components/dashboard/TopProducts';
+import { formatCurrency } from '../../utils/formatCurrency';
+
+const Dashboard = () => {
+  const { transactions, products } = useDataContext();
+
+  // Calculate Metrics
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const todayTransactions = transactions.filter(t => new Date(t.date) >= today);
+  const todaySales = todayTransactions.reduce((acc, t) => acc + t.total, 0);
+  const todayOrders = todayTransactions.length;
+
+  const lowStockCount = products.reduce((acc, p) => {
+    const minStock = Math.min(...p.variants.map(v => v.stock));
+    return minStock <= 5 ? acc + 1 : acc;
+  }, 0);
+
+  const thisMonth = new Date().getMonth();
+  const monthTransactions = transactions.filter(t => new Date(t.date).getMonth() === thisMonth);
+  const monthlyRevenue = monthTransactions.reduce((acc, t) => acc + t.total, 0);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
+  return (
+    <PageContainer title="Dashboard Summary">
+      <motion.div 
+        className="dashboard-grid"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Stats Row */}
+        <motion.div className="stats-row" variants={containerVariants}>
+          <motion.div variants={itemVariants}>
+            <StatCard 
+              title="Total Sales Today" 
+              value={formatCurrency(todaySales)} 
+              trend="+12%" 
+              color="teal"
+              icon={
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+              }
+            />
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <StatCard 
+              title="Total Orders" 
+              value={todayOrders.toString()} 
+              trend="+5%" 
+              color="purple"
+              icon={
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <path d="M16 10a4 4 0 0 1-8 0"></path>
+                </svg>
+              }
+            />
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <StatCard 
+              title="Low Stock Alerts" 
+              value={lowStockCount.toString()} 
+              trend="Needs Attention" 
+              color="orange"
+              icon={
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              }
+            />
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <StatCard 
+              title="Monthly Revenue" 
+              value={formatCurrency(monthlyRevenue)} 
+              trend="+18%" 
+              color="blue"
+              icon={
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                  <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                </svg>
+              }
+            />
+          </motion.div>
+        </motion.div>
+
+        {/* Main Section */}
+        <div className="dashboard-main-content">
+          <motion.div className="dashboard-left-col" variants={itemVariants}>
+            <RevenueChart transactions={transactions} />
+            <RecentTransactions transactions={transactions} />
+          </motion.div>
+          <motion.div className="dashboard-right-col" variants={itemVariants}>
+            <StockAlerts products={products} />
+            <TopProducts transactions={transactions} />
+          </motion.div>
+        </div>
+      </motion.div>
+    </PageContainer>
+  );
+};
+
+export default Dashboard;

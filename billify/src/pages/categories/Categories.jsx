@@ -1,13 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDataContext } from '../../hooks/useDataContext';
 import PageContainer from '../../components/layout/PageContainer';
 import FormWrapper from '../../components/common/FormWrapper';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
-import Table from '../../components/common/Table';import Button from '../../components/common/Button';
+import Table from '../../components/common/Table';
+import Button from '../../components/common/Button';
+import { exportToCSV, importFromCSV, downloadTemplate as downloadCSVTemplate } from '../../utils/csvService';
 
 const Categories = () => {
+  const fileInputRef = useRef(null);
   const { categories, addCategory, updateCategory } = useDataContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -75,6 +78,43 @@ const Categories = () => {
     updateCategory(id, { status: currentStatus === 'active' ? 'inactive' : 'active' });
   };
 
+  // Bulk Handlers
+  const handleDownloadTemplate = () => {
+    downloadCSVTemplate(['name', 'description'], 'categories_template');
+  };
+
+  const handleExportCategories = () => {
+    const exportData = categories.map(cat => ({
+      name: cat.name,
+      description: cat.description,
+      status: cat.status,
+      productsCount: cat.productsCount
+    }));
+    exportToCSV(exportData, 'billify_categories');
+  };
+
+  const handleImportCSV = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const data = await importFromCSV(file);
+      data.forEach(item => {
+        if (item.name) {
+          addCategory({
+            name: item.name,
+            description: item.description || '',
+            status: 'active'
+          });
+        }
+      });
+      alert(`Imported ${data.length} categories!`);
+      e.target.value = '';
+    } catch (err) {
+      alert('Error: ' + err);
+    }
+  };
+
   // Filtered Logic
   const filteredCategories = useMemo(() => {
     return categories.filter(cat => {
@@ -126,7 +166,7 @@ const Categories = () => {
     <PageContainer 
       title="Category Management"
       actions={
-        <div style={{ display: 'flex', gap: 'var(--spacing-4)', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 'var(--spacing-4)', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <div className="filters-row" style={{ maxWidth: '400px', margin: 0 }}>
             <Input
               placeholder="Search by name..."
@@ -145,11 +185,23 @@ const Categories = () => {
               placeholder={null}
             />
           </div>
-          {!showForm ? (
-            <Button variant="primary" onClick={() => setShowForm(true)}>+ Add Category</Button>
-          ) : (
-            <Button variant="secondary" onClick={handleCancel}>Back to List</Button>
-          )}
+          <div style={{ display: 'flex', gap: 'var(--spacing-3)' }}>
+            {!showForm ? (
+              <Button variant="primary" onClick={() => setShowForm(true)}>+ Add Category</Button>
+            ) : (
+              <Button variant="secondary" onClick={handleCancel}>Back to List</Button>
+            )}
+            <Button variant="secondary" onClick={handleDownloadTemplate}>Template</Button>
+            <Button variant="secondary" onClick={() => fileInputRef.current.click()}>Import</Button>
+            <Button variant="secondary" onClick={handleExportCategories}>Export</Button>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              style={{ display: 'none' }} 
+              accept=".csv" 
+              onChange={handleImportCSV} 
+            />
+          </div>
         </div>
       }
     >

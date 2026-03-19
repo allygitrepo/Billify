@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDataContext } from '../../hooks/useDataContext';
 import PageContainer from '../../components/layout/PageContainer';
@@ -8,8 +8,10 @@ import Select from '../../components/common/Select';
 import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
 import { fileToBase64, validateImage } from '../../utils/fileHelpers';
+import { exportToCSV, importFromCSV, downloadTemplate as downloadCSVTemplate } from '../../utils/csvService';
 
 const Users = () => {
+  const fileInputRef = useRef(null);
   const { users, roles, addUser, updateUser, deleteUser, addRole } = useDataContext();
 
   // Permission Groups
@@ -117,6 +119,46 @@ const Users = () => {
     updateUser(id, { status: currentStatus === 'active' ? 'inactive' : 'active' });
   };
 
+  // Bulk Handlers
+  const handleDownloadTemplate = () => {
+    downloadCSVTemplate(['name', 'email', 'mobile', 'role'], 'users_template');
+  };
+
+  const handleExportUsers = () => {
+    const exportData = users.map(u => ({
+      name: u.name,
+      email: u.email,
+      mobile: u.mobile,
+      role: u.role,
+      status: u.status
+    }));
+    exportToCSV(exportData, 'billify_users');
+  };
+
+  const handleImportCSV = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const data = await importFromCSV(file);
+      data.forEach(item => {
+        if (item.name && item.email) {
+          addUser({
+            name: item.name,
+            email: item.email,
+            mobile: item.mobile || '',
+            role: item.role || 'Cashier',
+            status: 'active'
+          });
+        }
+      });
+      alert(`Imported ${data.length} users!`);
+      e.target.value = '';
+    } catch (err) {
+      alert('Error: ' + err);
+    }
+  };
+
   // Role Handlers
   const handleRoleInputChange = (e) => {
     setRoleFormData(prev => ({ ...prev, name: e.target.value }));
@@ -213,6 +255,16 @@ const Users = () => {
               <>
                 <Button variant="primary" onClick={() => { setActiveForm('user'); setIsEditingUser(false); }}>+ Add User</Button>
                 <Button variant="secondary" onClick={() => { setActiveForm('role'); setIsEditingUser(false); }}>+ Add Role</Button>
+                <Button variant="secondary" onClick={handleDownloadTemplate}>Template</Button>
+                <Button variant="secondary" onClick={() => fileInputRef.current.click()}>Import</Button>
+                <Button variant="secondary" onClick={handleExportUsers}>Export</Button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  accept=".csv" 
+                  onChange={handleImportCSV} 
+                />
               </>
             ) : (
               <Button variant="secondary" onClick={resetUserForm}>Back to List</Button>

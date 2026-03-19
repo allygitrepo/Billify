@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDataContext } from '../../hooks/useDataContext';
 import PageContainer from '../../components/layout/PageContainer';
@@ -9,8 +9,10 @@ import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { fileToBase64, validateImage } from '../../utils/fileHelpers';
+import { exportToCSV, importFromCSV, downloadTemplate as downloadCSVTemplate } from '../../utils/csvService';
 
 const Products = () => {
+  const fileInputRef = useRef(null);
   const { products, categories: allCategories, addProduct, updateProduct } = useDataContext();
   
   const categoryOptions = useMemo(() => {
@@ -164,13 +166,76 @@ const Products = () => {
     updateProduct(id, { status: currentStatus === 'active' ? 'inactive' : 'active' });
   };
 
-  // Bulk Upload Mocks
-  const downloadTemplate = () => {
-    alert('Downloading CSV Template...');
+  // Bulk Upload/Export Handlers
+  const handleDownloadTemplate = () => {
+    downloadCSVTemplate(
+      ['name', 'category', 'description', 'basePrice', 'hsnCode', 'uom', 'variantName', 'sku', 'price', 'stock'],
+      'products_template'
+    );
   };
 
-  const handleFileUpload = () => {
-    alert('File uploaded successfully! (Mock)');
+  const handleExportProducts = () => {
+    const exportData = products.flatMap(p => 
+      p.variants.map(v => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        hsnCode: p.hsnCode || '',
+        uom: p.uom || 'Pcs',
+        variantName: v.name,
+        sku: v.sku,
+        price: v.price,
+        stock: v.stock,
+        status: p.status
+      }))
+    );
+    exportToCSV(exportData, 'billify_products');
+  };
+
+  const handleImportCSV = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const data = await importFromCSV(file);
+      
+      // Group variants by product name/id
+      const productsMap = {};
+      data.forEach(item => {
+        const key = item.name;
+        if (!productsMap[key]) {
+          productsMap[key] = {
+            name: item.name,
+            category: item.category || 'General',
+            description: item.description || '',
+            basePrice: parseFloat(item.basePrice) || 0,
+            hsnCode: item.hsnCode || '',
+            uom: item.uom || 'Pcs',
+            status: 'active',
+            variants: []
+          };
+        }
+        productsMap[key].variants.push({
+          id: Date.now() + Math.random(),
+          name: item.variantName || 'Default',
+          sku: item.sku || `SKU-${Math.floor(Math.random() * 10000)}`,
+          price: parseFloat(item.price) || 0,
+          stock: parseInt(item.stock) || 0,
+          status: 'active'
+        });
+      });
+
+      // Add each product to the context
+      Object.values(productsMap).forEach(product => {
+        addProduct(product);
+      });
+
+      alert(`Successfully imported ${Object.keys(productsMap).length} products!`);
+      // Reset file input
+      e.target.value = '';
+    } catch (err) {
+      alert('Error importing CSV: ' + err);
+    }
   };
 
   // Filter Logic
@@ -257,8 +322,16 @@ const Products = () => {
             ) : (
               <Button variant="secondary" onClick={handleCancel}>Back to List</Button>
             )}
-            <Button variant="secondary" onClick={downloadTemplate}>Download Template</Button>
-            <Button variant="secondary" onClick={handleFileUpload}>Upload CSV</Button>
+            <Button variant="secondary" onClick={handleDownloadTemplate}>Download Template</Button>
+            <Button variant="secondary" onClick={() => fileInputRef.current.click()}>Upload CSV</Button>
+            <Button variant="secondary" onClick={handleExportProducts}>Export Products</Button>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              style={{ display: 'none' }} 
+              accept=".csv" 
+              onChange={handleImportCSV} 
+            />
           </div>
         </div>
       }

@@ -6,6 +6,7 @@ import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
 import { formatDate } from '../../utils/formatDate';
+import { exportToCSV } from '../../utils/csvService';
 
 const Inventory = () => {
   const { products, inventoryLog, addInventoryEntry } = useDataContext();
@@ -69,6 +70,19 @@ const Inventory = () => {
       return matchesType && matchesDate;
     });
   }, [inventoryLog, filterType, filterDate]);
+
+  const handleExportLogs = () => {
+    const exportData = filteredLogs.map(log => ({
+      product: log.productName,
+      variant: log.variantName,
+      type: log.type,
+      change: log.quantityChange,
+      stockAfter: log.stockAfter,
+      doneBy: log.doneBy,
+      date: formatDate(log.date) + ' ' + new Date(log.date).toLocaleTimeString()
+    }));
+    exportToCSV(exportData, 'inventory_history');
+  };
 
   const columns = [
     { key: 'productName', label: 'Product' },
@@ -180,7 +194,7 @@ const Inventory = () => {
         <div className="card">
           <div className="table-controls">
             <h3 className="card-title">Inventory Log</h3>
-            <div className="filters-row">
+            <div className="filters-row" style={{ alignItems: 'center' }}>
               <Select 
                 value={filterType} 
                 onChange={(e) => setFilterType(e.target.value)}
@@ -194,6 +208,9 @@ const Inventory = () => {
                 onChange={(e) => setFilterDate(e.target.value)}
                 style={{ marginBottom: 0 }}
               />
+              <Button variant="secondary" onClick={handleExportLogs}>
+                Export Logs
+              </Button>
             </div>
           </div>
           <Table columns={columns} data={filteredLogs} />

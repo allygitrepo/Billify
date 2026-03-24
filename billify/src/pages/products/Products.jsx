@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDataContext } from '../../hooks/useDataContext';
 import PageContainer from '../../components/layout/PageContainer';
@@ -7,21 +8,35 @@ import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
+import Switch from '../../components/common/Switch';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { fileToBase64, validateImage } from '../../utils/fileHelpers';
 import { exportToCSV, importFromCSV, downloadTemplate as downloadCSVTemplate } from '../../utils/csvService';
 
 const Products = () => {
   const fileInputRef = useRef(null);
-  const { products, categories: allCategories, addProduct, updateProduct } = useDataContext();
-  
+  const { products, categories: allCategories, uoms, addProduct, updateProduct, deleteProduct, showToast } = useDataContext();
+
   const categoryOptions = useMemo(() => {
-    return allCategories.map(c => ({ label: c.name, value: c.name }));
+    return [
+      { label: 'No Category', value: '' },
+      ...allCategories.map(c => ({ label: c.name, value: c.name }))
+    ];
   }, [allCategories]);
+
+  const [searchParams] = useSearchParams();
+  const initialFilter = searchParams.get('filter') || 'all';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(initialFilter);
+
+  // Update filter if URL changes
+  useEffect(() => {
+    const filter = searchParams.get('filter');
+    if (filter) setStatusFilter(filter);
+  }, [searchParams]);
 
   // Form State
   const [showForm, setShowForm] = useState(false);
@@ -39,6 +54,8 @@ const Products = () => {
     variants: [{ id: Date.now(), name: '', sku: '', price: '', stock: '', status: 'active' }]
   });
   const [errors, setErrors] = useState({});
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
 
   // Handlers
   const handleInputChange = (e) => {
@@ -89,11 +106,11 @@ const Products = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Product name is required';
-    if (!formData.category) newErrors.category = 'Category is required';
+    // Category is optional
 
     formData.variants.forEach((v, idx) => {
       if (!v.name.trim()) newErrors[`variant_name_${idx}`] = 'Required';
-      if (!v.sku.trim()) newErrors[`variant_sku_${idx}`] = 'Required';
+      // SKU is optional
       if (v.price === '' || isNaN(v.price)) newErrors[`variant_price_${idx}`] = 'Invalid';
       if (v.stock === '' || isNaN(v.stock)) newErrors[`variant_stock_${idx}`] = 'Invalid';
     });
@@ -149,7 +166,7 @@ const Products = () => {
     setShowForm(false);
     setIsEditing(false);
   };
-  
+
   const handleCancel = () => {
     resetForm();
   };
@@ -162,8 +179,9 @@ const Products = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleStatusToggle = (id, currentStatus) => {
-    updateProduct(id, { status: currentStatus === 'active' ? 'inactive' : 'active' });
+  const handleDelete = (id) => {
+    setProductToDelete(id);
+    setIsConfirmOpen(true);
   };
 
   // Bulk Upload/Export Handlers
@@ -175,7 +193,7 @@ const Products = () => {
   };
 
   const handleExportProducts = () => {
-    const exportData = products.flatMap(p => 
+    const exportData = products.flatMap(p =>
       p.variants.map(v => ({
         id: p.id,
         name: p.name,
@@ -198,123 +216,247 @@ const Products = () => {
 
     try {
       const data = await importFromCSV(file);
-      
-      // Group variants by product name/id
+
+      // Normalize: create a lowercase-keyed version of each row to handle any header casing
+      const normalizedData = data.map(item => {
+        const normalized = {};
+        Object.keys(item).forEach(key => {
+          // Convert "Product Name" -> "productname", "basePrice" -> "baseprice" etc.
+          normalized[key.toLowerCase().replace(/\s+/g, '')] = item[key];
+        });
+        // Also keep original keys so we don't break anything
+        return { ...normalized };
+      });
+
+      // Helper: get a field trying multiple possible key names
+      const getField = (row, ...keys) => {
+        for (const key of keys) {
+          const normalized = key.toLowerCase().replace(/\s+/g, '');
+          if (row[normalized] !== undefined && row[normalized] !== '') {
+            return row[normalized];
+          }
+        }
+        return undefined;
+      };
+
+      // Group variants by product name
       const productsMap = {};
-      data.forEach(item => {
-        const key = item.name;
+      normalizedData.forEach(item => {
+        const name = getField(item, 'name', 'productname', 'productName', 'product');
+        if (!name || !name.trim()) return;
+
+        const key = name.trim();
         if (!productsMap[key]) {
           productsMap[key] = {
-            name: item.name,
-            category: item.category || 'General',
-            description: item.description || '',
-            basePrice: parseFloat(item.basePrice) || 0,
-            hsnCode: item.hsnCode || '',
-            uom: item.uom || 'Pcs',
+            name: key,
+            category: getField(item, 'category', 'categoryname') || 'General',
+            description: getField(item, 'description', 'desc') || '',
+            basePrice: parseFloat(getField(item, 'baseprice', 'basePrice', 'price') || '0') || 0,
+            hsnCode: getField(item, 'hsncode', 'hsnCode', 'hsn') || '',
+            uom: getField(item, 'uom', 'unit') || 'Pcs',
             status: 'active',
             variants: []
           };
         }
         productsMap[key].variants.push({
           id: Date.now() + Math.random(),
-          name: item.variantName || 'Default',
-          sku: item.sku || `SKU-${Math.floor(Math.random() * 10000)}`,
-          price: parseFloat(item.price) || 0,
-          stock: parseInt(item.stock) || 0,
+          name: getField(item, 'variantname', 'variantName', 'variant') || 'Default',
+          sku: getField(item, 'sku') || `SKU-${Math.floor(Math.random() * 10000)}`,
+          price: parseFloat(getField(item, 'price', 'sellingprice', 'sellingPrice') || '0') || 0,
+          stock: parseInt(getField(item, 'stock', 'quantity', 'qty') || '0') || 0,
           status: 'active'
         });
       });
+
+      const count = Object.values(productsMap).length;
+      if (count === 0) {
+        showToast('No valid products found in CSV. Check column headers.', 'error');
+        e.target.value = '';
+        return;
+      }
 
       // Add each product to the context
       Object.values(productsMap).forEach(product => {
         addProduct(product);
       });
 
-      alert(`Successfully imported ${Object.keys(productsMap).length} products!`);
-      // Reset file input
+      showToast(`Successfully imported ${count} products!`, 'success');
       e.target.value = '';
     } catch (err) {
-      alert('Error importing CSV: ' + err);
+      showToast('Error importing CSV: ' + err.message, 'error');
     }
   };
 
   // Filter Logic
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
-      const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+      const name = p.name || '';
+      const category = p.category || '';
+      const status = p.status || '';
+
+      const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
+
+      let matchesStatus = statusFilter === 'all' || status === statusFilter;
+      if (statusFilter === 'low_stock') {
+        const hasLowStock = p.variants?.some(v => (parseInt(v.stock) || 0) <= 5);
+        matchesStatus = hasLowStock;
+      }
+
       return matchesSearch && matchesCategory && matchesStatus;
     });
   }, [products, searchTerm, categoryFilter, statusFilter]);
 
-  // Table Columns
-  const columns = [
-    {
-      key: 'photo',
-      label: 'Image',
-      render: (val) => (
-        <div className="table-thumb">
-          {val ? <img src={val} alt="Product" /> : null}
-        </div>
-      )
-    },
-    { key: 'name', label: 'Product Name' },
-    { key: 'category', label: 'Category' },
-    { 
-      key: 'basePrice', 
-      label: 'Base Price',
-      render: (price) => formatCurrency(price)
-    },
-    { 
-      key: 'variants', 
-      label: 'Variants',
-      render: (variants) => variants.length
-    },
-    {
-      key: 'stock',
-      label: 'Stock',
-      render: (_, row) => {
-        const lowest = Math.min(...row.variants.map(v => v.stock));
-        return <span style={{ color: lowest <= 5 ? 'var(--danger-500)' : 'inherit', fontWeight: 'bold' }}>{lowest} (min)</span>;
+  // Derived Table Data (Flattened for Low Stock View)
+  const tableData = useMemo(() => {
+    if (statusFilter !== 'low_stock') return filteredProducts;
+
+    // For low stock, flatten variants into individual rows
+    return filteredProducts.flatMap(p => 
+      (p.variants || [])
+        .filter(v => (parseInt(v.stock) || 0) <= 5)
+        .map(v => ({
+          ...p,
+          variantName: v.name,
+          variantPrice: v.price,
+          variantStock: v.stock,
+          isLowStockView: true
+        }))
+    );
+  }, [filteredProducts, statusFilter]);
+
+  // Table Columns (Dynamic)
+  const columns = useMemo(() => {
+    const defaultColumns = [
+      {
+        key: 'photo',
+        label: 'Image',
+        render: (val) => (
+          <div className="table-thumb">
+            {val ? <img src={val} alt="Product" /> : null}
+          </div>
+        )
+      },
+      { key: 'name', label: 'Product Name' },
+      { key: 'category', label: 'Category' },
+      {
+        key: 'basePrice',
+        label: 'Base Price',
+        render: (price) => formatCurrency(price)
+      },
+      {
+        key: 'variants',
+        label: 'Variants',
+        render: (variants) => (
+          <div className="variants-cell">
+            <span className="variants-count">{(variants || []).length} Variants</span>
+            <div className="variants-tooltip">
+              <p style={{ margin: '0 0 8px 0', fontSize: '10px', textTransform: 'uppercase', color: 'var(--neutral-400)', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}>Variant Details</p>
+              {(variants || []).map((v, i) => (
+                <div key={i} className="tooltip-item">
+                  <span className="v-name">{v.name || 'Standard'}</span>
+                  <span className={`v-stock ${(parseInt(v.stock) || 0) <= 5 ? 'low' : ''}`}>{v.stock} unit</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      },
+      {
+        key: 'stock',
+        label: 'Stock',
+        render: (_, row) => {
+          const variants = row.variants || [];
+          if (variants.length === 0) return '0';
+          const lowest = Math.min(...variants.map(v => parseInt(v.stock) || 0));
+          return <span style={{ color: lowest <= 5 ? 'var(--danger-500)' : 'inherit', fontWeight: 'bold' }}>{lowest}</span>;
+        }
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        render: (status) => (
+          <span className={`status-badge ${status}`}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </span>
+        )
       }
-    },
-    { 
-      key: 'status', 
-      label: 'Status',
-      render: (status) => (
-        <span className={`status-badge ${status}`}>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
-        </span>
-      )
-    },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (_, row) => (
-        <div style={{display: 'flex', gap: 'var(--spacing-3)'}}>
-          <button className="btn-text" onClick={() => handleEdit(row)} style={{color: 'var(--primary-600)'}}>Edit</button>
-          <button 
-            className="btn-text" 
-            onClick={() => handleStatusToggle(row.id, row.status)} 
-            style={{color: row.status === 'active' ? 'var(--danger-500)' : 'var(--primary-600)'}}
-          >
-            {row.status === 'active' ? 'Disable' : 'Enable'}
-          </button>
-        </div>
-      )
-    }
-  ];
+    ];
+
+    const lowStockColumns = [
+      {
+        key: 'photo',
+        label: 'Image',
+        render: (val) => (
+          <div className="table-thumb">
+            {val ? <img src={val} alt="Product" /> : null}
+          </div>
+        )
+      },
+      { key: 'name', label: 'Product Name' },
+      { key: 'category', label: 'Category' },
+      { key: 'variantName', label: 'Variant Name' },
+      {
+        key: 'variantPrice',
+        label: 'Price',
+        render: (val) => formatCurrency(val)
+      },
+      {
+        key: 'variantStock',
+        label: 'Stock Status',
+        render: (val) => (
+          <span style={{ color: 'var(--danger-500)', fontWeight: 'bold' }}>
+            {val} (Low)
+          </span>
+        )
+      }
+    ];
+
+    const activeColumns = statusFilter === 'low_stock' ? lowStockColumns : defaultColumns;
+
+    return [
+      ...activeColumns,
+      {
+        key: 'actions',
+        label: 'Actions',
+        render: (_, row) => (
+          <div style={{ display: 'flex', gap: 'var(--spacing-2)' }}>
+            <button
+              className="btn-icon-primary"
+              onClick={() => handleEdit(row)}
+              title="Edit Product"
+            >
+              ✏️
+            </button>
+            {!row.isLowStockView && (
+              <button
+                className="btn-icon-danger"
+                onClick={() => handleDelete(row.id)}
+                title="Delete Product"
+              >
+                🗑️
+              </button>
+            )}
+          </div>
+        )
+      }
+    ];
+  }, [statusFilter, products]); // products as dependency for tooltips/stock
 
   return (
-    <PageContainer 
+    <PageContainer
       title="Product Management"
       actions={
         <div style={{ display: 'flex', gap: 'var(--spacing-4)', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <div className="filters-row" style={{ maxWidth: '600px', margin: 0 }}>
             <Input placeholder="Search products..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-            <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} options={[{label:'All Categories', value:'all'}, ...categoryOptions]} placeholder={null} />
-            <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[{label:'All Status', value:'all'}, {label:'Active', value:'active'}, {label:'Inactive', value:'inactive'}]} placeholder={null} />
+            <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} options={[{ label: 'All Categories', value: 'all' }, ...categoryOptions]} placeholder={null} />
+            <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[
+              { label: 'All Status', value: 'all' },
+              { label: 'Active', value: 'active' },
+              { label: 'Inactive', value: 'inactive' },
+              { label: 'Low Stock', value: 'low_stock' }
+            ]} placeholder={null} />
           </div>
           <div style={{ display: 'flex', gap: 'var(--spacing-3)' }}>
             {!showForm ? (
@@ -325,12 +467,12 @@ const Products = () => {
             <Button variant="secondary" onClick={handleDownloadTemplate}>Download Template</Button>
             <Button variant="secondary" onClick={() => fileInputRef.current.click()}>Upload CSV</Button>
             <Button variant="secondary" onClick={handleExportProducts}>Export Products</Button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              style={{ display: 'none' }} 
-              accept=".csv" 
-              onChange={handleImportCSV} 
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              accept=".csv"
+              onChange={handleImportCSV}
             />
           </div>
         </div>
@@ -346,74 +488,102 @@ const Products = () => {
               transition={{ duration: 0.3, ease: 'easeInOut' }}
               style={{ overflow: 'hidden' }}
             >
-              <FormWrapper 
-          title={isEditing ? "Edit Product" : "Add New Product"}
-          onSubmit={handleFormSubmit}
-          onCancel={isEditing ? handleCancel : null}
-          submitLabel={isEditing ? "Update Product" : "Save Product"}
-        >
-          <div className="product-layout-split">
-            {/* Left Column: Add New Product fields */}
-            <div className="product-left-col">
-              <div className="product-form-grid">
-                <div className="image-preview-rect" style={{ height: '100%', minHeight: '120px' }}>
-                  {formData.photo ? <img src={formData.photo} alt="Preview" /> : <span style={{fontSize: '10px', color: 'var(--neutral-400)'}}>No Image</span>}
-                </div>
-                <div className="upload-field-container">
-                  <Input 
-                    label="Product Image" 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleProductPhotoChange} 
-                    error={errors.photo} 
-                    className="mb-0"
-                  />
-                  <p className="upload-hint">Square Image, Max 2MB</p>
-                </div>
-                <Input label="Product Name" name="name" value={formData.name} onChange={handleInputChange} error={errors.name} required />
+              <FormWrapper
+                title={isEditing ? "Edit Product" : "Add New Product"}
+                onSubmit={handleFormSubmit}
+                onCancel={isEditing ? handleCancel : null}
+                submitLabel={isEditing ? "Update Product" : "Save Product"}
+              >
+                <div className="product-layout-split">
+                  {/* Left Column: Add New Product fields */}
+                  <div className="product-left-col">
+                    <div className="product-form-grid">
+                      <div className="image-preview-rect" style={{ height: '100%', minHeight: '120px' }}>
+                        {formData.photo ? <img src={formData.photo} alt="Preview" /> : <span style={{ fontSize: '10px', color: 'var(--neutral-400)' }}>No Image</span>}
+                      </div>
+                      <div className="upload-field-container">
+                        <Input
+                          label="Product Image"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleProductPhotoChange}
+                          error={errors.photo}
+                          className="mb-0"
+                        />
+                        <p className="upload-hint">Square Image, Max 2MB</p>
+                      </div>
+                      <Input label="Product Name" name="name" value={formData.name} onChange={handleInputChange} error={errors.name} required />
 
-                <Select label="Category" name="category" value={formData.category} onChange={handleInputChange} options={categoryOptions} error={errors.category} required />
-                <Input label="HSN Code" name="hsnCode" value={formData.hsnCode} onChange={handleInputChange} />
-                <Input label="UOM" name="uom" value={formData.uom} onChange={handleInputChange} />
-                
-                <Input label="Base Price" name="basePrice" type="number" value={formData.basePrice} onChange={handleInputChange} />
-                <Select label="Status" name="status" value={formData.status} onChange={handleInputChange} options={[{label:'Active', value:'active'}, {label:'Inactive', value:'inactive'}]} />
-                <div className="col-span-2">
-                  <Input label="Description" name="description" value={formData.description} onChange={handleInputChange} />
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column: Product Variants */}
-            <div className="product-right-col">
-              <div className="variants-section-split">
-                <div className="section-header-compact">
-                  <h3 className="section-title-small">Product Variants</h3>
-                  <Button type="button" variant="secondary" onClick={addVariant} style={{ padding: '4px 12px', fontSize: '12px' }}>+ Add Variant</Button>
-                </div>
-                
-                <div className="variants-list">
-                  {formData.variants.map((v, idx) => (
-                    <div key={v.id} className="variant-item-card-split">
-                      <Input placeholder="Variant Name" name="name" value={v.name} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_name_${idx}`]} />
-                      <Input placeholder="SKU" name="sku" value={v.sku} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_sku_${idx}`]} />
-                      <Input placeholder="Price" name="price" type="number" value={v.price} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_price_${idx}`]} />
-                      <Input placeholder="Stock" name="stock" type="number" value={v.stock} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_stock_${idx}`]} />
+                      <Select label="Category" name="category" value={formData.category} onChange={handleInputChange} options={categoryOptions} error={errors.category} />
+                      <Input label="HSN Code" name="hsnCode" value={formData.hsnCode} onChange={handleInputChange} />
                       <Select 
-                        name="status" 
-                        value={v.status} 
-                        onChange={(e) => handleVariantChange(idx, e)} 
-                        options={[{label:'Active', value:'active'}, {label:'Inactive', value:'inactive'}]}
-                        placeholder={null}
+                        label="UOM" 
+                        name="uom" 
+                        value={formData.uom} 
+                        onChange={handleInputChange} 
+                        options={(uoms || []).map(u => ({ label: `${u.name} (${u.shortCode})`, value: u.shortCode }))} 
+                        error={errors.uom} 
+                        required 
                       />
-                      <Button type="button" variant="danger" onClick={() => removeVariant(idx)} disabled={formData.variants.length === 1}>×</Button>
+
+                      <Input label="Base Price" name="basePrice" type="number" value={formData.basePrice} onChange={handleInputChange} />
+                      <Switch label="Active Status" name="status" checked={formData.status === 'active'} onChange={handleInputChange} />
+                      <div className="col-span-2">
+                        <Input label="Description" name="description" value={formData.description} onChange={handleInputChange} />
+                      </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Right Column: Product Variants */}
+                  <div className="product-right-col">
+                    <div className="variants-section-split">
+                      <div className="section-header-compact">
+                        <h3 className="section-title-small">Product Variants</h3>
+                        <Button type="button" variant="secondary" onClick={addVariant} style={{ padding: '4px 12px', fontSize: '12px' }}>+ Add Variant</Button>
+                      </div>
+
+                      <div className="variants-list">
+                        <div style={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: '2fr 1.2fr 1fr 1fr 0.6fr 40px', 
+                          gap: 'var(--spacing-3)', 
+                          padding: '0 var(--spacing-3)',
+                          marginBottom: '4px' 
+                        }}>
+                          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Variant Name</span>
+                          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SKU</span>
+                          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Price</span>
+                          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Stock</span>
+                          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</span>
+                          <span></span>
+                        </div>
+                        {formData.variants.map((v, idx) => (
+                          <div key={v.id} className="variant-item-card-split">
+                            <Input placeholder="Variant Name" name="name" value={v.name} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_name_${idx}`]} />
+                            <Input placeholder="SKU" name="sku" value={v.sku} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_sku_${idx}`]} />
+                            <Input placeholder="Price" name="price" type="number" value={v.price} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_price_${idx}`]} />
+                            <Input placeholder="Stock" name="stock" type="number" value={v.stock} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_stock_${idx}`]} />
+                            <Switch
+                              name="status"
+                              checked={v.status === 'active'}
+                              onChange={(e) => handleVariantChange(idx, e)}
+                            />
+                            <button
+                              type="button"
+                              className="btn-icon-danger"
+                              onClick={() => removeVariant(idx)}
+                              disabled={formData.variants.length === 1}
+                              title="Remove Variant"
+                            >
+                              🗑
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </FormWrapper>
+              </FormWrapper>
             </motion.div>
           )}
         </AnimatePresence>
@@ -423,9 +593,16 @@ const Products = () => {
             <h3 className="card-title">All Products</h3>
           </div>
 
-          <Table columns={columns} data={filteredProducts} />
+          <Table columns={columns} data={tableData} />
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={() => deleteProduct(productToDelete)}
+        title="Delete Product"
+        message="Are you sure you want to permanently delete this product? This action cannot be undone."
+      />
     </PageContainer>
   );
 };

@@ -1,13 +1,29 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import { useDataContext } from '../../hooks/useDataContext';
 import PageContainer from '../../components/layout/PageContainer';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import Button from '../../components/common/Button';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import { fileToBase64, validateImage } from '../../utils/fileHelpers';
 
 const Settings = () => {
-  const { settings, updateSettings } = useDataContext();
+  const { user, switchBusiness } = useAuth();
+  const { settings, updateSettings, businesses, addBusiness, deleteBusiness } = useDataContext();
+  const isAdmin = user?.role === 'Admin';
+  
+  const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'business'
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [bizToDelete, setBizToDelete] = useState(null);
+  const [newBizData, setNewBizData] = useState({
+    businessName: '',
+    gstNumber: '',
+    phone: '',
+    address: '',
+    photo: ''
+  });
+  const [bizErrors, setBizErrors] = useState({});
   const [formData, setFormData] = useState({
     businessName: '',
     gstNumber: '',
@@ -19,8 +35,7 @@ const Settings = () => {
     invoicePrefix: 'INV',
     startingNumber: '1001',
     footerNote: '',
-    thermalPrint: true,
-    a4Print: false,
+    invoiceFormat: 'thermal',
     photo: ''
   });
 
@@ -58,6 +73,25 @@ const Settings = () => {
     }
   };
 
+  const handleBizFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const error = validateImage(file);
+    if (error) {
+      setBizErrors(prev => ({ ...prev, photo: error }));
+      return;
+    }
+
+    try {
+      const base64 = await fileToBase64(file);
+      setNewBizData(prev => ({ ...prev, photo: base64 }));
+      setBizErrors(prev => ({ ...prev, photo: '' }));
+    } catch (err) {
+      setBizErrors(prev => ({ ...prev, photo: 'Error processing image.' }));
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
     if (!formData.businessName.trim()) newErrors.businessName = 'Business name is required';
@@ -79,13 +113,30 @@ const Settings = () => {
     });
 
     updateSettings(formData);
-    alert('Settings saved successfully!');
   };
 
   return (
     <PageContainer title="Business Settings">
       <div className="animate-fade-in">
-        <form onSubmit={handleSave}>
+        {isAdmin && (
+          <div className="tabs-container mb-8">
+            <button 
+              className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
+              onClick={() => setActiveTab('profile')}
+            >
+              General Settings
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'business' ? 'active' : ''}`}
+              onClick={() => setActiveTab('business')}
+            >
+              Manage Businesses
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'profile' ? (
+          <form onSubmit={handleSave}>
           <div className="settings-layout">
             {/* Left Column: Business & Tax */}
             <div className="settings-column">
@@ -215,33 +266,17 @@ const Settings = () => {
               <div className="card">
                 <h3 className="card-title mb-4">Printing Preferences</h3>
                 <div className="print-settings">
-                  <label className="toggle-item">
-                    <div className="toggle-info">
-                      <span className="toggle-label">Thermal Printing</span>
-                      <span className="toggle-desc">Enable 80mm/58mm roll printing</span>
-                    </div>
-                    <input 
-                      type="checkbox" 
-                      name="thermalPrint" 
-                      checked={formData.thermalPrint} 
-                      onChange={handleInputChange} 
-                      className="toggle-checkbox"
-                    />
-                  </label>
-
-                  <label className="toggle-item">
-                    <div className="toggle-info">
-                      <span className="toggle-label">A4 Full Sheet Printing</span>
-                      <span className="toggle-desc">Generate invoices in A4 PDF format</span>
-                    </div>
-                    <input 
-                      type="checkbox" 
-                      name="a4Print" 
-                      checked={formData.a4Print} 
-                      onChange={handleInputChange} 
-                      className="toggle-checkbox"
-                    />
-                  </label>
+                  <Select 
+                    label="Invoice Printing Format" 
+                    name="invoiceFormat" 
+                    value={formData.invoiceFormat} 
+                    onChange={handleInputChange} 
+                    options={[
+                      { label: 'Thermal Roll (80mm)', value: 'thermal' },
+                      { label: 'A4 Full Sheet', value: 'a4' }
+                    ]} 
+                  />
+                  <p className="upload-hint mt-2">Choose the layout that matches your printer type.</p>
                 </div>
               </div>
 
@@ -253,6 +288,150 @@ const Settings = () => {
             </div>
           </div>
         </form>
+        ) : (
+          <div className="business-management-section animate-fade-in">
+            <div className="card mb-8">
+              <h3 className="card-title mb-6">Add New Business</h3>
+              
+              <div className="settings-group">
+                <div className="image-upload-wrapper mb-6">
+                  <div className={`image-preview-circle ${bizErrors.photo ? 'has-error' : ''}`}>
+                    {newBizData.photo ? (
+                      <img src={newBizData.photo} alt="New Business Logo" />
+                    ) : (
+                      <span style={{ fontSize: '12px', color: 'var(--neutral-400)' }}>Logo</span>
+                    )}
+                  </div>
+                  <div className="upload-field-container">
+                    <Input 
+                      label="Business Logo"
+                      name="photo"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBizFileChange}
+                      error={bizErrors.photo}
+                      className="mb-0"
+                    />
+                  </div>
+                </div>
+
+                <div className="settings-grid-2">
+                  <Input 
+                    label="Business Name *" 
+                    placeholder="e.g. Branch 2, Retail Store" 
+                    value={newBizData.businessName}
+                    onChange={(e) => setNewBizData(prev => ({ ...prev, businessName: e.target.value }))}
+                    error={bizErrors.businessName}
+                  />
+                  <Input 
+                    label="GST Number (Optional)" 
+                    placeholder="27AAAAA0000A1Z5" 
+                    value={newBizData.gstNumber}
+                    onChange={(e) => setNewBizData(prev => ({ ...prev, gstNumber: e.target.value }))}
+                  />
+                  <Input 
+                    label="Phone Number *" 
+                    placeholder="9876543210" 
+                    value={newBizData.phone}
+                    onChange={(e) => setNewBizData(prev => ({ ...prev, phone: e.target.value }))}
+                    error={bizErrors.phone}
+                  />
+                  <Input 
+                    label="Business Address" 
+                    placeholder="Enter full address" 
+                    value={newBizData.address}
+                    onChange={(e) => setNewBizData(prev => ({ ...prev, address: e.target.value }))}
+                  />
+                </div>
+
+                <div className="mt-6">
+                  <Button 
+                    variant="primary" 
+                    style={{ width: '100%' }}
+                    onClick={() => {
+                      const errors = {};
+                      if (!newBizData.businessName.trim()) errors.businessName = 'Name is required';
+                      if (!newBizData.phone.trim() || !/^\d{10}$/.test(newBizData.phone)) errors.phone = 'Valid 10-digit phone required';
+                      
+                      if (Object.keys(errors).length > 0) {
+                        setBizErrors(errors);
+                        return;
+                      }
+
+                      addBusiness(newBizData);
+                      setNewBizData({
+                        businessName: '',
+                        gstNumber: '',
+                        phone: '',
+                        address: '',
+                        photo: ''
+                      });
+                      setBizErrors({});
+                    }}
+                  >
+                    Create Business Entity
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <h3 className="card-title mb-6">Your Businesses</h3>
+              <div className="business-list">
+                {businesses.map(biz => (
+                  <div key={biz.id} className="toggle-item" style={{ marginBottom: 'var(--spacing-4)', background: user?.businessId === biz.id ? 'var(--primary-50)' : '#f9fafb', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-lg)' }}>
+                    <div className="toggle-info">
+                      <span className="toggle-label">{biz.name}</span>
+                      <span className="toggle-desc">ID: {biz.id} {user?.businessId === biz.id ? '(Active)' : ''}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 'var(--spacing-2)' }}>
+                      {user?.businessId !== biz.id ? (
+                        <>
+                          <Button variant="secondary" onClick={() => switchBusiness(biz.id)}>
+                            Switch
+                          </Button>
+                          <Button variant="danger" onClick={() => {
+                            setBizToDelete(biz);
+                            setShowDeleteModal(true);
+                          }}>
+                            Delete
+                          </Button>
+                        </>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
+                          <span className="text-primary" style={{ fontWeight: '600', fontSize: '14px' }}>Currently Active</span>
+                          {businesses.length > 1 && (
+                            <Button variant="danger" onClick={() => {
+                              setBizToDelete(biz);
+                              setShowDeleteModal(true);
+                            }}>
+                              Delete
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <ConfirmModal 
+              isOpen={showDeleteModal}
+              onClose={() => setShowDeleteModal(false)}
+              onConfirm={() => {
+                if (bizToDelete) {
+                  deleteBusiness(bizToDelete.id);
+                  setBizToDelete(null);
+                }
+              }}
+              title="Delete Business Entity"
+              message={`Are you sure you want to delete "${bizToDelete?.name}"? This will permanently remove all related products, transactions, and settings. This action cannot be undone.`}
+              confirmText="Delete Everything"
+              type="danger"
+            />
+          </div>
+        )}
       </div>
     </PageContainer>
   );

@@ -1,10 +1,14 @@
 import React from 'react';
 
-const StatCard = ({ title, value, trend, icon, color }) => {
+const StatCard = ({ title, value, trend, icon, color, onClick }) => {
   const isPositive = trend && trend.startsWith('+');
   
   return (
-    <div className={`stat-card ${color}`}>
+    <div 
+      className={`stat-card ${color}`} 
+      onClick={onClick}
+      style={{ cursor: onClick ? 'pointer' : 'default' }}
+    >
       <div className="stat-card-body">
         <div className="stat-info">
           <span className="stat-title">{title}</span>

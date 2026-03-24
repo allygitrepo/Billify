@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
-import { getBusinessData, updateBusinessData } from '../utils/storage';
+import { getBusinessData, updateBusinessData, getAllBusinesses, addNewBusiness, updateBusinessName, deleteBusiness, saveUser, deleteGlobalUser } from '../utils/storage';
 import { generateId } from '../utils/idGenerator';
 import Toast from '../components/common/Toast';
 import { AnimatePresence } from 'framer-motion';
@@ -8,7 +8,7 @@ import { AnimatePresence } from 'framer-motion';
 const DataContext = createContext();
 
 export const DataProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, switchBusiness } = useAuth();
   const businessId = user?.businessId;
 
   // State for all entity types
@@ -19,6 +19,7 @@ export const DataProvider = ({ children }) => {
   const [settings, setSettings] = useState({});
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [uoms, setUoms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
@@ -36,6 +37,19 @@ export const DataProvider = ({ children }) => {
       setSettings(getBusinessData(businessId, 'settings'));
       setUsers(getBusinessData(businessId, 'business_users'));
       setRoles(getBusinessData(businessId, 'roles'));
+      
+      const savedUoms = getBusinessData(businessId, 'uoms');
+      if (savedUoms.length === 0) {
+        const defaultUoms = [
+          { id: 'UOM-1', name: 'Pieces', shortCode: 'Pcs' },
+          { id: 'UOM-2', name: 'Kilograms', shortCode: 'Kg' },
+          { id: 'UOM-3', name: 'Liters', shortCode: 'Ltr' }
+        ];
+        setUoms(defaultUoms);
+        updateBusinessData(businessId, 'uoms', defaultUoms);
+      } else {
+        setUoms(savedUoms);
+      }
     }
     setLoading(false);
   }, [businessId]);
@@ -55,6 +69,27 @@ export const DataProvider = ({ children }) => {
     setCategories(prev => {
       const updated = prev.map(c => c.id === id ? { ...c, ...updatedData } : c);
       updateBusinessData(businessId, 'categories', updated);
+      showToast('Category updated successfully');
+      return updated;
+    });
+  };
+
+  const deleteCategory = (id) => {
+    setCategories(prev => {
+      const categoryToDelete = prev.find(c => c.id === id);
+      const updated = prev.filter(c => c.id !== id);
+      updateBusinessData(businessId, 'categories', updated);
+      
+      // Cascade delete products
+      if (categoryToDelete) {
+        setProducts(prevProducts => {
+          const updatedProducts = prevProducts.filter(p => p.category !== categoryToDelete.name);
+          updateBusinessData(businessId, 'products', updatedProducts);
+          return updatedProducts;
+        });
+      }
+      
+      showToast('Category and related products deleted');
       return updated;
     });
   };
@@ -74,44 +109,65 @@ export const DataProvider = ({ children }) => {
     setProducts(prev => {
       const updated = prev.map(p => p.id === id ? { ...p, ...updatedData } : p);
       updateBusinessData(businessId, 'products', updated);
+      showToast('Product updated successfully');
       return updated;
     });
   };
 
-  const updateProductStock = (productId, variantName, quantityChange) => {
+  const deleteProduct = (id) => {
     setProducts(prev => {
-      const updated = prev.map(p => {
-        if (p.id === productId) {
-          const updatedVariants = p.variants.map(v => 
-            v.name === variantName 
-              ? { ...v, stock: Math.max(0, (parseInt(v.stock) || 0) + quantityChange) } 
-              : v
-          );
+      const updated = prev.filter(p => p.id !== id);
+      updateBusinessData(businessId, 'products', updated);
+      showToast('Product deleted successfully');
+      return updated;
+    });
+  };
+
+  // INVENTORY LOG & STOCK SYNC
+  const addInventoryEntry = (entry) => {
+    // 1. Find current stock to calculate stockAfter
+    const product = products.find(p => p.id === entry.productId);
+    const variant = product?.variants.find(v => v.name === entry.variantName);
+    const currentStock = parseInt(variant?.stock) || 0;
+    const finalStockAfter = Math.max(0, currentStock + entry.quantityChange);
+
+    // 2. Update Products state and STORAGE
+    setProducts(prevProducts => {
+      const updatedProducts = prevProducts.map(p => {
+        if (p.id === entry.productId) {
+          const updatedVariants = p.variants.map(v => {
+            if (v.name === entry.variantName) {
+              return { ...v, stock: finalStockAfter };
+            }
+            return v;
+          });
           return { ...p, variants: updatedVariants };
         }
         return p;
       });
-      updateBusinessData(businessId, 'products', updated);
-      return updated;
+      updateBusinessData(businessId, 'products', updatedProducts);
+      return updatedProducts;
     });
-  };
 
-  // INVENTORY LOG
-  const addInventoryEntry = (entry) => {
-    const newEntry = { 
+    // 3. Add to Inventory Log and STORAGE
+    const logEntryWithStock = { 
       ...entry, 
       id: generateId('LOG-'), 
       date: new Date().toISOString(),
-      doneBy: user?.name || 'Admin'
+      doneBy: user?.name || 'Admin',
+      stockAfter: finalStockAfter
     };
+    
     setInventoryLog(prev => {
-      const updated = [newEntry, ...prev];
+      const updated = [logEntryWithStock, ...prev];
       updateBusinessData(businessId, 'inventory_log', updated);
       return updated;
     });
 
-    // Side effect: update product stock
-    updateProductStock(entry.productId, entry.variantName, entry.quantityChange);
+    // Show toast only for manual inventory updates, not for POS sales
+    if (entry.reason !== 'Sale') {
+      showToast(`${entry.type === 'IN' ? 'Added' : 'Reduced'} stock for ${entry.productName}`);
+    }
   };
 
   // TRANSACTIONS
@@ -147,15 +203,25 @@ export const DataProvider = ({ children }) => {
   const updateSettings = (newSettings) => {
     setSettings(newSettings);
     updateBusinessData(businessId, 'settings', newSettings);
+    
+    // Sync business name to global business list
+    if (newSettings.businessName) {
+      updateBusinessName(businessId, newSettings.businessName);
+    }
+    
     showToast('Settings saved');
   };
 
   // USERS
-  const addUser = (user) => {
-    const newUser = { ...user, id: generateId('USR-') };
+  const addUser = (userData) => {
+    const newUser = { ...userData, id: generateId('USR-') };
     setUsers(prev => {
       const updated = [...prev, newUser];
       updateBusinessData(businessId, 'business_users', updated);
+      
+      // Sync with global auth registry
+      saveUser({ ...newUser, businessId });
+      
       return updated;
     });
   };
@@ -164,14 +230,29 @@ export const DataProvider = ({ children }) => {
     setUsers(prev => {
       const updated = prev.map(u => u.id === id ? { ...u, ...updates } : u);
       updateBusinessData(businessId, 'business_users', updated);
+      
+      // Sync with global auth registry
+      const updatedUser = updated.find(u => u.id === id);
+      if (updatedUser) {
+        saveUser({ ...updatedUser, businessId });
+      }
+      
       return updated;
     });
   };
 
   const deleteUser = (id) => {
     setUsers(prev => {
-      const updated = prev.map(u => u.id === id ? { ...u, status: 'inactive' } : u);
+      const userToDelete = prev.find(u => u.id === id);
+      const updated = prev.filter(u => u.id !== id);
       updateBusinessData(businessId, 'business_users', updated);
+      
+      // Remove from global auth registry
+      if (userToDelete) {
+        deleteGlobalUser(userToDelete.email);
+      }
+      
+      showToast('User deleted successfully');
       return updated;
     });
   };
@@ -182,11 +263,76 @@ export const DataProvider = ({ children }) => {
     setRoles(prev => {
       const updated = [...prev, newRole];
       updateBusinessData(businessId, 'roles', updated);
+      showToast('Role created successfully');
       return updated;
     });
   };
 
+  const updateRole = (id, updates) => {
+    setRoles(prev => {
+      const updated = prev.map(r => r.id === id ? { ...r, ...updates } : r);
+      updateBusinessData(businessId, 'roles', updated);
+      showToast('Role updated successfully');
+      return updated;
+    });
+  };
+
+  // UOMs
+  const addUom = (uom) => {
+    const newUom = { ...uom, id: generateId('UOM-') };
+    setUoms(prev => {
+      const updated = [...prev, newUom];
+      updateBusinessData(businessId, 'uoms', updated);
+      showToast('Unit added successfully');
+      return updated;
+    });
+  };
+
+  const updateUom = (id, updates) => {
+    setUoms(prev => {
+      const updated = prev.map(u => u.id === id ? { ...u, ...updates } : u);
+      updateBusinessData(businessId, 'uoms', updated);
+      showToast('Unit updated successfully');
+      return updated;
+    });
+  };
+
+  const deleteUom = (id) => {
+    setUoms(prev => {
+      const updated = prev.filter(u => u.id !== id);
+      updateBusinessData(businessId, 'uoms', updated);
+      showToast('Unit deleted successfully');
+      return updated;
+    });
+  };
+
+  // BUSINESSES
+  const addBusiness = (businessData) => {
+    const newBiz = addNewBusiness(businessData);
+    showToast('Business created successfully');
+    return newBiz;
+  };
+
+  const deleteBusinessStore = (id) => {
+    const remaining = getAllBusinesses().filter(b => b.id !== id);
+    
+    // Safety: Don't allow deleting the last business
+    if (remaining.length === 0) {
+      showToast('Cannot delete the last business. Add another first.', 'error');
+      return;
+    }
+
+    deleteBusiness(id);
+    showToast('Business and all data deleted');
+    
+    // If active business was deleted, switch to the first remaining one
+    if (businessId === id && remaining.length > 0) {
+      switchBusiness(remaining[0].id);
+    }
+  };
+
   const value = {
+    businesses: getAllBusinesses(),
     categories,
     products,
     transactions,
@@ -197,15 +343,25 @@ export const DataProvider = ({ children }) => {
     loading,
     addCategory,
     updateCategory,
+    deleteCategory,
     addProduct,
     updateProduct,
+    deleteProduct,
     addInventoryEntry,
     addTransaction,
     updateSettings,
     addUser,
     updateUser,
     deleteUser,
-    addRole
+    addRole,
+    updateRole,
+    addBusiness,
+    deleteBusiness: deleteBusinessStore,
+    uoms,
+    addUom,
+    updateUom,
+    deleteUom,
+    showToast
   };
 
   return (

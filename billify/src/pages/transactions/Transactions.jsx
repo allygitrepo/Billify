@@ -7,10 +7,11 @@ import Select from '../../components/common/Select';
 import { formatDate } from '../../utils/formatDate';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { exportToCSV } from '../../utils/csvService';
+import Table from '../../components/common/Table';
 import Modal from '../../components/common/Modal';
 
 const Transactions = () => {
-  const { transactions, settings } = useDataContext();
+  const { transactions, settings, showToast } = useDataContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [paymentFilter, setPaymentFilter] = useState('All');
@@ -24,45 +25,52 @@ const Transactions = () => {
   };
 
   const handlePrint = (transaction) => {
+    const isThermal = settings.invoiceFormat === 'thermal';
+    
     // Create a temporary div to render the invoice content for printing
     const printContainer = document.createElement('div');
-    printContainer.className = `print-only-invoice ${settings.thermalPrint ? 'thermal' : 'a4'}`;
+    printContainer.className = `print-only-invoice ${isThermal ? 'thermal' : 'a4'}`;
 
-    // Construct the invoice HTML based on the selected transaction and settings
+    // Construct the invoice HTML based on the selected format
     const invoiceHTML = `
       <div class="print-header">
         <div class="business-info">
-          ${settings.photo ? `<img src="${settings.photo}" alt="Logo" style="height: 50px; margin-bottom: 10px;" />` : ''}
+          ${settings.photo ? `<img src="${settings.photo}" alt="Logo" class="print-logo" />` : ''}
           <h1>${settings.businessName || 'Billify'}</h1>
-          <p>${settings.address || 'Business Address Line'}</p>
-          ${settings.gstNumber ? `<p>GST: ${settings.gstNumber}</p>` : ''}
-          <p>Phone: ${settings.phone || '0000000000'}</p>
+          <p class="biz-address">${settings.address || ''}</p>
+          ${settings.gstNumber ? `<p class="biz-gst">GSTIN: ${settings.gstNumber}</p>` : ''}
+          <p class="biz-contact">Ph: ${settings.phone || ''} ${settings.email ? `| ${settings.email}` : ''}</p>
         </div>
-        <div style="text-align: ${settings.thermalPrint ? 'center' : 'right'};">
-          <h2 style="margin: 0; color: var(--primary-600); font-size: ${settings.thermalPrint ? '24px' : '32px'};">INVOICE</h2>
-          <p style="margin: 5px 0; font-size: 16px; font-weight: bold;">#${transaction.id}</p>
-          <p style="margin: 0;">${formatDate(transaction.date)}</p>
+        <div class="invoice-meta" style="text-align: ${isThermal ? 'center' : 'right'};">
+          <h2 class="invoice-title">${isThermal ? 'INVOICE' : 'TAX INVOICE'}</h2>
+          <div class="meta-details">
+            <p><strong>Invoice #:</strong> ${transaction.id}</p>
+            <p><strong>Date:</strong> ${formatDate(transaction.date)}</p>
+            ${!isThermal ? `<p><strong>Payment:</strong> ${transaction.paymentMethod}</p>` : ''}
+          </div>
         </div>
       </div>
 
       <div class="invoice-info-grid">
         <div class="info-block">
           <h5>Bill To:</h5>
-          <p><strong>Walking Customer</strong></p>
-          <p>Payment Method: ${transaction.paymentMethod}</p>
+          <p class="customer-name"><strong>Walking Customer</strong></p>
+          ${isThermal ? `<p>Payment: ${transaction.paymentMethod}</p>` : ''}
         </div>
-        <div class="info-block" style="text-align: ${settings.thermalPrint ? 'left' : 'right'};">
-          <h5>Invoice Info:</h5>
-          <p>Invoice No: ${transaction.id}</p>
-          <p>Date: ${formatDate(transaction.date)}</p>
+        ${!isThermal ? `
+        <div class="info-block" style="text-align: right;">
+          <h5>Place of Supply:</h5>
+          <p>${settings.address?.split(',').pop()?.trim() || 'N/A'}</p>
         </div>
+        ` : ''}
       </div>
 
       <table class="invoice-table">
         <thead>
           <tr>
-            <th>${settings.thermalPrint ? 'Item' : 'No.'}</th>
-            ${!settings.thermalPrint ? '<th>Item Description</th>' : ''}
+            <th style="width: 40px;">Sl.</th>
+            <th>Item Description</th>
+            ${!isThermal ? '<th>HSN/SAC</th>' : ''}
             <th>Price</th>
             <th>Qty</th>
             <th style="text-align: right;">Total</th>
@@ -70,14 +78,13 @@ const Transactions = () => {
         </thead>
         <tbody>
           ${transaction.items.map((item, idx) => `
-            <tr key=${idx}>
-              <td>${settings.thermalPrint ? item.name : idx + 1}</td>
-              ${!settings.thermalPrint ? `
-                <td>
-                  <strong>${item.name}</strong>
-                  <div style="font-size: 11px; color: #666;">${item.variantName || ''}</div>
-                </td>
-              ` : ''}
+            <tr>
+              <td>${idx + 1}</td>
+              <td>
+                <div class="item-name">${item.name}</div>
+                ${item.variantName ? `<div class="item-variant">${item.variantName}</div>` : ''}
+              </td>
+              ${!isThermal ? `<td>${item.hsnCode || '-'}</td>` : ''}
               <td>${formatCurrency(item.price)}</td>
               <td>${item.quantity}</td>
               <td style="text-align: right;">${formatCurrency(item.price * item.quantity)}</td>
@@ -86,44 +93,53 @@ const Transactions = () => {
         </tbody>
       </table>
 
-      <div class="print-footer">
+      <div class="print-footer-container">
+        <div class="notes-section">
+          ${!isThermal ? `
+            <div class="amount-in-words">
+              <h5>Amount in Words:</h5>
+              <p style="text-transform: capitalize;">${transaction.total.toLocaleString('en-IN')} Only</p>
+            </div>
+          ` : ''}
+          ${settings.footerNote ? `
+            <div class="merchant-note">
+              <h5>Notes:</h5>
+              <p>${settings.footerNote}</p>
+            </div>
+          ` : ''}
+        </div>
+        
         <div class="print-summary">
-          <div class="print-summary-row">
-            <span>Subtotal</span>
+          <div class="summary-row">
+            <span>Subtotal:</span>
             <span>${formatCurrency(transaction.subtotal)}</span>
           </div>
           ${(transaction.tax > 0 || settings.taxPercentage > 0) ? `
-            <div class="print-summary-row">
-              <span>Tax (${settings.taxPercentage || 0}%)</span>
+            <div class="summary-row">
+              <span>Tax (${settings.taxPercentage || 0}%):</span>
               <span>${formatCurrency(transaction.tax)}</span>
             </div>
           ` : ''}
           ${(transaction.gst > 0 || settings.gstPercentage > 0) ? `
-            <div class="print-summary-row">
-              <span>GST (${settings.gstPercentage || 0}%)</span>
+            <div class="summary-row">
+              <span>GST (${settings.gstPercentage || 0}%):</span>
               <span>${formatCurrency(transaction.gst)}</span>
             </div>
           ` : ''}
           ${transaction.discount > 0 ? `
-            <div class="print-summary-row" style="color: #dc2626;">
-              <span>Discount</span>
+            <div class="summary-row discount">
+              <span>Discount:</span>
               <span>-${formatCurrency(transaction.discount)}</span>
             </div>
           ` : ''}
-          <div class="print-summary-row total">
-            <span>Grand Total</span>
+          <div class="summary-row total">
+            <span>Grand Total:</span>
             <span>${formatCurrency(transaction.total)}</span>
           </div>
         </div>
       </div>
 
-      ${settings.footerNote ? `
-        <div class="footer-note">
-          <p>${settings.footerNote}</p>
-        </div>
-      ` : ''}
-      
-      <div style="margin-top: ${settings.thermalPrint ? '30px' : '60px'}; text-align: center; font-size: 11px; color: #999; border-top: 1px dashed #eee; padding-top: 15px;">
+      <div class="declaration-section">
         <p>This is a computer-generated invoice and does not require a signature.</p>
         <p>Thank you for your business! Powered by Billify POS</p>
       </div>
@@ -272,54 +288,31 @@ const Transactions = () => {
 
         {/* Transactions Table */}
         <div className="card no-padding">
-          <div className="custom-table-container">
-            <table className="custom-table">
-              <thead>
-                <tr>
-                  <th>Invoice No</th>
-                  <th>Type</th>
-                  <th>Date</th>
-                  <th>Items</th>
-                  <th>Payment</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTransactions.length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="text-center py-8 text-neutral-400">No transactions found</td>
-                  </tr>
-                ) : (
-                  filteredTransactions.map(t => (
-                    <tr key={t.id}>
-                      <td className="font-semibold">{t.id}</td>
-                      <td>
-                        <span className={`type-tag ${t.type.toLowerCase()}`}>{t.type}</span>
-                      </td>
-                      <td>{formatDate(t.date)}</td>
-                      <td>{t.items.length} items</td>
-                      <td>{t.paymentMethod}</td>
-                      <td className="font-bold">{formatCurrency(t.total)}</td>
-                      <td>
-                        <span className={`status-badge ${t.status.toLowerCase()}`}>{t.status}</span>
-                      </td>
-                      <td>
-                        <button 
-                          className="btn-text p-0" 
-                          style={{color: 'var(--primary-600)', fontWeight: '600'}}
-                          onClick={() => openInvoice(t)}
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Table 
+            columns={[
+              { key: 'id', label: 'Invoice No', render: (val) => <span className="font-semibold">{val}</span> },
+              { key: 'type', label: 'Type', render: (val) => <span className={`type-tag ${val.toLowerCase()}`}>{val}</span> },
+              { key: 'date', label: 'Date', render: (val) => formatDate(val) },
+              { key: 'items', label: 'Items', render: (val) => `${val.length} items` },
+              { key: 'paymentMethod', label: 'Payment' },
+              { key: 'total', label: 'Total', render: (val) => <span className="font-bold">{formatCurrency(val)}</span> },
+              { key: 'status', label: 'Status', render: (val) => <span className={`status-badge ${val.toLowerCase()}`}>{val}</span> },
+              { 
+                key: 'actions', 
+                label: 'Action', 
+                render: (_, row) => (
+                  <button 
+                    className="btn-text p-0" 
+                    style={{color: 'var(--primary-600)', fontWeight: '600'}}
+                    onClick={() => openInvoice(row)}
+                  >
+                    View
+                  </button>
+                )
+              }
+            ]} 
+            data={filteredTransactions} 
+          />
         </div>
 
         {/* Invoice Modal */}
@@ -402,11 +395,11 @@ const Transactions = () => {
               </p>
 
               <div className="social-sharing">
-                <button className="share-icon-btn" onClick={() => alert('WhatsApp Sharing coming soon!')}>
+                <button className="share-icon-btn" onClick={() => showToast('WhatsApp Sharing coming soon!', 'info')}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                   WhatsApp
                 </button>
-                <button className="share-icon-btn" onClick={() => alert('Email Sharing coming soon!')}>
+                <button className="share-icon-btn" onClick={() => showToast('Email Sharing coming soon!', 'info')}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                   Email
                 </button>

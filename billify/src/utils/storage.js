@@ -6,8 +6,13 @@
 const STORAGE_KEY = 'billify_data';
 
 export const getStorageData = () => {
-  const data = localStorage.getItem(STORAGE_KEY);
-  if (data) return JSON.parse(data);
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) return JSON.parse(data);
+  } catch (error) {
+    console.error('Error parsing storage data:', error);
+    // In case of corruption, we continue to seed data
+  }
 
   // Initial Seed Data
   const seedData = {
@@ -56,8 +61,7 @@ export const getStorageData = () => {
         invoicePrefix: 'INV',
         startingNumber: '1001',
         footerNote: 'Thank you for shopping with us!',
-        thermalPrint: true,
-        a4Print: false
+        invoiceFormat: 'thermal'
       }
     }
   };
@@ -94,12 +98,84 @@ export const getAllUsers = () => {
 
 export const saveUser = (user) => {
   const data = getStorageData();
-  const index = data.users.findIndex(u => u.id === user.id);
+  const index = data.users.findIndex(u => u.email === user.email);
   if (index !== -1) {
-    data.users[index] = user;
+    // Update existing
+    data.users[index] = { ...data.users[index], ...user };
   } else {
+    // Add new
     data.users.push(user);
   }
+  saveStorageData(data);
+};
+
+export const deleteGlobalUser = (email) => {
+  const data = getStorageData();
+  data.users = data.users.filter(u => u.email !== email);
+  saveStorageData(data);
+};
+
+// Business Management
+export const getAllBusinesses = () => {
+  return getStorageData().businesses || [];
+};
+
+export const addNewBusiness = (businessData) => {
+  const data = getStorageData();
+  const businessId = `biz_${Date.now()}`;
+  
+  const newBusiness = { id: businessId, name: businessData.businessName };
+  data.businesses.push(newBusiness);
+  
+  // Initialize empty data for the new business
+  data.categories[businessId] = [];
+  data.products[businessId] = [];
+  data.business_users[businessId] = [];
+  data.roles[businessId] = [];
+  data.inventory_log[businessId] = [];
+  data.transactions[businessId] = [];
+  data.settings[businessId] = {
+    businessName: businessData.businessName,
+    gstNumber: businessData.gstNumber || '',
+    phone: businessData.phone || '',
+    address: businessData.address || '',
+    taxPercentage: '0',
+    gstPercentage: '0',
+    currency: businessData.currency || 'INR',
+    invoicePrefix: 'INV',
+    startingNumber: '1',
+    footerNote: '',
+    invoiceFormat: 'thermal',
+    photo: businessData.photo || ''
+  };
+
+  saveStorageData(data);
+  return newBusiness;
+};
+
+export const updateBusinessName = (businessId, newName) => {
+  const data = getStorageData();
+  const index = data.businesses.findIndex(b => b.id === businessId);
+  if (index !== -1) {
+    data.businesses[index].name = newName;
+    saveStorageData(data);
+  }
+};
+
+export const deleteBusiness = (businessId) => {
+  const data = getStorageData();
+  
+  // Remove from businesses list
+  data.businesses = data.businesses.filter(b => b.id !== businessId);
+  
+  // Purge all partitioned data
+  const entities = ['categories', 'products', 'business_users', 'roles', 'inventory_log', 'transactions', 'settings'];
+  entities.forEach(entity => {
+    if (data[entity] && data[entity][businessId]) {
+      delete data[entity][businessId];
+    }
+  });
+
   saveStorageData(data);
 };
 

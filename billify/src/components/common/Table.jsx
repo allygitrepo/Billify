@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import EmptyState from './EmptyState';
 
@@ -5,12 +6,24 @@ const Table = ({
   columns = [],
   data = [],
   isLoading = false,
-  pagination,
-  className = ''
+  className = '',
+  showPagination = true
 }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Reset to first page when data changes (e.g. search/filter)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [data.length]);
+
   if (!isLoading && data.length === 0) {
     return <EmptyState />;
   }
+
+  const totalPages = Math.ceil(data.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedData = showPagination ? data.slice(startIndex, startIndex + pageSize) : data;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -52,7 +65,7 @@ const Table = ({
               </td>
             </tr>
           ) : (
-            data.map((row, idx) => (
+            paginatedData.map((row, idx) => (
               <motion.tr 
                 key={row.id || idx} 
                 variants={itemVariants}
@@ -70,25 +83,45 @@ const Table = ({
         </motion.tbody>
       </table>
       
-      {pagination && (
-        <div style={{padding: 'var(--spacing-4) var(--spacing-6)', backgroundColor: 'white', borderTop: '1px solid var(--neutral-100)', display: 'flex', alignItems: 'center', justifyContent: 'between'}}>
-          <span style={{fontSize: '0.875rem', color: 'var(--neutral-500)'}}>
-            Page {pagination.current} of {Math.ceil(pagination.total / pagination.pageSize)}
-          </span>
-          <div style={{display: 'flex', gap: 'var(--spacing-2)'}}>
+      {showPagination && data.length > 0 && (
+        <div className="table-pagination">
+          <div className="pagination-info">
+            <div className="pagination-page-size">
+              <span>Show</span>
+              <select 
+                className="pagination-select"
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={30}>30</option>
+              </select>
+              <span>records</span>
+            </div>
+            <span>
+              Showing {Math.min(data.length, startIndex + 1)} to {Math.min(data.length, startIndex + pageSize)} of {data.length} entries
+            </span>
+          </div>
+
+          <div className="pagination-controls">
             <button 
-              disabled={pagination.current === 1}
-              onClick={() => pagination.onPageChange(pagination.current - 1)}
-              className="btn btn-secondary"
-              style={{padding: 'var(--spacing-1) var(--spacing-3)', fontSize: '0.75rem'}}
+              className="pagination-btn"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => prev - 1)}
             >
               Previous
             </button>
+            <span className="pagination-page-indicator">
+              {currentPage} / {totalPages || 1}
+            </span>
             <button 
-              disabled={pagination.current >= Math.ceil(pagination.total / pagination.pageSize)}
-              onClick={() => pagination.onPageChange(pagination.current + 1)}
-              className="btn btn-secondary"
-              style={{padding: 'var(--spacing-1) var(--spacing-3)', fontSize: '0.75rem'}}
+              className="pagination-btn"
+              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() => setCurrentPage(prev => prev + 1)}
             >
               Next
             </button>

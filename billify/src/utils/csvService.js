@@ -10,7 +10,6 @@
  */
 export const exportToCSV = (data, filename = 'export', headers = null) => {
   if (!data || !data.length) {
-    alert('No data available to export');
     return;
   }
 

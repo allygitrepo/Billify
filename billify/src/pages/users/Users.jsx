@@ -7,39 +7,68 @@ import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
+import Switch from '../../components/common/Switch';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { fileToBase64, validateImage } from '../../utils/fileHelpers';
 import { exportToCSV, importFromCSV, downloadTemplate as downloadCSVTemplate } from '../../utils/csvService';
 
 const Users = () => {
   const fileInputRef = useRef(null);
-  const { users, roles, addUser, updateUser, deleteUser, addRole } = useDataContext();
+  const { users, roles, addUser, updateUser, deleteUser, addRole, updateRole, showToast } = useDataContext();
 
-  // Permission Groups
-  const permissionGroups = [
-    { id: 'products', label: 'Product Management' },
-    { id: 'inventory', label: 'Inventory Management' },
-    { id: 'billing', label: 'Billing' },
-    { id: 'transactions', label: 'Transactions' },
-    { id: 'settings', label: 'Settings' }
+  // Tab State
+  const [activeTab, setActiveTab] = useState('users'); // 'users' | 'roles'
+  
+  // Permissions Configuration
+  const MODULES = [
+    { id: 'dashboard', label: 'Dashboard', group: 'Reports' },
+    { id: 'products', label: 'Products Master', group: 'Masters' },
+    { id: 'categories', label: 'Categories Master', group: 'Masters' },
+    { id: 'users', label: 'User Management', group: 'Masters' },
+    { id: 'billing', label: 'Billing / POS', group: 'Transactions' },
+    { id: 'transactions', label: 'Transaction Logs', group: 'Transactions' },
+    { id: 'inventory', label: 'Inventory Management', group: 'Transactions' },
+    { id: 'uoms', label: 'Units of Measurement', group: 'Settings' },
+    { id: 'reports', label: 'Analytics & Reports', group: 'Reports' },
+    { id: 'settings', label: 'System Settings', group: 'Settings' },
+  ];
+
+  const ACTIONS = [
+    { id: 'add', label: 'Add' },
+    { id: 'view', label: 'View' },
+    { id: 'update', label: 'Update' },
+    { id: 'delete', label: 'Delete' },
+    { id: 'export', label: 'Export' },
+    { id: 'import', label: 'Bulk Upload' },
+    { id: 'download', label: 'Download' },
+    { id: 'print', label: 'Print' },
   ];
 
   // State
   const [activeForm, setActiveForm] = useState(null); // null | 'user' | 'role'
+  
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
+  
+  const [isEditingRole, setIsEditingRole] = useState(false);
+  const [editingRoleId, setEditingRoleId] = useState(null);
+
   const [userFormData, setUserFormData] = useState({
     name: '',
     email: '',
     mobile: '',
     role: '',
+    password: '',
     status: 'active',
     photo: ''
   });
   const [userErrors, setUserErrors] = useState({});
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   const [roleFormData, setRoleFormData] = useState({
     name: '',
-    permissions: []
+    permissions: {} // { [moduleId]: { [actionId]: boolean } }
   });
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -77,6 +106,7 @@ const Users = () => {
     if (!userFormData.email.trim() || !/\S+@\S+\.\S+/.test(userFormData.email)) errors.email = 'Valid email required';
     if (!userFormData.mobile.trim() || !/^\d{10}$/.test(userFormData.mobile)) errors.mobile = '10-digit mobile required';
     if (!userFormData.role) errors.role = 'Role required';
+    if (!isEditingUser && !userFormData.password.trim()) errors.password = 'Password is required';
     setUserErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -101,7 +131,7 @@ const Users = () => {
   };
 
   const resetUserForm = () => {
-    setUserFormData({ name: '', email: '', mobile: '', role: '', status: 'active', photo: '' });
+    setUserFormData({ name: '', email: '', mobile: '', role: '', password: '', status: 'active', photo: '' });
     setUserErrors({});
     setIsEditingUser(false);
     setActiveForm(null);
@@ -115,11 +145,12 @@ const Users = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleToggleStatus = (id, currentStatus) => {
-    updateUser(id, { status: currentStatus === 'active' ? 'inactive' : 'active' });
+  const handleDeleteUser = (id) => {
+    setUserToDelete(id);
+    setIsConfirmOpen(true);
   };
 
-  // Bulk Handlers
+  // Bulk Handlers (CSV)
   const handleDownloadTemplate = () => {
     downloadCSVTemplate(['name', 'email', 'mobile', 'role'], 'users_template');
   };
@@ -152,37 +183,157 @@ const Users = () => {
           });
         }
       });
-      alert(`Imported ${data.length} users!`);
+      showToast(`Imported ${data.length} users!`, 'success');
       e.target.value = '';
     } catch (err) {
-      alert('Error: ' + err);
+      showToast('Error importing users: ' + err.message, 'error');
     }
   };
 
-  // Role Handlers
+  // Role Handlers (Permissions Grid)
   const handleRoleInputChange = (e) => {
     setRoleFormData(prev => ({ ...prev, name: e.target.value }));
   };
 
-  const handlePermissionToggle = (permissionId) => {
+  const togglePermission = (moduleId, actionId) => {
     setRoleFormData(prev => {
-      const isSelected = prev.permissions.includes(permissionId);
-      const newPermissions = isSelected 
-        ? prev.permissions.filter(p => p !== permissionId)
-        : [...prev.permissions, permissionId];
+      const modulePerms = prev.permissions[moduleId] || {};
+      return {
+        ...prev,
+        permissions: {
+          ...prev.permissions,
+          [moduleId]: {
+            ...modulePerms,
+            [actionId]: !modulePerms[actionId]
+          }
+        }
+      };
+    });
+  };
+
+  const toggleAllForModule = (moduleId, checked) => {
+    setRoleFormData(prev => {
+      const newModulePerms = {};
+      ACTIONS.forEach(action => {
+        newModulePerms[action.id] = checked;
+      });
+      return {
+        ...prev,
+        permissions: {
+          ...prev.permissions,
+          [moduleId]: newModulePerms
+        }
+      };
+    });
+  };
+
+  const toggleAllForAction = (actionId, checked) => {
+    setRoleFormData(prev => {
+      const newPermissions = { ...prev.permissions };
+      MODULES.forEach(module => {
+        newPermissions[module.id] = {
+          ...(newPermissions[module.id] || {}),
+          [actionId]: checked
+        };
+      });
+      return { ...prev, permissions: newPermissions };
+    });
+  };
+
+  const toggleAllForGroup = (groupName, checked) => {
+    setRoleFormData(prev => {
+      const newPermissions = { ...prev.permissions };
+      const groupModules = MODULES.filter(m => m.group === groupName);
+      groupModules.forEach(module => {
+        newPermissions[module.id] = {};
+        ACTIONS.forEach(action => {
+          newPermissions[module.id][action.id] = checked;
+        });
+      });
+      return { ...prev, permissions: newPermissions };
+    });
+  };
+
+  const toggleAllPermissions = (checked) => {
+    setRoleFormData(prev => {
+      const newPermissions = {};
+      MODULES.forEach(module => {
+        newPermissions[module.id] = {};
+        ACTIONS.forEach(action => {
+          newPermissions[module.id][action.id] = checked;
+        });
+      });
       return { ...prev, permissions: newPermissions };
     });
   };
 
   const handleRoleSubmit = () => {
     if (!roleFormData.name.trim()) {
-      alert('Role name is required');
+      showToast('Role name is required', 'warning');
       return;
     }
-    addRole(roleFormData);
-    setRoleFormData({ name: '', permissions: [] });
-    setActiveForm(null);
+    
+    if (isEditingRole) {
+      updateRole(editingRoleId, roleFormData);
+    } else {
+      addRole(roleFormData);
+    }
+    
+    resetRoleForm();
   };
+
+  const resetRoleForm = () => {
+    setRoleFormData({ name: '', permissions: {} });
+    setIsEditingRole(false);
+    setEditingRoleId(null);
+    // Keep activeForm as 'role' if we are on the roles tab
+    if (activeTab === 'roles') {
+      setActiveForm('role');
+    } else {
+      setActiveForm(null);
+    }
+  };
+
+  const handleEditRole = (role) => {
+    setIsEditingRole(true);
+    setEditingRoleId(role.id);
+    setRoleFormData({ 
+      name: role.name, 
+      permissions: role.permissions || {} 
+    });
+    setActiveTab('roles');
+    setActiveForm('role');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const isModuleFullySelected = (moduleId) => {
+    return ACTIONS.every(action => roleFormData.permissions[moduleId]?.[action.id]);
+  };
+
+  const isActionFullySelected = (actionId) => {
+    return MODULES.every(module => roleFormData.permissions[module.id]?.[actionId]);
+  };
+
+  const isAllFullySelected = () => {
+    return MODULES.every(module => ACTIONS.every(action => roleFormData.permissions[module.id]?.[action.id]));
+  };
+
+  const isGroupFullySelected = (groupName) => {
+    const groupModules = MODULES.filter(m => m.group === groupName);
+    return groupModules.every(module => ACTIONS.every(action => roleFormData.permissions[module.id]?.[action.id]));
+  };
+
+  const isActionFullySelectedForGroup = (groupName, actionId) => {
+    const groupModules = MODULES.filter(m => m.group === groupName);
+    return groupModules.every(module => roleFormData.permissions[module.id]?.[actionId]);
+  };
+
+  // Group modules for rendering
+  const moduleGroups = MODULES.reduce((acc, module) => {
+    if (!acc[module.group]) acc[module.group] = [];
+    acc[module.group].push(module);
+    return acc;
+  }, {});
 
   // Filtering
   const filteredUsers = useMemo(() => {
@@ -222,42 +373,149 @@ const Users = () => {
       key: 'actions',
       label: 'Actions',
       render: (_, row) => (
-        <div style={{display: 'flex', gap: 'var(--spacing-3)'}}>
-          <button className="btn-text" onClick={() => handleEditUser(row)} style={{color: 'var(--primary-600)'}}>Edit</button>
-          <button className="btn-text" onClick={() => handleToggleStatus(row.id, row.status)} style={{color: row.status === 'active' ? 'var(--danger-500)' : 'var(--success-500)'}}>
-            {row.status === 'active' ? 'Deactivate' : 'Activate'}
+        <div style={{display: 'flex', gap: 'var(--spacing-2)'}}>
+          <button 
+            className="btn-icon-primary" 
+            onClick={() => handleEditUser(row)} 
+            title="Edit User"
+          >
+            ✏️
+          </button>
+          <button 
+            className="btn-icon-danger" 
+            onClick={() => handleDeleteUser(row.id)} 
+            title="Delete User"
+          >
+            🗑️
           </button>
         </div>
       )
     }
   ];
+  const renderPermissionsMatrix = () => (
+    <div className="table-responsive">
+      <table className="permissions-table">
+        <thead>
+          <tr>
+            <th>Module</th>
+            {ACTIONS.map(action => (
+              <th key={action.id} className="text-center">{action.label}</th>
+            ))}
+            <th className="text-center">All</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="all-permissions-row">
+            <td className="font-bold">All Permissions</td>
+            {ACTIONS.map(action => (
+              <td key={action.id} className="text-center">
+                <input 
+                  type="checkbox" 
+                  checked={isActionFullySelected(action.id)}
+                  onChange={(e) => toggleAllForAction(action.id, e.target.checked)}
+                />
+              </td>
+            ))}
+            <td className="text-center">
+              <input 
+                type="checkbox" 
+                checked={isAllFullySelected()}
+                onChange={(e) => toggleAllPermissions(e.target.checked)}
+              />
+            </td>
+          </tr>
+          {Object.entries(moduleGroups).map(([groupName, modules]) => (
+            <React.Fragment key={groupName}>
+              <tr className="module-group-row">
+                <td className="font-bold">{groupName}</td>
+                {ACTIONS.map(action => (
+                  <td key={action.id} className="text-center">
+                    <input 
+                      type="checkbox" 
+                      checked={isActionFullySelectedForGroup(groupName, action.id)}
+                      onChange={(e) => {
+                        const newPermissions = { ...roleFormData.permissions };
+                        modules.forEach(m => {
+                          newPermissions[m.id] = {
+                            ...(newPermissions[m.id] || {}),
+                            [action.id]: e.target.checked
+                          };
+                        });
+                        setRoleFormData(prev => ({ ...prev, permissions: newPermissions }));
+                      }}
+                    />
+                  </td>
+                ))}
+                <td className="text-center">
+                  <input 
+                    type="checkbox" 
+                    checked={isGroupFullySelected(groupName)}
+                    onChange={(e) => toggleAllForGroup(groupName, e.target.checked)}
+                  />
+                </td>
+              </tr>
+              {modules.map(module => (
+                <tr key={module.id} className="module-row">
+                  <td className="module-label">— {module.label}</td>
+                  {ACTIONS.map(action => (
+                    <td key={action.id} className="text-center">
+                      <input 
+                        type="checkbox"
+                        checked={!!roleFormData.permissions[module.id]?.[action.id]}
+                        onChange={() => togglePermission(module.id, action.id)}
+                      />
+                    </td>
+                  ))}
+                  <td className="text-center">
+                    <input 
+                      type="checkbox"
+                      checked={isModuleFullySelected(module.id)}
+                      onChange={(e) => toggleAllForModule(module.id, e.target.checked)}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </React.Fragment>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <PageContainer 
       title="Users & Roles Management"
       actions={
         <div style={{ display: 'flex', gap: 'var(--spacing-4)', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <div className="filters-row" style={{ maxWidth: '400px', margin: 0 }}>
-            <Input
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <Select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              options={[{label: 'All Roles', value: 'All'}, ...roles.map(r => ({ label: r.name, value: r.name }))]}
-              placeholder={null}
-            />
-          </div>
+          {activeTab === 'users' && !activeForm && (
+            <div className="filters-row" style={{ maxWidth: '400px', margin: 0 }}>
+              <Input
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <Select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                options={[{label: 'All Roles', value: 'All'}, ...roles.map(r => ({ label: r.name, value: r.name }))]}
+                placeholder={null}
+              />
+            </div>
+          )}
+          
           <div style={{ display: 'flex', gap: 'var(--spacing-3)' }}>
             {activeForm === null ? (
               <>
-                <Button variant="primary" onClick={() => { setActiveForm('user'); setIsEditingUser(false); }}>+ Add User</Button>
-                <Button variant="secondary" onClick={() => { setActiveForm('role'); setIsEditingUser(false); }}>+ Add Role</Button>
-                <Button variant="secondary" onClick={handleDownloadTemplate}>Template</Button>
-                <Button variant="secondary" onClick={() => fileInputRef.current.click()}>Import</Button>
-                <Button variant="secondary" onClick={handleExportUsers}>Export</Button>
+                {activeTab === 'users' ? (
+                  <>
+                    <Button variant="primary" onClick={() => { setActiveForm('user'); setIsEditingUser(false); }}>+ Add User</Button>
+                    <Button variant="secondary" onClick={handleDownloadTemplate}>Template</Button>
+                    <Button variant="secondary" onClick={() => fileInputRef.current.click()}>Import</Button>
+                    <Button variant="secondary" onClick={handleExportUsers}>Export</Button>
+                  </>
+                ) : (
+                  <Button variant="primary" onClick={() => { resetRoleForm(); setActiveForm('role'); setIsEditingRole(false); }}>+ Add Role</Button>
+                )}
                 <input 
                   type="file" 
                   ref={fileInputRef} 
@@ -267,17 +525,37 @@ const Users = () => {
                 />
               </>
             ) : (
-              <Button variant="secondary" onClick={resetUserForm}>Back to List</Button>
+              <>
+                {activeTab === 'users' && (
+                  <Button variant="secondary" onClick={resetUserForm}>Back to List</Button>
+                )}
+              </>
             )}
           </div>
         </div>
       }
     >
       <div className="animate-fade-in">
+        {/* Tab Navigation */}
+        <div className="tabs-container">
+          <button 
+            className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('users'); setActiveForm(null); }}
+          >
+            Users List
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'roles' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('roles'); setActiveForm(null); resetRoleForm(); }}
+          >
+            Roles & Permissions
+          </button>
+        </div>
+
         <div className="users-roles-grid" style={{ marginBottom: activeForm ? 'var(--spacing-8)' : 0 }}>
           <AnimatePresence mode="wait">
             {/* User Form */}
-            {activeForm === 'user' && (
+            {activeTab === 'users' && activeForm === 'user' && (
               <motion.div
                 key="user-form"
                 initial={{ height: 0, opacity: 0 }}
@@ -287,107 +565,166 @@ const Users = () => {
                 style={{ overflow: 'hidden' }}
               >
                 <div className="user-management-section">
-            <FormWrapper 
-              title={isEditingUser ? "Edit User" : "Add New User"}
-              onSubmit={handleUserSubmit}
-              onCancel={isEditingUser ? resetUserForm : null}
-              submitLabel={isEditingUser ? "Update User" : "Create User"}
-            >
-              <div className="user-form-grid">
-                <div className={`image-preview-circle ${userErrors.photo ? 'has-error' : ''}`} style={{ alignSelf: 'center' }}>
-                  {userFormData.photo ? <img src={userFormData.photo} alt="Preview" /> : null}
+                  <FormWrapper 
+                    title={isEditingUser ? "Edit User" : "Add New User"}
+                    onSubmit={handleUserSubmit}
+                    onCancel={isEditingUser ? resetUserForm : null}
+                    submitLabel={isEditingUser ? "Update User" : "Create User"}
+                  >
+                    <div className="user-form-grid">
+                      <div className={`image-preview-circle ${userErrors.photo ? 'has-error' : ''}`} style={{ alignSelf: 'center' }}>
+                        {userFormData.photo ? <img src={userFormData.photo} alt="Preview" /> : null}
+                      </div>
+                      <div className="upload-field-container">
+                        <Input 
+                          label="User Photo" 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handleUserPhotoChange} 
+                          error={userErrors.photo} 
+                          className="mb-0"
+                        />
+                        <p className="upload-hint">Max 2MB</p>
+                      </div>
+                      <Input label="Full Name" name="name" value={userFormData.name} onChange={handleUserInputChange} error={userErrors.name} required />
+                      
+                      <Input label="Email Address" name="email" value={userFormData.email} onChange={handleUserInputChange} error={userErrors.email} required />
+                      <Input label="Mobile Number" name="mobile" value={userFormData.mobile} onChange={handleUserInputChange} error={userErrors.mobile} required />
+                      <Select 
+                        label="Role" 
+                        name="role" 
+                        value={userFormData.role} 
+                        onChange={handleUserInputChange} 
+                        options={roles.map(r => ({ label: r.name, value: r.name }))}
+                        error={userErrors.role}
+                        required 
+                      />
+                      <Input 
+                        label="Password" 
+                        name="password" 
+                        type="password"
+                        value={userFormData.password} 
+                        onChange={handleUserInputChange} 
+                        error={userErrors.password} 
+                        required={!isEditingUser}
+                        placeholder={isEditingUser ? "Leave blank to keep current" : "Enter password"}
+                      />
+                      <Switch 
+                        label="Account Status" 
+                        name="status" 
+                        checked={userFormData.status === 'active'} 
+                        onChange={handleUserInputChange} 
+                      />
+                    </div>
+                  </FormWrapper>
                 </div>
-                <div className="upload-field-container">
-                  <Input 
-                    label="User Photo" 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleUserPhotoChange} 
-                    error={userErrors.photo} 
-                    className="mb-0"
-                  />
-                  <p className="upload-hint">Max 2MB</p>
-                </div>
-                <Input label="Full Name" name="name" value={userFormData.name} onChange={handleUserInputChange} error={userErrors.name} required />
-                
-                <Input label="Email Address" name="email" value={userFormData.email} onChange={handleUserInputChange} error={userErrors.email} required />
-                <Input label="Mobile Number" name="mobile" value={userFormData.mobile} onChange={handleUserInputChange} error={userErrors.mobile} required />
-                <Select 
-                  label="Role" 
-                  name="role" 
-                  value={userFormData.role} 
-                  onChange={handleUserInputChange} 
-                  options={roles.map(r => ({ label: r.name, value: r.name }))}
-                  error={userErrors.role}
-                  required 
-                />
-                <Select 
-                  label="Status" 
-                  name="status" 
-                  value={userFormData.status} 
-                  onChange={handleUserInputChange} 
-                  options={[{label: 'Active', value: 'active'}, {label: 'Inactive', value: 'inactive'}]} 
-                />
-              </div>
-            </FormWrapper>
-          </div>
               </motion.div>
             )}
 
             {/* Role Form */}
-            {activeForm === 'role' && (
+            {/* Role Form (Create & Edit) */}
+            {activeTab === 'roles' && (
               <motion.div
-                key="role-form"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                style={{ overflow: 'hidden' }}
+                key="role-form-container"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
               >
                 <div className="role-management-section">
-            <div className="card">
-              <h3 className="card-title mb-6">Create New Role</h3>
-              <Input label="Role Name" value={roleFormData.name} onChange={handleRoleInputChange} placeholder="e.g. Supervisor" />
-              
-              <div className="permissions-group">
-                <p className="permissions-label">Assign Permissions</p>
-                <div className="permissions-grid">
-                  {permissionGroups.map(group => (
-                    <label key={group.id} className="permission-item">
-                      <input 
-                        type="checkbox" 
-                        checked={roleFormData.permissions.includes(group.id)}
-                        onChange={() => handlePermissionToggle(group.id)}
+                  {/* Create New Role (Visible when activeForm is 'role') */}
+                  {activeForm === 'role' && !isEditingRole && (
+                    <div className="card mb-8">
+                      <h3 className="card-title mb-6">Create New Role</h3>
+                      <div className="product-form-grid mb-6">
+                        <Input 
+                          label="Role Name" 
+                          value={roleFormData.name} 
+                          onChange={handleRoleInputChange} 
+                          placeholder="e.g. Supervisor" 
+                        />
+                      </div>
+                      
+                      <div className="permissions-matrix-container">
+                        <h4 className="section-title-small mb-4">Assign Permissions Matrix</h4>
+                        {/* Matrix Component Call */}
+                        {renderPermissionsMatrix()}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 'var(--spacing-3)', marginTop: 'var(--spacing-8)' }}>
+                        <Button variant="secondary" onClick={() => setActiveForm(null)} style={{flex: 1}}>
+                          Cancel
+                        </Button>
+                        <Button variant="primary" onClick={handleRoleSubmit} style={{flex: 1}}>
+                          Add Role
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Move Editing Role (Dropdown + Matrix) */}
+                  <div className="card">
+                    <div className="role-selector-primary mb-8">
+                      <p className="field-label mb-2">Select Role to Manage</p>
+                      <Select
+                        placeholder="Choose an existing role..."
+                        value={isEditingRole ? editingRoleId : ''}
+                        onChange={(e) => {
+                          const role = roles.find(r => r.id === e.target.value);
+                          if (role) handleEditRole(role);
+                          else {
+                            // If no role is selected (e.g., placeholder or 'All' is chosen if it were an option)
+                            // Reset the form and stop editing
+                            resetRoleForm();
+                            setIsEditingRole(false);
+                          }
+                        }}
+                        options={roles.map(r => ({ label: r.name, value: r.id }))}
+                        className="role-prominent-select"
                       />
-                      <span>{group.label}</span>
-                    </label>
-                  ))}
+                    </div>
+                    
+                    {isEditingRole && (
+                      <div className="animate-fade-in">
+                        <h3 className="card-title mb-6">Editing: {roleFormData.name}</h3>
+                        <div className="permissions-matrix-container">
+                          {renderPermissionsMatrix()}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 'var(--spacing-3)', marginTop: 'var(--spacing-8)' }}>
+                          <Button variant="secondary" onClick={() => { resetRoleForm(); setActiveForm(null); }} style={{flex: 1}}>
+                            Cancel
+                          </Button>
+                          <Button variant="primary" onClick={handleRoleSubmit} style={{flex: 1}}>
+                            Update Permissions
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-              
-              <div style={{ display: 'flex', gap: 'var(--spacing-3)', marginTop: 'var(--spacing-6)' }}>
-                <Button variant="secondary" onClick={() => setActiveForm(null)} style={{flex: 1}}>
-                  Cancel
-                </Button>
-                <Button variant="primary" onClick={handleRoleSubmit} style={{flex: 1}}>
-                  Add Role
-                </Button>
-              </div>
-            </div>
-          </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Users Table */}
-        <div className="card mt-8">
-          <div className="table-controls">
-            <h3 className="card-title">All Registered Users</h3>
+        {/* Dynamic Table Section (Users Only) */}
+        {!activeForm && activeTab === 'users' && (
+          <div className="card mt-8">
+            <div className="table-controls">
+              <h3 className="card-title">Registered Users</h3>
+            </div>
+            <Table columns={columns} data={filteredUsers} />
           </div>
-          <Table columns={columns} data={filteredUsers} />
-        </div>
+        )}
       </div>
+      <ConfirmDialog 
+        isOpen={isConfirmOpen} 
+        onClose={() => setIsConfirmOpen(false)} 
+        onConfirm={() => deleteUser(userToDelete)} 
+        title="Delete User"
+        message="Are you sure you want to permanently delete this user? This action cannot be undone."
+      />
     </PageContainer>
   );
 };

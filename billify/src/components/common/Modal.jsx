@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Modal = ({ isOpen, onClose, title, children, maxWidth = '600px' }) => {
@@ -23,7 +24,7 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = '600px' }) => {
     };
   }, [isOpen]);
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
         <div className="modal-root">
@@ -59,6 +60,8 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = '600px' }) => {
       )}
     </AnimatePresence>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default Modal;

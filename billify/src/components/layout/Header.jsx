@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useDataContext } from '../../hooks/useDataContext';
 
-const Header = ({ toggleSidebar }) => {
-  const { user, logout } = useAuth();
+const Header = ({ toggleSidebar, isPOS }) => {
+  const { user, logout, switchBusiness } = useAuth();
+  const { businesses } = useDataContext();
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -27,21 +29,44 @@ const Header = ({ toggleSidebar }) => {
     <header style={{height: '64px', backgroundColor: 'white', borderBottom: '1px solid var(--neutral-100)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 var(--spacing-6)', position: 'sticky', top: '0', zIndex: '30'}}>
       <button 
         style={{backgroundColor: 'transparent', border: 'none', color: 'var(--neutral-500)', cursor: 'pointer', padding: 'var(--spacing-2)'}}
-        className="lg-hidden"
+        className={isPOS ? "" : "lg-hidden"}
         onClick={toggleSidebar}
       >
-        <svg style={{width: '24px', height: '24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
-
-      <div style={{flex: '1'}} className="lg-ml-0">
+          <svg style={{width: '24px', height: '24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      <div style={{flex: '1'}} className={isPOS ? "" : "lg-ml-0"}>
         <h1 style={{fontSize: '0.75rem', fontWeight: '600', color: 'var(--neutral-500)', textTransform: 'uppercase', letterSpacing: '0.05em'}} className="header-welcome">
-          Welcome back, Admin
+          {businesses.find(b => b.id === user?.businessId)?.name || 'Billify'} / {user?.name || 'Admin'}
         </h1>
       </div>
 
       <div style={{display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)'}}>
+        {user?.role === 'Admin' && businesses.length > 1 && (
+          <div className="business-switcher">
+            <select 
+              value={user.businessId} 
+              onChange={(e) => switchBusiness(e.target.value)}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--neutral-200)',
+                fontSize: '0.8125rem',
+                fontWeight: '600',
+                backgroundColor: 'var(--neutral-50)',
+                color: 'var(--neutral-700)',
+                cursor: 'pointer',
+                outline: 'none',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            >
+              {businesses.map(biz => (
+                <option key={biz.id} value={biz.id}>{biz.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div style={{position: 'relative'}} className="user-profile" ref={dropdownRef}>
           <button 
             style={{display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-2)', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', borderRadius: 'var(--radius-lg)'}} 

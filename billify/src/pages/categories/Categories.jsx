@@ -7,11 +7,13 @@ import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
+import Switch from '../../components/common/Switch';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { exportToCSV, importFromCSV, downloadTemplate as downloadCSVTemplate } from '../../utils/csvService';
 
 const Categories = () => {
   const fileInputRef = useRef(null);
-  const { categories, addCategory, updateCategory } = useDataContext();
+  const { categories, products, addCategory, updateCategory, deleteCategory, showToast } = useDataContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showForm, setShowForm] = useState(false);
@@ -25,6 +27,8 @@ const Categories = () => {
     status: 'active'
   });
   const [errors, setErrors] = useState({});
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   // Handlers
   const handleInputChange = (e) => {
@@ -74,8 +78,9 @@ const Categories = () => {
     setShowForm(false);
   };
 
-  const handleStatusToggle = (id, currentStatus) => {
-    updateCategory(id, { status: currentStatus === 'active' ? 'inactive' : 'active' });
+  const handleDelete = (id) => {
+    setCategoryToDelete(id);
+    setIsConfirmOpen(true);
   };
 
   // Bulk Handlers
@@ -108,21 +113,26 @@ const Categories = () => {
           });
         }
       });
-      alert(`Imported ${data.length} categories!`);
+      showToast(`Imported ${data.length} categories!`, 'success');
       e.target.value = '';
     } catch (err) {
-      alert('Error: ' + err);
+      showToast('Error importing categories: ' + err.message, 'error');
     }
   };
 
   // Filtered Logic
   const filteredCategories = useMemo(() => {
-    return categories.filter(cat => {
-      const matchesSearch = cat.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || cat.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [categories, searchTerm, statusFilter]);
+    return categories
+      .map(cat => ({
+        ...cat,
+        productsCount: products.filter(p => p.category === cat.name).length
+      }))
+      .filter(cat => {
+        const matchesSearch = cat.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === 'all' || cat.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      });
+  }, [categories, products, searchTerm, statusFilter]);
 
   // Table Columns
   const columns = [
@@ -142,20 +152,20 @@ const Categories = () => {
       key: 'actions',
       label: 'Actions',
       render: (_, row) => (
-        <div style={{ display: 'flex', gap: 'var(--spacing-3)' }}>
+        <div style={{display: 'flex', gap: 'var(--spacing-2)'}}>
           <button
-            className="btn-text"
+            className="btn-icon-primary"
             onClick={() => handleEdit(row)}
-            style={{ color: 'var(--primary-600)' }}
+            title="Edit Category"
           >
-            Edit
+            ✏️
           </button>
           <button
-            className="btn-text"
-            onClick={() => handleStatusToggle(row.id, row.status)}
-            style={{ color: row.status === 'active' ? 'var(--danger-500)' : 'var(--primary-600)' }}
+            className="btn-icon-danger"
+            onClick={() => handleDelete(row.id)}
+            title="Delete Category"
           >
-            {row.status === 'active' ? 'Disable' : 'Enable'}
+            🗑️
           </button>
         </div>
       )
@@ -237,15 +247,11 @@ const Categories = () => {
             value={formData.description}
             onChange={handleInputChange}
           />
-          <Select
-            label="Status"
-            name="status"
-            value={formData.status}
-            onChange={handleInputChange}
-            options={[
-              { label: 'Active', value: 'active' },
-              { label: 'Inactive', value: 'inactive' }
-            ]}
+          <Switch 
+            label="Category Status" 
+            name="status" 
+            checked={formData.status === 'active'} 
+            onChange={handleInputChange} 
           />
         </FormWrapper>
             </motion.div>
@@ -263,6 +269,13 @@ const Categories = () => {
           />
         </div>
       </div>
+      <ConfirmDialog 
+        isOpen={isConfirmOpen} 
+        onClose={() => setIsConfirmOpen(false)} 
+        onConfirm={() => deleteCategory(categoryToDelete)} 
+        title="Delete Category"
+        message="Are you sure you want to permanently delete this category? This will also delete all associated products and cannot be undone."
+      />
     </PageContainer>
   );
 };

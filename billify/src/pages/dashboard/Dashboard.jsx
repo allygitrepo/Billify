@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useDataContext } from '../../hooks/useDataContext';
 import PageContainer from '../../components/layout/PageContainer';
 import StatCard from '../../components/dashboard/StatCard';
@@ -10,7 +11,12 @@ import TopProducts from '../../components/dashboard/TopProducts';
 import { formatCurrency } from '../../utils/formatCurrency';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { transactions, products } = useDataContext();
+
+  const handleLowStockClick = () => {
+    navigate('/products?filter=low_stock');
+  };
 
   // Calculate Metrics
   const today = new Date();
@@ -87,14 +93,22 @@ const Dashboard = () => {
             <StatCard 
               title="Low Stock Alerts" 
               value={lowStockCount.toString()} 
-              trend="Needs Attention" 
-              color="orange"
+              trend={lowStockCount > 0 ? "Needs Attention" : "All Items Stocked"} 
+              color={lowStockCount > 0 ? "orange" : "teal"}
+              onClick={handleLowStockClick}
               icon={
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                  <line x1="12" y1="9" x2="12" y2="13"></line>
-                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                </svg>
+                lowStockCount > 0 ? (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                ) : (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                )
               }
             />
           </motion.div>
@@ -121,7 +135,7 @@ const Dashboard = () => {
             <RecentTransactions transactions={transactions} />
           </motion.div>
           <motion.div className="dashboard-right-col" variants={itemVariants}>
-            <StockAlerts products={products} />
+            <StockAlerts products={products} onViewAll={handleLowStockClick} />
             <TopProducts transactions={transactions} />
           </motion.div>
         </div>

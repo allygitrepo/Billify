@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import ProtectedRoute from '../components/common/ProtectedRoute';
-import { AuthProvider } from '../hooks/useAuth';
-import { DataProvider } from '../hooks/useDataContext';
+import { AuthProvider, useAuth } from '../hooks/useAuth';
+import { DataProvider, useDataContext } from '../hooks/useDataContext';
+import { usePermissions } from '../hooks/usePermissions';
 
 // Pages
 import Dashboard from '../pages/dashboard/Dashboard';
@@ -17,6 +18,7 @@ import Transactions from '../pages/transactions/Transactions';
 import Billing from '../pages/transactions/Billing';
 import Users from '../pages/users/Users';
 import Settings from '../pages/settings/Settings';
+import Uoms from '../pages/settings/Uoms';
 import Login from '../pages/auth/Login';
 import Landing from '../pages/landing/Landing';
 
@@ -36,21 +38,25 @@ const AppLayout = () => {
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const location = useLocation();
 
+  const { canView } = usePermissions();
+
   return (
-    <div className="layout-wrapper">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-      <div className="main-content">
-        <Header toggleSidebar={toggleSidebar} />
+    <div className={`layout-wrapper ${location.pathname === '/billing' ? 'pos-active-layout' : ''}`}>
+      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} isPOS={location.pathname === '/billing'} />
+      <div className="main-content" style={location.pathname === '/billing' ? { marginLeft: 0 } : {}}>
+        <Header toggleSidebar={toggleSidebar} isPOS={location.pathname === '/billing'} />
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
-            <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
-            <Route path="/billing" element={<PageTransition><POS /></PageTransition>} />
-            <Route path="/categories" element={<PageTransition><Categories /></PageTransition>} />
-            <Route path="/products" element={<PageTransition><Products /></PageTransition>} />
-            <Route path="/inventory" element={<PageTransition><Inventory /></PageTransition>} />
-            <Route path="/transactions" element={<PageTransition><Transactions /></PageTransition>} />
-            <Route path="/users" element={<PageTransition><Users /></PageTransition>} />
-            <Route path="/settings" element={<PageTransition><Settings /></PageTransition>} />
+            <Route path="/dashboard" element={canView('dashboard') ? <PageTransition><Dashboard /></PageTransition> : <Navigate to="/unauthorized" replace />} />
+            <Route path="/billing" element={canView('billing') ? <PageTransition><POS /></PageTransition> : <Navigate to="/dashboard" replace />} />
+            <Route path="/categories" element={canView('categories') ? <PageTransition><Categories /></PageTransition> : <Navigate to="/dashboard" replace />} />
+            <Route path="/products" element={canView('products') ? <PageTransition><Products /></PageTransition> : <Navigate to="/dashboard" replace />} />
+            <Route path="/inventory" element={canView('inventory') ? <PageTransition><Inventory /></PageTransition> : <Navigate to="/dashboard" replace />} />
+            <Route path="/uoms" element={canView('uoms') ? <PageTransition><Uoms /></PageTransition> : <Navigate to="/dashboard" replace />} />
+            <Route path="/transactions" element={canView('transactions') ? <PageTransition><Transactions /></PageTransition> : <Navigate to="/dashboard" replace />} />
+            <Route path="/users" element={canView('users') ? <PageTransition><Users /></PageTransition> : <Navigate to="/dashboard" replace />} />
+            <Route path="/settings" element={canView('settings') ? <PageTransition><Settings /></PageTransition> : <Navigate to="/dashboard" replace />} />
+            <Route path="/unauthorized" element={<PageTransition><div style={{padding: '2rem', textAlign: 'center'}}><h2>Access Denied</h2><p>You don't have permission to access this module.</p></div></PageTransition>} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </AnimatePresence>

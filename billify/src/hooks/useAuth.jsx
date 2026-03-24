@@ -17,18 +17,14 @@ export const AuthProvider = ({ children }) => {
 
   const login = (email, password) => {
     const users = getAllUsers();
-    // Support "allow any" by defaulting to admin if not found
-    let foundUser = Array.isArray(users) ? users.find(u => u.email === email && u.password === password) : null;
+    const foundUser = Array.isArray(users) ? users.find(u => u.email === email && u.password === password) : null;
     
     if (!foundUser) {
-      // Mock user for "any login" request
-      foundUser = {
-        id: `mock-${Date.now()}`,
-        businessId: 'biz_default',
-        name: email.split('@')[0] || 'User',
-        role: 'Admin',
-        email: email
-      };
+      return { success: false, message: 'Invalid email or password' };
+    }
+
+    if (foundUser.status === 'inactive') {
+      return { success: false, message: 'This account has been disabled' };
     }
     
     const sessionData = {
@@ -49,10 +45,20 @@ export const AuthProvider = ({ children }) => {
     clearSession();
   };
 
+  const switchBusiness = (businessId) => {
+    if (!user || user.role !== 'Admin') return { success: false, message: 'Unauthorized' };
+    const updatedUser = { ...user, businessId };
+    setUser(updatedUser);
+    setSession(updatedUser);
+    return { success: true };
+  };
+
   const value = {
     user,
+    businessId: user?.businessId,
     login,
     logout,
+    switchBusiness,
     isAuthenticated: !!user,
     loading
   };

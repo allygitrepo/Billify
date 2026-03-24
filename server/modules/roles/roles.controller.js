@@ -41,6 +41,12 @@ const rolesController = {
     getRoleById: async (req, res) => {
         try {
             const { id } = req.params;
+
+            // Validate ID is numeric
+            if (isNaN(id)) {
+                return res.status(400).json({ message: "Invalid Role ID format" });
+            }
+
             const role = await Role.findOne({ where: { id, status: true } });
 
             if (!role) {
@@ -70,6 +76,12 @@ const rolesController = {
     updateRole: async (req, res) => {
         try {
             const { id } = req.params;
+
+            // Validate ID is numeric
+            if (isNaN(id)) {
+                return res.status(400).json({ message: "Invalid Role ID format" });
+            }
+
             const { name, description } = req.body;
 
             const role = await Role.findOne({ where: { id, status: true } });
@@ -97,6 +109,12 @@ const rolesController = {
     deleteRole: async (req, res) => {
         try {
             const { id } = req.params;
+
+            // Validate ID is numeric
+            if (isNaN(id)) {
+                return res.status(400).json({ message: "Invalid Role ID format" });
+            }
+
             const role = await Role.findOne({ where: { id, status: true } });
 
             if (!role) {

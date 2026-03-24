@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getSession, setSession, clearSession, getAllUsers, registerBusiness } from '../utils/storage';
+import { authService } from '../services/auth.service';
 
 const AuthContext = createContext();
 
@@ -8,69 +8,78 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const session = getSession();
-    if (session) {
-      setUser(session);
+    const savedUser = sessionStorage.getItem('billify_user');
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        console.log('useAuth init: loading saved user:', parsed);
+        setUser(parsed);
+      } catch (error) {
+        console.error('Error parsing saved user:', error);
+        sessionStorage.removeItem('billify_user');
+      }
     }
     setLoading(false);
   }, []);
 
-  const login = (email, password) => {
-    const users = getAllUsers();
-    const foundUser = Array.isArray(users) ? users.find(u => u.email === email && u.password === password) : null;
-    
-    if (!foundUser) {
-      return { success: false, message: 'Invalid email or password' };
-    }
-
-    if (foundUser.status === 'inactive') {
-      return { success: false, message: 'This account has been disabled' };
-    }
-    
-    const sessionData = {
-      id: foundUser.id,
-      businessId: foundUser.businessId,
-      name: foundUser.name,
-      role: foundUser.role,
-      email: foundUser.email
-    };
-    
-    setUser(sessionData);
-    setSession(sessionData);
-    return { success: true };
-  };
-
-  const register = (registrationData) => {
+  const login = async (email, password) => {
     try {
-      const result = registerBusiness(registrationData);
-      
-      const sessionData = {
-        id: result.user.id,
-        businessId: result.user.businessId,
-        name: result.user.name,
-        role: result.user.role,
-        email: result.user.email
-      };
-      
-      setUser(sessionData);
-      setSession(sessionData);
+      console.log('useAuth: calling authService.login');
+      const result = await authService.login(email, password);
+      console.log('useAuth: authService.login result user:', result.user);
+      // The service already sets sessionStorage for token and user
+      setUser(result.user);
       return { success: true };
     } catch (error) {
+      console.error('useAuth: Login error:', error);
+      return { success: false, message: error.message || 'Invalid email or password' };
+    }
+  };
+
+  const register = async (registrationData) => {
+    try {
+      // Map frontend registration schema to server schema
+      const serverPayload = {
+        name: registrationData.username,
+        email: registrationData.email,
+        password: registrationData.password,
+        business_name: registrationData.businessName,
+        phone: registrationData.phone || '',
+        gstin: registrationData.gstNumber || '',
+        address: registrationData.address || ''
+      };
+
+      const result = await authService.register(serverPayload);
+      
+      // After registration, the user usually needs to log in, 
+      // but the server might return the user. Let's redirect to login for simplicity
+      // or try to auto-login if the server supports it properly. 
+      // Based on my implementation plan, I'll return success and let the component handle it.
+      return { success: true, message: result.message };
+    } catch (error) {
       console.error('Registration error:', error);
-      return { success: false, message: 'Registration failed. Please try again.' };
+      return { success: false, message: error.message || 'Registration failed' };
     }
   };
 
   const logout = () => {
     setUser(null);
-    clearSession();
+    authService.logout();
   };
 
   const switchBusiness = (businessId) => {
-    if (!user || user.role !== 'Admin') return { success: false, message: 'Unauthorized' };
-    const updatedUser = { ...user, businessId };
+    if (!user) return { success: false, message: 'Unauthorized' };
+    
+    // Find the business in the user's list to get the role
+    const businessInfo = user.businesses?.find(b => b.id === businessId);
+    const updatedUser = { 
+      ...user, 
+      businessId, 
+      role: businessInfo ? businessInfo.role : user.role 
+    };
+    
     setUser(updatedUser);
-    setSession(updatedUser);
+    sessionStorage.setItem('billify_user', JSON.stringify(updatedUser));
     return { success: true };
   };
 

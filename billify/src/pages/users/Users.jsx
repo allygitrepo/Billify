@@ -111,23 +111,22 @@ const Users = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleUserSubmit = () => {
+  const handleUserSubmit = async () => {
     if (!validateUserForm()) return;
 
-    // Simulate FormData
-    const mockFormData = new FormData();
-    Object.keys(userFormData).forEach(key => {
-      mockFormData.append(key, userFormData[key]);
-    });
-
-    if (isEditingUser) {
-      updateUser(editingUserId, userFormData);
-      setIsEditingUser(false);
-      setEditingUserId(null);
-    } else {
-      addUser({ ...userFormData, status: 'active' });
+    try {
+      if (isEditingUser) {
+        await updateUser(editingUserId, userFormData);
+        setIsEditingUser(false);
+        setEditingUserId(null);
+      } else {
+        await addUser({ ...userFormData, status: 'active' });
+      }
+      resetUserForm();
+    } catch (err) {
+      // Error is already handled by showToast in context, but we can log it here
+      console.error('Submit user error:', err);
     }
-    resetUserForm();
   };
 
   const resetUserForm = () => {
@@ -267,19 +266,22 @@ const Users = () => {
     });
   };
 
-  const handleRoleSubmit = () => {
+  const handleRoleSubmit = async () => {
     if (!roleFormData.name.trim()) {
       showToast('Role name is required', 'warning');
       return;
     }
     
-    if (isEditingRole) {
-      updateRole(editingRoleId, roleFormData);
-    } else {
-      addRole(roleFormData);
+    try {
+      if (isEditingRole) {
+        await updateRole(editingRoleId, roleFormData);
+      } else {
+        await addRole(roleFormData);
+      }
+      resetRoleForm();
+    } catch (err) {
+      console.error('Submit role error:', err);
     }
-    
-    resetRoleForm();
   };
 
   const resetRoleForm = () => {
@@ -363,11 +365,14 @@ const Users = () => {
     { 
       key: 'status', 
       label: 'Status',
-      render: (val) => (
-        <span className={`status-badge ${val}`}>
-          {val.charAt(0).toUpperCase() + val.slice(1)}
-        </span>
-      )
+      render: (val) => {
+        const text = typeof val === 'string' ? val : (val ? 'active' : 'inactive');
+        return (
+          <span className={`status-badge ${text}`}>
+            {text.charAt(0).toUpperCase() + text.slice(1)}
+          </span>
+        );
+      }
     },
     {
       key: 'actions',
@@ -670,11 +675,9 @@ const Users = () => {
                         placeholder="Choose an existing role..."
                         value={isEditingRole ? editingRoleId : ''}
                         onChange={(e) => {
-                          const role = roles.find(r => r.id === e.target.value);
+                          const role = roles.find(r => String(r.id) === String(e.target.value));
                           if (role) handleEditRole(role);
                           else {
-                            // If no role is selected (e.g., placeholder or 'All' is chosen if it were an option)
-                            // Reset the form and stop editing
                             resetRoleForm();
                             setIsEditingRole(false);
                           }

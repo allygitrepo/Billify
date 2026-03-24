@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
-import { getBusinessData, updateBusinessData, getAllBusinesses, addNewBusiness, updateBusinessName, deleteBusiness, saveUser, deleteGlobalUser } from '../utils/storage';
+import { businessService } from '../services/business.service';
+import { userService } from '../services/user.service';
+import { roleService } from '../services/role.service';
 import { generateId } from '../utils/idGenerator';
 import Toast from '../components/common/Toast';
 import { AnimatePresence } from 'framer-motion';
@@ -29,29 +31,61 @@ export const DataProvider = ({ children }) => {
 
   // Load data on user/business change
   useEffect(() => {
-    if (businessId) {
-      setCategories(getBusinessData(businessId, 'categories'));
-      setProducts(getBusinessData(businessId, 'products'));
-      setTransactions(getBusinessData(businessId, 'transactions'));
-      setInventoryLog(getBusinessData(businessId, 'inventory_log'));
-      setSettings(getBusinessData(businessId, 'settings'));
-      setUsers(getBusinessData(businessId, 'business_users'));
-      setRoles(getBusinessData(businessId, 'roles'));
-      
-      const savedUoms = getBusinessData(businessId, 'uoms');
-      if (savedUoms.length === 0) {
-        const defaultUoms = [
-          { id: 'UOM-1', name: 'Pieces', shortCode: 'Pcs' },
-          { id: 'UOM-2', name: 'Kilograms', shortCode: 'Kg' },
-          { id: 'UOM-3', name: 'Liters', shortCode: 'Ltr' }
-        ];
-        setUoms(defaultUoms);
-        updateBusinessData(businessId, 'uoms', defaultUoms);
-      } else {
-        setUoms(savedUoms);
+    const fetchBusinessData = async () => {
+      if (businessId) {
+        try {
+          // Fetch all business context data
+          const [businessesResult, usersResult, rolesResult] = await Promise.all([
+            businessService.getMyBusinesses(),
+            userService.getUsers(businessId),
+            roleService.getRoles(businessId)
+          ]);
+          
+          const rolesData = (rolesResult || []).map(role => {
+            const permsObj = {};
+            if (role.permissions && Array.isArray(role.permissions)) {
+              role.permissions.forEach(p => {
+                permsObj[p.module_name] = {
+                  add: p.can_add,
+                  view: p.can_view,
+                  update: p.can_update,
+                  delete: p.can_delete,
+                  export: p.can_export,
+                  import: p.can_bulk_upload,
+                  download: p.can_download,
+                  print: p.can_print
+                };
+              });
+            }
+            return { ...role, permissions: permsObj };
+          });
+          
+          setUsers(usersResult || []);
+          setRoles(rolesData);
+          
+          // Since other endpoints are missing, we initialize with empty or mock for now
+          setCategories([]);
+          setProducts([]);
+          setTransactions([]);
+          setInventoryLog([]);
+          setSettings({});
+          
+          const defaultUoms = [
+            { id: 'UOM-1', name: 'Pieces', shortCode: 'Pcs' },
+            { id: 'UOM-2', name: 'Kilograms', shortCode: 'Kg' },
+            { id: 'UOM-3', name: 'Liters', shortCode: 'Ltr' }
+          ];
+          setUoms(defaultUoms);
+          
+        } catch (error) {
+          console.error('Error fetching business data:', error);
+          showToast('Failed to load business data', 'error');
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    fetchBusinessData();
   }, [businessId]);
 
   // CATEGORIES
@@ -59,7 +93,6 @@ export const DataProvider = ({ children }) => {
     const newCategory = { ...category, id: generateId('CAT-'), status: 'active' };
     setCategories(prev => {
       const updated = [...prev, newCategory];
-      updateBusinessData(businessId, 'categories', updated);
       showToast('Category added successfully');
       return updated;
     });
@@ -68,7 +101,6 @@ export const DataProvider = ({ children }) => {
   const updateCategory = (id, updatedData) => {
     setCategories(prev => {
       const updated = prev.map(c => c.id === id ? { ...c, ...updatedData } : c);
-      updateBusinessData(businessId, 'categories', updated);
       showToast('Category updated successfully');
       return updated;
     });
@@ -78,13 +110,11 @@ export const DataProvider = ({ children }) => {
     setCategories(prev => {
       const categoryToDelete = prev.find(c => c.id === id);
       const updated = prev.filter(c => c.id !== id);
-      updateBusinessData(businessId, 'categories', updated);
       
       // Cascade delete products
       if (categoryToDelete) {
         setProducts(prevProducts => {
           const updatedProducts = prevProducts.filter(p => p.category !== categoryToDelete.name);
-          updateBusinessData(businessId, 'products', updatedProducts);
           return updatedProducts;
         });
       }
@@ -99,7 +129,6 @@ export const DataProvider = ({ children }) => {
     const newProduct = { ...product, id: generateId('PRD-'), status: 'active' };
     setProducts(prev => {
       const updated = [...prev, newProduct];
-      updateBusinessData(businessId, 'products', updated);
       showToast('Product added successfully');
       return updated;
     });
@@ -108,7 +137,6 @@ export const DataProvider = ({ children }) => {
   const updateProduct = (id, updatedData) => {
     setProducts(prev => {
       const updated = prev.map(p => p.id === id ? { ...p, ...updatedData } : p);
-      updateBusinessData(businessId, 'products', updated);
       showToast('Product updated successfully');
       return updated;
     });
@@ -117,7 +145,6 @@ export const DataProvider = ({ children }) => {
   const deleteProduct = (id) => {
     setProducts(prev => {
       const updated = prev.filter(p => p.id !== id);
-      updateBusinessData(businessId, 'products', updated);
       showToast('Product deleted successfully');
       return updated;
     });
@@ -145,7 +172,6 @@ export const DataProvider = ({ children }) => {
         }
         return p;
       });
-      updateBusinessData(businessId, 'products', updatedProducts);
       return updatedProducts;
     });
 
@@ -160,7 +186,6 @@ export const DataProvider = ({ children }) => {
     
     setInventoryLog(prev => {
       const updated = [logEntryWithStock, ...prev];
-      updateBusinessData(businessId, 'inventory_log', updated);
       return updated;
     });
 
@@ -180,7 +205,6 @@ export const DataProvider = ({ children }) => {
     };
     setTransactions(prev => {
       const updated = [newTransaction, ...prev];
-      updateBusinessData(businessId, 'transactions', updated);
       showToast('Transaction completed', 'success');
       return updated;
     });
@@ -202,79 +226,79 @@ export const DataProvider = ({ children }) => {
   // SETTINGS
   const updateSettings = (newSettings) => {
     setSettings(newSettings);
-    updateBusinessData(businessId, 'settings', newSettings);
-    
-    // Sync business name to global business list
-    if (newSettings.businessName) {
-      updateBusinessName(businessId, newSettings.businessName);
-    }
-    
     showToast('Settings saved');
   };
 
   // USERS
-  const addUser = (userData) => {
-    const newUser = { ...userData, id: generateId('USR-') };
-    setUsers(prev => {
-      const updated = [...prev, newUser];
-      updateBusinessData(businessId, 'business_users', updated);
-      
-      // Sync with global auth registry
-      saveUser({ ...newUser, businessId });
-      
-      return updated;
-    });
+  const addUser = async (userData) => {
+    try {
+      const payload = { ...userData, business_id: businessId };
+      // Map role name to role_id
+      const roleObj = roles.find(r => r.name === userData.role);
+      if (roleObj) payload.role_id = roleObj.id;
+
+      const result = await userService.createUser(payload);
+      const newUser = { ...userData, id: result.user?.id || generateId('USR-') };
+      setUsers(prev => [...prev, newUser]);
+      showToast('User created successfully');
+    } catch (error) {
+      console.error('Add user error:', error);
+      showToast(error.message || 'Failed to create user', 'error');
+    }
   };
 
-  const updateUser = (id, updates) => {
-    setUsers(prev => {
-      const updated = prev.map(u => u.id === id ? { ...u, ...updates } : u);
-      updateBusinessData(businessId, 'business_users', updated);
-      
-      // Sync with global auth registry
-      const updatedUser = updated.find(u => u.id === id);
-      if (updatedUser) {
-        saveUser({ ...updatedUser, businessId });
+  const updateUser = async (id, updates) => {
+    try {
+      const payload = { ...updates, business_id: businessId };
+      // Map role name to role_id if updated
+      if (updates.role) {
+        const roleObj = roles.find(r => r.name === updates.role);
+        if (roleObj) payload.role_id = roleObj.id;
       }
-      
-      return updated;
-    });
+
+      await userService.updateUser(id, payload);
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+      showToast('User updated successfully');
+    } catch (error) {
+      console.error('Update user error:', error);
+      showToast(error.message || 'Failed to update user', 'error');
+    }
   };
 
-  const deleteUser = (id) => {
-    setUsers(prev => {
-      const userToDelete = prev.find(u => u.id === id);
-      const updated = prev.filter(u => u.id !== id);
-      updateBusinessData(businessId, 'business_users', updated);
-      
-      // Remove from global auth registry
-      if (userToDelete) {
-        deleteGlobalUser(userToDelete.email);
-      }
-      
+  const deleteUser = async (id) => {
+    try {
+      await userService.deleteUser(id, businessId);
+      setUsers(prev => prev.filter(u => u.id !== id));
       showToast('User deleted successfully');
-      return updated;
-    });
+    } catch (error) {
+      console.error('Delete user error:', error);
+      showToast(error.message || 'Failed to delete user', 'error');
+    }
   };
 
   // ROLES
-  const addRole = (role) => {
-    const newRole = { ...role, id: generateId('ROL-') };
-    setRoles(prev => {
-      const updated = [...prev, newRole];
-      updateBusinessData(businessId, 'roles', updated);
+  const addRole = async (roleData) => {
+    try {
+      const payload = { ...roleData, business_id: businessId };
+      const result = await roleService.createRole(payload);
+      const newRole = { ...roleData, id: result.role?.id || generateId('ROL-') };
+      setRoles(prev => [...prev, newRole]);
       showToast('Role created successfully');
-      return updated;
-    });
+    } catch (error) {
+      console.error('Add role error:', error);
+      showToast(error.message || 'Failed to create role', 'error');
+    }
   };
 
-  const updateRole = (id, updates) => {
-    setRoles(prev => {
-      const updated = prev.map(r => r.id === id ? { ...r, ...updates } : r);
-      updateBusinessData(businessId, 'roles', updated);
+  const updateRole = async (id, updates) => {
+    try {
+      await roleService.updateRole(id, updates);
+      setRoles(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
       showToast('Role updated successfully');
-      return updated;
-    });
+    } catch (error) {
+      console.error('Update role error:', error);
+      showToast(error.message || 'Failed to update role', 'error');
+    }
   };
 
   // UOMs
@@ -282,7 +306,6 @@ export const DataProvider = ({ children }) => {
     const newUom = { ...uom, id: generateId('UOM-') };
     setUoms(prev => {
       const updated = [...prev, newUom];
-      updateBusinessData(businessId, 'uoms', updated);
       showToast('Unit added successfully');
       return updated;
     });
@@ -291,7 +314,6 @@ export const DataProvider = ({ children }) => {
   const updateUom = (id, updates) => {
     setUoms(prev => {
       const updated = prev.map(u => u.id === id ? { ...u, ...updates } : u);
-      updateBusinessData(businessId, 'uoms', updated);
       showToast('Unit updated successfully');
       return updated;
     });
@@ -300,7 +322,6 @@ export const DataProvider = ({ children }) => {
   const deleteUom = (id) => {
     setUoms(prev => {
       const updated = prev.filter(u => u.id !== id);
-      updateBusinessData(businessId, 'uoms', updated);
       showToast('Unit deleted successfully');
       return updated;
     });
@@ -308,31 +329,15 @@ export const DataProvider = ({ children }) => {
 
   // BUSINESSES
   const addBusiness = (businessData) => {
-    const newBiz = addNewBusiness(businessData);
-    showToast('Business created successfully');
-    return newBiz;
+    showToast('Feature temporarily disabled pending API integration', 'error');
   };
 
   const deleteBusinessStore = (id) => {
-    const remaining = getAllBusinesses().filter(b => b.id !== id);
-    
-    // Safety: Don't allow deleting the last business
-    if (remaining.length === 0) {
-      showToast('Cannot delete the last business. Add another first.', 'error');
-      return;
-    }
-
-    deleteBusiness(id);
-    showToast('Business and all data deleted');
-    
-    // If active business was deleted, switch to the first remaining one
-    if (businessId === id && remaining.length > 0) {
-      switchBusiness(remaining[0].id);
-    }
+    showToast('Feature temporarily disabled pending API integration', 'error');
   };
 
   const value = {
-    businesses: getAllBusinesses(),
+    businesses: [], // To be populated from API
     categories,
     products,
     transactions,

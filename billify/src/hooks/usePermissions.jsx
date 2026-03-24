@@ -7,10 +7,15 @@ export const usePermissions = () => {
   const { roles } = useDataContext();
 
   const permissions = useMemo(() => {
+    console.log('usePermissions: calculating for user:', user);
     if (!user) return null;
-    if (user.role === 'Admin') return 'all';
+    if (user.role === 'Admin') {
+      console.log('usePermissions: detected Admin role, granting all');
+      return 'all';
+    }
 
     const userRole = roles.find(r => r.name === user.role);
+    console.log('usePermissions: user role data:', userRole);
     return userRole ? userRole.permissions : {};
   }, [user, roles]);
 

@@ -1,0 +1,202 @@
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("./users.model");
+const Business = require("../businesses/businesses.model");
+const UserBusiness = require("./user_businesses.model");
+const RolePermission = require("../role_permission/role_permission.model");
+const Role = require("../roles/roles.model");
+const sequelize = require("../../config/db");
+require("dotenv").config();
+
+const MODULES = [
+    "Reports",
+    "Dashboard",
+    "Analytics & Reports",
+    "Products Master",
+    "Categories Master",
+    "User Management",
+    "Billing / POS",
+    "Transaction Logs",
+    "Inventory Management",
+    "Units of Measurement",
+    "System Settings"
+];
+
+const authController = {
+    // ============ User Registration ============
+    register: async (req, res) => {
+        const t = await sequelize.transaction();
+        try {
+            const { name, email, password, business_name, phone, gstin, address } = req.body;
+
+            console.log("Registration Request:", { name, email, business_name });
+
+            if (!name || !email || !password || !business_name) {
+                console.log("Registration Failed: Missing fields");
+                return res.status(400).json({ message: "Name, Email, Password, and Business Name are required" });
+            }
+
+            // 1. Check if user exists
+            const existingUser = await User.findOne({ where: { email } });
+            if (existingUser) {
+                console.log("Registration Failed: Email exists", email);
+                return res.status(400).json({ message: "Email already registered" });
+            }
+
+            // 2. Hash password
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            // 3. Ensure "Admin" Role exists and get its ID
+            const [adminRole] = await Role.findOrCreate({
+                where: { name: 'Admin' },
+                defaults: { description: 'System Administrator with full access' },
+                transaction: t
+            });
+            console.log("Admin role ID resolved:", adminRole.id);
+
+            // 4. Create User with role_id
+            const user = await User.create({
+                name,
+                email,
+                password: hashedPassword,
+                role_id: adminRole.id
+            }, { transaction: t });
+            console.log("User created:", user.id);
+
+            // 5. Create Business
+            const business = await Business.create({
+                owner_user_id: user.id,
+                name: business_name,
+                phone,
+                gstin,
+                address
+            }, { transaction: t });
+            console.log("Business created:", business.id);
+
+            // 6. Map User to Business as Admin
+            await UserBusiness.create({
+                user_id: user.id,
+                business_id: business.id,
+                role_id: adminRole.id,
+                status: true
+            }, { transaction: t });
+
+            // 7. Assign ALL permissions to Admin role if not already assigned
+            for (const module_name of MODULES) {
+                const [perm, created] = await RolePermission.findOrCreate({
+                    where: { role_id: adminRole.id, module_name },
+                    defaults: {
+                        can_add: true,
+                        can_view: true,
+                        can_update: true,
+                        can_delete: true,
+                        can_export: true,
+                        can_bulk_upload: true,
+                        can_download: true,
+                        can_print: true,
+                        status: true
+                    },
+                    transaction: t
+                });
+
+                if (!created) {
+                    await perm.update({
+                        can_add: true,
+                        can_view: true,
+                        can_update: true,
+                        can_delete: true,
+                        can_export: true,
+                        can_bulk_upload: true,
+                        can_download: true,
+                        can_print: true,
+                        status: true
+                    }, { transaction: t });
+                }
+            }
+
+            await t.commit();
+            console.log("Registration Successful for:", email);
+
+            return res.status(201).json({
+                message: "User and Business registered successfully",
+                user: { id: user.id, name: user.name, email: user.email },
+                business: { id: business.id, name: business.name }
+            });
+
+        } catch (error) {
+            await t.rollback();
+            console.error("Registration Error:", error);
+            return res.status(500).json({ message: "Internal server error", error: error.message });
+        }
+    },
+
+    // ============ User Login ============
+    login: async (req, res) => {
+        try {
+            const { email, password } = req.body;
+            console.log("Login Request received for:", email);
+
+            if (!email || !password) {
+                console.log("Login Error: Missing credentials");
+                return res.status(400).json({ message: "Email and Password are required" });
+            }
+
+            // 1. Find user
+            const user = await User.findOne({ where: { email, status: true } });
+            if (!user) {
+                console.log("Login Error: User not found:", email);
+                return res.status(401).json({ message: "Invalid credentials" });
+            }
+
+            // 2. Check password
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                console.log("Login Error: Password mismatch for:", email);
+                return res.status(401).json({ message: "Invalid credentials" });
+            }
+
+            // 3. Fetch all active businesses for user with roles
+            console.log("Fetching businesses for user ID:", user.id);
+            const userBusinesses = await UserBusiness.findAll({
+                where: { user_id: user.id, status: true },
+                include: [
+                    { model: Business, as: 'business', where: { status: true } },
+                    { model: Role, as: 'role' }
+                ]
+            });
+            console.log(`Found ${userBusinesses.length} businesses for user`);
+            
+            // 4. Generate token
+            const token = jwt.sign(
+                { id: user.id, email: user.email },
+                process.env.JWT_SECRET,
+                { expiresIn: "1d" }
+            );
+
+            const responseData = {
+                message: "Login successful",
+                token,
+                user: { 
+                    id: user.id, 
+                    name: user.name, 
+                    email: user.email,
+                    role_id: user.role_id 
+                },
+                businesses: userBusinesses.map(ub => ({
+                    ...ub.business.get({ plain: true }),
+                    role: ub.role ? ub.role.name : 'User',
+                    role_id: ub.role_id
+                }))
+            };
+
+            console.log("Login successful, sending response context");
+            return res.status(200).json(responseData);
+
+        } catch (error) {
+            console.error("Login Error Deep Detail:", error);
+            return res.status(500).json({ message: "Internal server error", error: error.message });
+        }
+    }
+};
+
+module.exports = authController;

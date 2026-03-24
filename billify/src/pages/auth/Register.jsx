@@ -105,17 +105,21 @@ const Register = () => {
 
     setIsLoading(true);
     
-    // Simulate API delay
-    setTimeout(async () => {
+    try {
       const result = await register(formData);
-      setIsLoading(false);
       
       if (result.success) {
-        navigate('/dashboard');
+        // Since the server register returns user info but no session token,
+        // we redirect to login to ensure proper session establishment.
+        navigate('/login', { state: { message: 'Registration successful! Please login.' } });
       } else {
+        setIsLoading(false);
         setRegisterError(result.message);
       }
-    }, 1500);
+    } catch (error) {
+      setIsLoading(false);
+      setRegisterError(error.message || 'An unexpected error occurred.');
+    }
   };
 
   return (

@@ -64,17 +64,23 @@ const Login = () => {
 
     setIsLoading(true);
     
-    // Use AuthContext login
-    setTimeout(() => {
-      const result = login(formData.email, formData.password);
+    try {
+      console.log('Login component: calling login hook');
+      const result = await login(formData.email, formData.password);
+      console.log('Login component: login result:', result);
       setIsLoading(false);
       
       if (result.success) {
+        console.log('Login component: navigating to dashboard');
         navigate('/dashboard');
       } else {
         setLoginError(result.message);
       }
-    }, 1000);
+    } catch (error) {
+      console.error('Login component: unexpected error:', error);
+      setIsLoading(false);
+      setLoginError('An unexpected error occurred. Please try again.');
+    }
   };
 
   const isFormInvalid = !formData.email || !formData.password || !!errors.email || !!errors.password;

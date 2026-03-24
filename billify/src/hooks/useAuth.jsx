@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getSession, setSession, clearSession, getAllUsers } from '../utils/storage';
+import { getSession, setSession, clearSession, getAllUsers, registerBusiness } from '../utils/storage';
 
 const AuthContext = createContext();
 
@@ -40,6 +40,27 @@ export const AuthProvider = ({ children }) => {
     return { success: true };
   };
 
+  const register = (registrationData) => {
+    try {
+      const result = registerBusiness(registrationData);
+      
+      const sessionData = {
+        id: result.user.id,
+        businessId: result.user.businessId,
+        name: result.user.name,
+        role: result.user.role,
+        email: result.user.email
+      };
+      
+      setUser(sessionData);
+      setSession(sessionData);
+      return { success: true };
+    } catch (error) {
+      console.error('Registration error:', error);
+      return { success: false, message: 'Registration failed. Please try again.' };
+    }
+  };
+
   const logout = () => {
     setUser(null);
     clearSession();
@@ -57,6 +78,7 @@ export const AuthProvider = ({ children }) => {
     user,
     businessId: user?.businessId,
     login,
+    register,
     logout,
     switchBusiness,
     isAuthenticated: !!user,

@@ -153,6 +153,64 @@ export const addNewBusiness = (businessData) => {
   return newBusiness;
 };
 
+export const registerBusiness = (registrationData) => {
+  const data = getStorageData();
+  const businessId = `biz_${Date.now()}`;
+  
+  // 1. Create Business
+  const newBusiness = { id: businessId, name: registrationData.businessName };
+  data.businesses.push(newBusiness);
+  
+  // 2. Initialize Business Data
+  data.categories[businessId] = [];
+  data.products[businessId] = [];
+  data.business_users[businessId] = [];
+  data.inventory_log[businessId] = [];
+  data.transactions[businessId] = [];
+  
+  // Detailed business settings
+  data.settings[businessId] = {
+    businessName: registrationData.businessName,
+    gstNumber: registrationData.gstNumber || '',
+    phone: registrationData.phone || '',
+    address: registrationData.address || '',
+    taxPercentage: registrationData.taxPercentage || '0',
+    gstPercentage: registrationData.gstPercentage || '0',
+    currency: registrationData.currency || 'INR',
+    invoicePrefix: registrationData.invoicePrefix || 'INV',
+    startingNumber: registrationData.startingNumber || '1',
+    footerNote: registrationData.footerNote || '',
+    invoiceFormat: registrationData.invoiceFormat || 'thermal',
+    photo: registrationData.businessPhoto || ''
+  };
+
+  // 3. Create "Admin" Role with all permissions
+  const adminRole = {
+    id: `role_${Date.now()}`,
+    name: 'Admin',
+    permissions: 'all',
+    businessId: businessId
+  };
+  data.roles[businessId] = [adminRole];
+
+  // 4. Create Admin User
+  const userId = `user_${Date.now()}`;
+  const newUser = {
+    id: userId,
+    name: registrationData.username,
+    email: registrationData.email,
+    password: registrationData.password,
+    photo: registrationData.userPhoto || '',
+    role: 'Admin',
+    businessId: businessId,
+    status: 'active'
+  };
+  data.users.push(newUser);
+
+  saveStorageData(data);
+  return { business: newBusiness, user: newUser };
+};
+
 export const updateBusinessName = (businessId, newName) => {
   const data = getStorageData();
   const index = data.businesses.findIndex(b => b.id === businessId);

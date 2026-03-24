@@ -4,6 +4,7 @@ import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import { validateEmail, validatePassword, validate } from '../../utils/validators';
 import { useAuth } from '../../hooks/useAuth';
+import Logo from '../../components/common/Logo';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -83,7 +84,9 @@ const Login = () => {
       <div className="auth-container">
         {/* Left Side - Branding */}
         <div className="auth-branding">
-          <NavLink to="/" className="auth-logo">Billify</NavLink>
+          <NavLink to="/" className="auth-logo-link">
+            <Logo size="lg" />
+          </NavLink>
           <div className="branding-content">
             <h1>Welcome to the future of <span className="text-primary">Business Management</span>.</h1>
             <p>Streamline your billing, track inventory, and grow your business with our all-in-one POS solution.</p>
@@ -174,7 +177,7 @@ const Login = () => {
               </Button>
 
               <div className="auth-footer">
-                <p>Don't have an account? <a href="#">Contact Support</a></p>
+                <p>Don't have an account? <NavLink to="/register">Register your business</NavLink></p>
               </div>
             </form>
           </div>

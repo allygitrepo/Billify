@@ -17,17 +17,8 @@ const HeroSection = () => {
           </div>
         </div>
         <div className="hero-image">
-          <div className="dashboard-preview">
-            {/* Placeholder for dashboard preview */}
-            <div className="preview-header"></div>
-            <div className="preview-body">
-              <div className="preview-sidebar"></div>
-              <div className="preview-content">
-                <div className="preview-card"></div>
-                <div className="preview-card"></div>
-                <div className="preview-card"></div>
-              </div>
-            </div>
+          <div className="hero-image-container">
+            <img src="/landingpage_photo.png" alt="Billify Dashboard Preview" className="hero-photo" />
           </div>
         </div>
       </div>

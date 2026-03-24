@@ -20,6 +20,7 @@ import Users from '../pages/users/Users';
 import Settings from '../pages/settings/Settings';
 import Uoms from '../pages/settings/Uoms';
 import Login from '../pages/auth/Login';
+import Register from '../pages/auth/Register';
 import Landing from '../pages/landing/Landing';
 
 const PageTransition = ({ children }) => (
@@ -72,6 +73,7 @@ const AppRoutes = () => {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/*" element={<AppLayout />} />
           </Route>

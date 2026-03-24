@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import HeroSection from '../../components/landing/HeroSection';
 import FeaturesSection from '../../components/landing/FeaturesSection';
 import Footer from '../../components/landing/Footer';
+import Logo from '../../components/common/Logo';
 import { NavLink } from 'react-router-dom';
 
 const Landing = () => {
@@ -19,7 +20,9 @@ const Landing = () => {
     <div className="landing-page">
       <header className={`landing-header ${isScrolled ? 'scrolled' : ''}`}>
         <div className="container nav-container">
-          <div className="logo">Billify</div>
+          <NavLink to="/" className="logo-link">
+            <Logo />
+          </NavLink>
           <nav className="nav-menu">
             <a href="#">Home</a>
             <a href="#features">Features</a>

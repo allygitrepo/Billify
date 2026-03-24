@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest tests/role_permission.test.js --runInBand"
   },
   "keywords": [],
   "author": "",
@@ -19,5 +19,9 @@
     "nodemon": "^3.1.14",
     "pg": "^8.20.0",
     "sequelize": "^6.37.8"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.2.2"
   }
 }

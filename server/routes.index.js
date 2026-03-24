@@ -5,8 +5,8 @@ const router = express.Router();
 const roleRoutes = require("./modules/roles/role.routes");
 router.use("/roles", roleRoutes);
 
-// Add other routes here as needed...
-// const userRoutes = require("./modules/users/user.routes");
-// router.use("/users", userRoutes);
+// Role Permission Routes
+const rolePermissionRoutes = require("./modules/role_permission/role_permission.routes");
+router.use("/role-permissions", rolePermissionRoutes);
 
 module.exports = router;

@@ -3,6 +3,9 @@ import { useAuth } from './useAuth';
 import { businessService } from '../services/business.service';
 import { userService } from '../services/user.service';
 import { roleService } from '../services/role.service';
+import { categoryService } from '../services/category.service';
+import { productService } from '../services/product.service';
+import { uomService } from '../services/uom.service';
 import { generateId } from '../utils/idGenerator';
 import Toast from '../components/common/Toast';
 import { AnimatePresence } from 'framer-motion';
@@ -35,10 +38,13 @@ export const DataProvider = ({ children }) => {
       if (businessId) {
         try {
           // Fetch all business context data
-          const [businessesResult, usersResult, rolesResult] = await Promise.all([
+          const [businessesResult, usersResult, rolesResult, categoriesResult, productsResult, uomsResult] = await Promise.all([
             businessService.getMyBusinesses(),
             userService.getUsers(businessId),
-            roleService.getRoles(businessId)
+            roleService.getRoles(businessId),
+            categoryService.getCategories(businessId),
+            productService.getProducts(businessId),
+            uomService.getUOMs(businessId)
           ]);
           
           const rolesData = (rolesResult || []).map(role => {
@@ -60,22 +66,21 @@ export const DataProvider = ({ children }) => {
             return { ...role, permissions: permsObj };
           });
           
+          const productsData = (productsResult || []).map(p => ({
+            ...p,
+            category: p.category ? p.category.name : ''
+          }));
+          
           setUsers(usersResult || []);
           setRoles(rolesData);
+          setCategories(categoriesResult || []);
+          setProducts(productsData);
+          setUoms(uomsResult || []);
           
           // Since other endpoints are missing, we initialize with empty or mock for now
-          setCategories([]);
-          setProducts([]);
           setTransactions([]);
           setInventoryLog([]);
           setSettings({});
-          
-          const defaultUoms = [
-            { id: 'UOM-1', name: 'Pieces', shortCode: 'Pcs' },
-            { id: 'UOM-2', name: 'Kilograms', shortCode: 'Kg' },
-            { id: 'UOM-3', name: 'Liters', shortCode: 'Ltr' }
-          ];
-          setUoms(defaultUoms);
           
         } catch (error) {
           console.error('Error fetching business data:', error);
@@ -89,65 +94,159 @@ export const DataProvider = ({ children }) => {
   }, [businessId]);
 
   // CATEGORIES
-  const addCategory = (category) => {
-    const newCategory = { ...category, id: generateId('CAT-'), status: 'active' };
-    setCategories(prev => {
-      const updated = [...prev, newCategory];
+  const addCategory = async (categoryData) => {
+    try {
+      const payload = { ...categoryData, business_id: businessId };
+      const result = await categoryService.createCategory(payload);
+      const newCategory = { ...categoryData, id: result.category?.id || generateId('CAT-') };
+      setCategories(prev => [...prev, newCategory]);
       showToast('Category added successfully');
-      return updated;
-    });
+      return result;
+    } catch (error) {
+      console.error('Add category error:', error);
+      if (error.status === 409) throw error;
+      showToast(error.message || 'Failed to add category', 'error');
+    }
   };
 
-  const updateCategory = (id, updatedData) => {
-    setCategories(prev => {
-      const updated = prev.map(c => c.id === id ? { ...c, ...updatedData } : c);
+  const updateCategory = async (id, updatedData) => {
+    try {
+      await categoryService.updateCategory(id, updatedData);
+      setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updatedData } : c));
       showToast('Category updated successfully');
-      return updated;
-    });
+    } catch (error) {
+      console.error('Update category error:', error);
+      showToast(error.message || 'Failed to update category', 'error');
+    }
   };
 
-  const deleteCategory = (id) => {
-    setCategories(prev => {
-      const categoryToDelete = prev.find(c => c.id === id);
-      const updated = prev.filter(c => c.id !== id);
-      
-      // Cascade delete products
-      if (categoryToDelete) {
-        setProducts(prevProducts => {
-          const updatedProducts = prevProducts.filter(p => p.category !== categoryToDelete.name);
-          return updatedProducts;
-        });
-      }
-      
+  const deleteCategory = async (id) => {
+    try {
+      await categoryService.deleteCategory(id);
+      setCategories(prev => {
+        const categoryToDelete = prev.find(c => c.id === id);
+        const updated = prev.filter(c => c.id !== id);
+        
+        // Cascade locally (backend also handles it)
+        if (categoryToDelete) {
+          setProducts(prevProducts => prevProducts.filter(p => p.category !== categoryToDelete.name));
+        }
+        return updated;
+      });
       showToast('Category and related products deleted');
-      return updated;
-    });
+    } catch (error) {
+      console.error('Delete category error:', error);
+      showToast(error.message || 'Failed to delete category', 'error');
+    }
   };
 
   // PRODUCTS
-  const addProduct = (product) => {
-    const newProduct = { ...product, id: generateId('PRD-'), status: 'active' };
-    setProducts(prev => {
-      const updated = [...prev, newProduct];
+  const addProduct = async (productData) => {
+    try {
+      let finalCategoryId = null;
+      let categoriesToUpdate = [...categories];
+
+      // 1. Check if category exists or needs to be created
+      if (productData.category) {
+        let catObj = categories.find(c => c.name === productData.category);
+        
+        if (!catObj) {
+          // Create new category first to get ID and update state
+          try {
+            const catPayload = { business_id: businessId, name: productData.category, status: 'active' };
+            const catResult = await categoryService.createCategory(catPayload);
+            catObj = { ...catPayload, id: catResult.category?.id };
+            
+            // Update local categories state
+            setCategories(prev => [...prev, catObj]);
+            categoriesToUpdate = [...categories, catObj];
+          } catch (error) {
+            if (error.status === 409) {
+              // If it already exists, just fetch it from the latest list (or API)
+              const allCats = await categoryService.getCategories(businessId);
+              setCategories(allCats);
+              catObj = allCats.find(c => c.name === productData.category);
+            } else {
+              throw error;
+            }
+          }
+        }
+        finalCategoryId = catObj.id;
+      }
+
+      // 1.5. Check if UOM exists or needs to be created
+      if (productData.uom) {
+        const uomObj = uoms.find(u => u.shortCode === productData.uom || u.name === productData.uom);
+        
+        if (!uomObj) {
+          try {
+            const uomPayload = { 
+              business_id: businessId, 
+              name: productData.uom, 
+              shortCode: productData.uom, 
+              status: true 
+            };
+            const uomResult = await uomService.createUOM(uomPayload);
+            const newUom = { ...uomPayload, id: uomResult.uom?.id };
+            setUoms(prev => [...prev, newUom]);
+          } catch (error) {
+            if (error.status === 409) {
+              const allUoms = await uomService.getUOMs(businessId);
+              setUoms(allUoms);
+            } else {
+              // Non-critical error, just log it
+              console.warn('UOM auto-creation failed:', error);
+            }
+          }
+        }
+      }
+
+      // 2. Prepare product payload
+      const payload = { 
+        ...productData, 
+        business_id: businessId,
+        category_id: finalCategoryId
+      };
+
+      const result = await productService.createProduct(payload);
+      const newProduct = { ...productData, id: result.product?.id || generateId('PRD-') };
+      setProducts(prev => [...prev, newProduct]);
       showToast('Product added successfully');
-      return updated;
-    });
+      return result;
+    } catch (error) {
+      console.error('Add product error:', error);
+      if (error.status === 409) throw error; // Re-throw for UI to handle duplication
+      showToast(error.message || 'Failed to add product', 'error');
+    }
   };
 
-  const updateProduct = (id, updatedData) => {
-    setProducts(prev => {
-      const updated = prev.map(p => p.id === id ? { ...p, ...updatedData } : p);
+  const updateProduct = async (id, updatedData) => {
+    try {
+      const payload = { ...updatedData, business_id: businessId };
+      if (updatedData.category) {
+        const catObj = categories.find(c => c.name === updatedData.category);
+        if (catObj) payload.category_id = catObj.id;
+      }
+
+      const result = await productService.updateProduct(id, payload);
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updatedData } : p));
       showToast('Product updated successfully');
-      return updated;
-    });
+      return result;
+    } catch (error) {
+      console.error('Update product error:', error);
+      showToast(error.message || 'Failed to update product', 'error');
+    }
   };
 
-  const deleteProduct = (id) => {
-    setProducts(prev => {
-      const updated = prev.filter(p => p.id !== id);
+  const deleteProduct = async (id) => {
+    try {
+      await productService.deleteProduct(id);
+      setProducts(prev => prev.filter(p => p.id !== id));
       showToast('Product deleted successfully');
-      return updated;
-    });
+    } catch (error) {
+      console.error('Delete product error:', error);
+      showToast(error.message || 'Failed to delete product', 'error');
+    }
   };
 
   // INVENTORY LOG & STOCK SYNC
@@ -302,29 +401,39 @@ export const DataProvider = ({ children }) => {
   };
 
   // UOMs
-  const addUom = (uom) => {
-    const newUom = { ...uom, id: generateId('UOM-') };
-    setUoms(prev => {
-      const updated = [...prev, newUom];
+  const addUom = async (uomData) => {
+    try {
+      const payload = { ...uomData, business_id: businessId };
+      const result = await uomService.createUOM(payload);
+      const newUom = { ...uomData, id: result.uom?.id || generateId('UOM-') };
+      setUoms(prev => [...prev, newUom]);
       showToast('Unit added successfully');
-      return updated;
-    });
+    } catch (error) {
+      console.error('Add UOM error:', error);
+      showToast(error.message || 'Failed to add unit', 'error');
+    }
   };
 
-  const updateUom = (id, updates) => {
-    setUoms(prev => {
-      const updated = prev.map(u => u.id === id ? { ...u, ...updates } : u);
+  const updateUom = async (id, updates) => {
+    try {
+      await uomService.updateUOM(id, updates);
+      setUoms(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
       showToast('Unit updated successfully');
-      return updated;
-    });
+    } catch (error) {
+      console.error('Update UOM error:', error);
+      showToast(error.message || 'Failed to update unit', 'error');
+    }
   };
 
-  const deleteUom = (id) => {
-    setUoms(prev => {
-      const updated = prev.filter(u => u.id !== id);
+  const deleteUom = async (id) => {
+    try {
+      await uomService.deleteUOM(id);
+      setUoms(prev => prev.filter(u => u.id !== id));
       showToast('Unit deleted successfully');
-      return updated;
-    });
+    } catch (error) {
+      console.error('Delete UOM error:', error);
+      showToast(error.message || 'Failed to delete unit', 'error');
+    }
   };
 
   // BUSINESSES

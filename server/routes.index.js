@@ -27,5 +27,17 @@ router.use("/businesses", authenticate, businessRoutes);
 const userBusinessRoutes = require("./modules/users/user_businesses.routes");
 router.use("/user-businesses", authenticate, userBusinessRoutes);
 
+// Category Routes
+const categoryRoutes = require("./modules/categories/categories.routes");
+router.use("/categories", authenticate, categoryRoutes);
+
+// Product Routes
+const productRoutes = require("./modules/products/products.routes.js");
+router.use("/products", authenticate, productRoutes);
+
+// UOM Routes
+const uomRoutes = require("./modules/uoms/uoms.routes");
+router.use("/uoms", authenticate, uomRoutes);
+
 module.exports = router;
 

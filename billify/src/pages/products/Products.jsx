@@ -275,12 +275,35 @@ const Products = () => {
         return;
       }
 
-      // Add each product to the context
-      Object.values(productsMap).forEach(product => {
-        addProduct(product);
-      });
+      // Add each product to the context sequentially to handle potential conflicts
+      const products = Object.values(productsMap);
+      let successCount = 0;
+      let updateCount = 0;
+      let skipCount = 0;
 
-      showToast(`Successfully imported ${count} products!`, 'success');
+      for (const product of products) {
+        try {
+          await addProduct(product);
+          successCount++;
+        } catch (error) {
+          if (error.status === 409 && error.existingProduct) {
+            const shouldUpdate = window.confirm(
+              `Product with HSN ${product.hsnCode} ("${error.existingProduct.name}") already exists. \n\nDo you want to UPDATE it with the new data from CSV?`
+            );
+            if (shouldUpdate) {
+              await updateProduct(error.existingProduct.id, product);
+              updateCount++;
+            } else {
+              skipCount++;
+            }
+          } else {
+            console.error('Import error for product:', product.name, error);
+            skipCount++;
+          }
+        }
+      }
+
+      alert(`Import complete!\n- New products: ${successCount}\n- Updated: ${updateCount}\n- Skipped: ${skipCount}`);
       e.target.value = '';
     } catch (err) {
       showToast('Error importing CSV: ' + err.message, 'error');

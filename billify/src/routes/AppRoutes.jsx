@@ -22,6 +22,7 @@ import Uoms from '../pages/settings/Uoms';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import Landing from '../pages/landing/Landing';
+import Profile from '../pages/profile/Profile';
 
 const PageTransition = ({ children }) => (
   <motion.div
@@ -57,6 +58,7 @@ const AppLayout = () => {
             <Route path="/transactions" element={canView('transactions') ? <PageTransition><Transactions /></PageTransition> : <Navigate to="/dashboard" replace />} />
             <Route path="/users" element={canView('users') ? <PageTransition><Users /></PageTransition> : <Navigate to="/dashboard" replace />} />
             <Route path="/settings" element={canView('settings') ? <PageTransition><Settings /></PageTransition> : <Navigate to="/dashboard" replace />} />
+            <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
             <Route path="/unauthorized" element={<PageTransition><div style={{padding: '2rem', textAlign: 'center'}}><h2>Access Denied</h2><p>You don't have permission to access this module.</p></div></PageTransition>} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>

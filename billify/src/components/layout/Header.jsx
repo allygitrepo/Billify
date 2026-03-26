@@ -38,7 +38,7 @@ const Header = ({ toggleSidebar, isPOS }) => {
         </button>
       <div style={{flex: '1'}} className={isPOS ? "" : "lg-ml-0"}>
         <h1 style={{fontSize: '0.75rem', fontWeight: '600', color: 'var(--neutral-500)', textTransform: 'uppercase', letterSpacing: '0.05em'}} className="header-welcome">
-          {businesses.find(b => b.id === user?.businessId)?.name || 'Billify'} / {user?.name || 'Admin'}
+          {(businesses.find(b => b.id === user?.businessId)?.name || user?.businessName || 'Billify')} / {user?.name || 'Admin'}
         </h1>
       </div>
 
@@ -74,8 +74,12 @@ const Header = ({ toggleSidebar, isPOS }) => {
             onMouseOut={(e) => isDropdownOpen ? null : e.currentTarget.style.backgroundColor = 'transparent'}
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            <div style={{width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--primary-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-700)', fontWeight: 'bold'}}>
-              {user?.name?.charAt(0).toUpperCase() || 'A'}
+            <div style={{width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--primary-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-700)', fontWeight: 'bold', overflow: 'hidden'}}>
+              {user?.photo ? (
+                <img src={user.photo} alt="User" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+              ) : (
+                user?.name?.charAt(0).toUpperCase() || 'A'
+              )}
             </div>
             <span style={{fontSize: '0.875rem', fontWeight: '500', color: 'var(--neutral-700)'}} className="sm-inline">
               {user?.name || 'Admin User'}
@@ -111,6 +115,31 @@ const Header = ({ toggleSidebar, isPOS }) => {
                   {user?.email || 'admin@example.com'}
                 </p>
               </div>
+              <button
+                onClick={() => { navigate('/profile'); setIsDropdownOpen(false); }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--spacing-2)',
+                  width: '100%',
+                  padding: 'var(--spacing-2) var(--spacing-4)',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: 'var(--neutral-700)',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--neutral-50)'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                My Profile
+              </button>
               <button
                 onClick={handleLogout}
                 style={{

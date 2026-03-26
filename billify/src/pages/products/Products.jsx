@@ -322,7 +322,7 @@ const Products = () => {
 
       let matchesStatus = statusFilter === 'all' || status === statusFilter;
       if (statusFilter === 'low_stock') {
-        const hasLowStock = p.variants?.some(v => (parseInt(v.stock) || 0) <= 5);
+        const hasLowStock = p.variants?.some(v => (parseInt(v.stock) || 0) <= 10);
         matchesStatus = hasLowStock;
       }
 
@@ -337,7 +337,7 @@ const Products = () => {
     // For low stock, flatten variants into individual rows
     return filteredProducts.flatMap(p => 
       (p.variants || [])
-        .filter(v => (parseInt(v.stock) || 0) <= 5)
+        .filter(v => (parseInt(v.stock) || 0) <= 10)
         .map(v => ({
           ...p,
           variantName: v.name,
@@ -378,7 +378,7 @@ const Products = () => {
               {(variants || []).map((v, i) => (
                 <div key={i} className="tooltip-item">
                   <span className="v-name">{v.name || 'Standard'}</span>
-                  <span className={`v-stock ${(parseInt(v.stock) || 0) <= 5 ? 'low' : ''}`}>{v.stock} unit</span>
+                  <span className={`v-stock ${(parseInt(v.stock) || 0) <= 10 ? 'low' : ''}`}>{v.stock} unit</span>
                 </div>
               ))}
             </div>
@@ -392,7 +392,7 @@ const Products = () => {
           const variants = row.variants || [];
           if (variants.length === 0) return '0';
           const lowest = Math.min(...variants.map(v => parseInt(v.stock) || 0));
-          return <span style={{ color: lowest <= 5 ? 'var(--danger-500)' : 'inherit', fontWeight: 'bold' }}>{lowest}</span>;
+          return <span style={{ color: lowest <= 10 ? 'var(--danger-500)' : 'inherit', fontWeight: 'bold' }}>{lowest}</span>;
         }
       },
       {

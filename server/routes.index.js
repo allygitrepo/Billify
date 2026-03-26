@@ -39,5 +39,17 @@ router.use("/products", authenticate, productRoutes);
 const uomRoutes = require("./modules/uoms/uoms.routes");
 router.use("/uoms", authenticate, uomRoutes);
 
+// Invoice Routes
+const invoiceRoutes = require("./modules/invoice/invoice.routes");
+router.use("/invoices", authenticate, invoiceRoutes);
+
+// Inventory Routes
+const inventoryRoutes = require("./modules/inventory/inventory.routes");
+router.use("/inventory", authenticate, inventoryRoutes);
+
+// Settings Routes
+const settingsRoutes = require("./modules/settings/settings.routes");
+router.use("/settings", authenticate, settingsRoutes);
+
 module.exports = router;
 

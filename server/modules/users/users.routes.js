@@ -14,4 +14,10 @@ router.put("/update/:id", usersController.updateUser);
 // Delete/Remove user from business
 router.delete("/delete/:id", usersController.deleteUser);
 
+// Change password
+router.post("/change-password", usersController.changePassword);
+
+// Update profile (own data)
+router.put("/profile/update", usersController.updateProfile);
+
 module.exports = router;

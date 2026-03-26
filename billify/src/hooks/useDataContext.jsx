@@ -6,6 +6,9 @@ import { roleService } from '../services/role.service';
 import { categoryService } from '../services/category.service';
 import { productService } from '../services/product.service';
 import { uomService } from '../services/uom.service';
+import { invoiceService } from '../services/invoice.service';
+import { inventoryService } from '../services/inventory.service';
+import { settingsService } from '../services/settings.service';
 import { generateId } from '../utils/idGenerator';
 import Toast from '../components/common/Toast';
 import { AnimatePresence } from 'framer-motion';
@@ -17,6 +20,7 @@ export const DataProvider = ({ children }) => {
   const businessId = user?.businessId;
 
   // State for all entity types
+  const [businesses, setBusinesses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -38,13 +42,26 @@ export const DataProvider = ({ children }) => {
       if (businessId) {
         try {
           // Fetch all business context data
-          const [businessesResult, usersResult, rolesResult, categoriesResult, productsResult, uomsResult] = await Promise.all([
+          const [
+            businessesResult, 
+            usersResult, 
+            rolesResult, 
+            categoriesResult, 
+            productsResult, 
+            uomsResult,
+            transactionsResult,
+            inventoryResult,
+            settingsResult
+          ] = await Promise.all([
             businessService.getMyBusinesses(),
             userService.getUsers(businessId),
             roleService.getRoles(businessId),
             categoryService.getCategories(businessId),
             productService.getProducts(businessId),
-            uomService.getUOMs(businessId)
+            uomService.getUOMs(businessId),
+            invoiceService.getInvoices(businessId),
+            inventoryService.getInventoryLog(businessId),
+            settingsService.getSettings(businessId)
           ]);
           
           const rolesData = (rolesResult || []).map(role => {
@@ -71,16 +88,78 @@ export const DataProvider = ({ children }) => {
             category: p.category ? p.category.name : ''
           }));
           
+          // Map settings to camelCase for UI
+          const mappedSettings = settingsResult ? {
+            businessName: settingsResult.business_name || '',
+            gstNumber: settingsResult.gst_number || '',
+            phone: settingsResult.business_phone || '',
+            address: settingsResult.business_address || '',
+            taxPercentage: settingsResult.tax_percentage || 0,
+            gstPercentage: settingsResult.gst_percentage || 0,
+            currency: settingsResult.currency || 'INR',
+            invoicePrefix: settingsResult.invoice_prefix || 'INV',
+            startingNumber: settingsResult.starting_invoice_number || 1001,
+            footerNote: settingsResult.footer_note || '',
+            invoiceFormat: settingsResult.invoice_format || 'thermal',
+            photo: settingsResult.business_logo || ''
+          } : {};
+
+          const mappedLogs = (inventoryResult || []).map(log => ({
+            id: log.id,
+            productId: log.product_id,
+            productName: log.product?.name || 'Unknown',
+            variantName: log.variant_name,
+            type: log.change_type,
+            quantityChange: log.quantity_change,
+            reason: log.reason,
+            stockAfter: log.stock_after,
+            doneBy: log.user?.name || 'Admin',
+            referenceNo: log.reference_no,
+            entityName: log.entity_name,
+            unitPrice: log.unit_price,
+            totalAmount: log.total_amount,
+            date: log.createdAt
+          }));
+
+          const mappedTransactions = (transactionsResult || []).map(t => ({
+            id: t.invoice_number || t.id.toString(),
+            dbId: t.id,
+            type: 'Invoice',
+            date: t.createdAt,
+            items: (t.items || []).map(item => {
+              // Try to find current product name for legacy transactions
+              const currentProd = productsResult.find(p => p.id === item.product_id);
+              return {
+                id: item.id,
+                productId: item.product_id,
+                name: item.product_name || currentProd?.name || 'Product',
+                variantName: item.variant_name,
+                quantity: item.quantity,
+                price: parseFloat(item.price),
+                subtotal: parseFloat(item.subtotal)
+              };
+            }),
+            paymentMethod: t.payment_mode,
+            subtotal: parseFloat(t.total_amount),
+            tax: parseFloat(t.tax_amount),
+            gst: 0, 
+            discount: parseFloat(t.discount),
+            total: parseFloat(t.final_amount),
+            cashierName: t.user?.name || 'Admin',
+            customerName: t.customer_name || 'Walking Customer',
+            customerPhone: t.customer_phone || '',
+            status: t.status
+          }));
+
           setUsers(usersResult || []);
           setRoles(rolesData);
           setCategories(categoriesResult || []);
           setProducts(productsData);
           setUoms(uomsResult || []);
-          
-          // Since other endpoints are missing, we initialize with empty or mock for now
-          setTransactions([]);
-          setInventoryLog([]);
-          setSettings({});
+          setTransactions(mappedTransactions);
+          setInventoryLog(mappedLogs);
+          setSettings(mappedSettings);
+          setBusinesses(businessesResult || []);
           
         } catch (error) {
           console.error('Error fetching business data:', error);
@@ -249,83 +328,194 @@ export const DataProvider = ({ children }) => {
     }
   };
 
-  // INVENTORY LOG & STOCK SYNC
-  const addInventoryEntry = (entry) => {
-    // 1. Find current stock to calculate stockAfter
-    const product = products.find(p => p.id === entry.productId);
-    const variant = product?.variants.find(v => v.name === entry.variantName);
-    const currentStock = parseInt(variant?.stock) || 0;
-    const finalStockAfter = Math.max(0, currentStock + entry.quantityChange);
-
-    // 2. Update Products state and STORAGE
-    setProducts(prevProducts => {
-      const updatedProducts = prevProducts.map(p => {
-        if (p.id === entry.productId) {
-          const updatedVariants = p.variants.map(v => {
-            if (v.name === entry.variantName) {
-              return { ...v, stock: finalStockAfter };
-            }
-            return v;
-          });
-          return { ...p, variants: updatedVariants };
-        }
-        return p;
+  // INVENTORY LOG & STOCK SYNC (Bulk Support)
+  const addInventoryEntry = async (data) => {
+    try {
+      const payload = {
+        business_id: businessId,
+        type: data.type,
+        reason: data.reason,
+        user_id: user?.id,
+        reference_no: data.referenceNo,
+        entity_name: data.entityName,
+        items: data.items.map(item => ({
+          product_id: item.productId,
+          variant_name: item.variantName,
+          quantity_change: item.quantity,
+          unit_price: item.unitPrice,
+          total_amount: item.totalAmount,
+          type: item.type // Support mixed types per item
+        }))
+      };
+      
+      const result = await inventoryService.updateStock(payload);
+      
+      // Enrich logs for real-time display
+      const enrichedLogs = (result.logs || []).map(log => {
+        const originalItem = data.items.find(i => 
+          i.productId == log.product_id && i.variantName === log.variant_name
+        );
+        return {
+          ...log,
+          productName: originalItem?.productName || 'Product',
+          variantName: log.variant_name,
+          type: log.change_type,
+          quantityChange: log.quantity_change,
+          stockAfter: log.stock_after,
+          doneBy: user?.name || 'Admin',
+          date: log.createdAt,
+          referenceNo: log.reference_no,
+          entityName: log.entity_name,
+          unitPrice: log.unit_price,
+          totalAmount: log.total_amount
+        };
       });
-      return updatedProducts;
-    });
 
-    // 3. Add to Inventory Log and STORAGE
-    const logEntryWithStock = { 
-      ...entry, 
-      id: generateId('LOG-'), 
-      date: new Date().toISOString(),
-      doneBy: user?.name || 'Admin',
-      stockAfter: finalStockAfter
-    };
-    
-    setInventoryLog(prev => {
-      const updated = [logEntryWithStock, ...prev];
-      return updated;
-    });
+      // Update local state for inventory log
+      setInventoryLog(prev => [...enrichedLogs, ...prev]);
+      
+      // Update local state for product stocks
+      setProducts(prevProducts => {
+        let updated = [...prevProducts];
+        enrichedLogs.forEach(log => {
+          updated = updated.map(p => {
+            if (p.id === log.product_id) {
+              const updatedVariants = p.variants.map(v => {
+                if (v.name === log.variant_name) {
+                  return { ...v, stock: log.stockAfter };
+                }
+                return v;
+              });
+              return { ...p, variants: updatedVariants };
+            }
+            return p;
+          });
+        });
+        return updated;
+      });
 
-    // Show toast only for manual inventory updates, not for POS sales
-    if (entry.reason !== 'Sale') {
-      showToast(`${entry.type === 'IN' ? 'Added' : 'Reduced'} stock for ${entry.productName}`);
+      if (data.reason !== 'Sale') {
+        showToast(`Stock updated successfully (${data.items.length} items)`);
+      }
+      return { ...result, logs: enrichedLogs };
+    } catch (error) {
+      console.error('Add inventory entry error:', error);
+      showToast(error.message || 'Failed to update stock', 'error');
     }
   };
 
-  // TRANSACTIONS
-  const addTransaction = (transaction) => {
-    const newTransaction = { 
-      ...transaction, 
-      id: generateId('INV-'), 
-      date: new Date().toISOString(),
-      status: 'Paid'
-    };
-    setTransactions(prev => {
-      const updated = [newTransaction, ...prev];
-      showToast('Transaction completed', 'success');
-      return updated;
-    });
+  // TRANSACTIONS (Invoices)
+  const addTransaction = async (transaction) => {
+    try {
+      // Map frontend fields to backend schema
+      const payload = {
+        business_id: businessId,
+        user_id: user?.id,
+        customer_name: transaction.customerName || 'Walking Customer',
+        customer_phone: transaction.customerPhone || '',
+        total_amount: transaction.subtotal,
+        discount: transaction.discount,
+        tax_amount: (transaction.tax || 0) + (transaction.gst || 0),
+        final_amount: transaction.total,
+        payment_mode: transaction.paymentMethod,
+        status: 'Paid',
+        items: transaction.items.map(item => ({
+          productId: item.productId,
+          productName: item.name, // Send name to store as snapshot
+          variantName: item.variantName,
+          quantity: item.quantity,
+          price: item.price,
+          subtotal: item.price * item.quantity
+        }))
+      };
 
-    // Side effect: reduce stock for each item
-    transaction.items.forEach(item => {
-      addInventoryEntry({
-        productId: item.productId,
-        productName: item.name,
-        variantName: item.variantName,
-        type: 'OUT',
-        quantityChange: -Math.abs(item.quantity),
-        reason: 'Sale',
-        stockAfter: 0 // Placeholder, handled in updateProductStock logic
+      const result = await invoiceService.createInvoice(payload);
+      
+      // Update local transactions state
+      const newTransaction = {
+        ...transaction,
+        id: result.invoice.invoice_number,
+        dbId: result.invoice.id,
+        date: result.invoice.createdAt,
+        status: result.invoice.status,
+        cashierName: user?.name || 'Admin'
+      };
+      setTransactions(prev => [newTransaction, ...prev]);
+      
+      // Update local product stock state (sync UI)
+      setProducts(prevProducts => {
+        let updated = [...prevProducts];
+        transaction.items.forEach(item => {
+          updated = updated.map(p => {
+            if (p.id === item.productId) {
+              const updatedVariants = p.variants.map(v => {
+                if (v.name === item.variantName) {
+                  const currentStock = parseInt(v.stock) || 0;
+                  return { ...v, stock: currentStock - item.quantity };
+                }
+                return v;
+              });
+              return { ...p, variants: updatedVariants };
+            }
+            return p;
+          });
+        });
+        return updated;
       });
-    });
+
+      // Refresh inventory log
+      const logResult = await inventoryService.getInventoryLog(businessId);
+      const mappedLogs = (logResult || []).map(log => ({
+        id: log.id,
+        productId: log.product_id,
+        productName: log.product?.name || 'Unknown',
+        variantName: log.variant_name,
+        type: log.change_type,
+        quantityChange: log.quantity_change,
+        reason: log.reason,
+        stockAfter: log.stock_after,
+        doneBy: log.user?.name || 'Admin',
+        date: log.createdAt
+      }));
+      setInventoryLog(mappedLogs);
+
+      showToast('Transaction completed', 'success');
+      return newTransaction;
+    } catch (error) {
+      console.error('Add transaction error:', error);
+      showToast(error.message || 'Failed to complete transaction', 'error');
+    }
   };
 
   // SETTINGS
-  const updateSettings = (newSettings) => {
-    setSettings(newSettings);
-    showToast('Settings saved');
+  const updateSettings = async (newSettings) => {
+    try {
+      // Map back to snake_case for backend
+      const payload = {
+        business_name: newSettings.businessName,
+        gst_number: newSettings.gstNumber,
+        business_phone: newSettings.phone,
+        business_address: newSettings.address,
+        tax_percentage: newSettings.taxPercentage,
+        gst_percentage: newSettings.gstPercentage,
+        currency: newSettings.currency,
+        invoice_prefix: newSettings.invoicePrefix,
+        starting_invoice_number: newSettings.startingNumber,
+        footer_note: newSettings.footerNote,
+        invoice_format: newSettings.invoiceFormat,
+        business_logo: newSettings.photo
+      };
+
+      const result = await settingsService.updateSettings(businessId, payload);
+      
+      // Update local state with camelCase
+      setSettings(newSettings);
+      showToast('Settings saved');
+      return result;
+    } catch (error) {
+      console.error('Update settings error:', error);
+      showToast(error.message || 'Failed to save settings', 'error');
+    }
   };
 
   // USERS
@@ -446,7 +636,7 @@ export const DataProvider = ({ children }) => {
   };
 
   const value = {
-    businesses: [], // To be populated from API
+    businesses,
     categories,
     products,
     transactions,

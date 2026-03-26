@@ -3,6 +3,8 @@ import { formatCurrency } from '../../utils/formatCurrency';
 
 const CartPanel = ({ cart, onUpdateQty, onRemove, onCheckout, discount, onDiscountChange, settings }) => {
   const [paymentMethod, setPaymentMethod] = React.useState('Cash');
+  const [customerName, setCustomerName] = React.useState('');
+  const [customerPhone, setCustomerPhone] = React.useState('');
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const taxRate = parseFloat(settings.taxPercentage || 0) / 100;
   const gstRate = parseFloat(settings.gstPercentage || 0) / 100;
@@ -85,6 +87,28 @@ const CartPanel = ({ cart, onUpdateQty, onRemove, onCheckout, discount, onDiscou
       </div>
 
       <div className="payment-section">
+        <div className="customer-info-section">
+          <p className="pay-label">Customer Info (Optional)</p>
+          <div className="customer-inputs" style={{ marginBottom: '16px' }}>
+            <input 
+              type="text" 
+              placeholder="Customer Name" 
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className="pos-input"
+              style={{ width: '100%', marginBottom: '8px', padding: '10px', borderRadius: '8px', border: '1px solid var(--neutral-200)' }}
+            />
+            <input 
+              type="text" 
+              placeholder="Mobile Number" 
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              className="pos-input"
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--neutral-200)' }}
+            />
+          </div>
+        </div>
+
         <p className="pay-label">Select Payment Method</p>
         <div className="pay-methods">
           <button 
@@ -112,7 +136,7 @@ const CartPanel = ({ cart, onUpdateQty, onRemove, onCheckout, discount, onDiscou
         <button 
           className="btn btn-primary complete-btn" 
           disabled={cart.length === 0}
-          onClick={() => onCheckout(paymentMethod)}
+          onClick={() => onCheckout(paymentMethod, { customerName, customerPhone })}
         >
           Complete Payment
         </button>

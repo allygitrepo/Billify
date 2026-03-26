@@ -27,9 +27,20 @@ const authController = {
     register: async (req, res) => {
         const t = await sequelize.transaction();
         try {
-            const { name, email, password, business_name, phone, gstin, address } = req.body;
+            const { 
+                name, email, password, business_name, phone, gstin, address,
+                userPhoto, userMobile, businessPhoto,
+                taxPercentage, gstPercentage, currency, 
+                invoicePrefix, startingNumber, invoiceFormat, footerNote
+            } = req.body;
 
-            console.log("Registration Request:", { name, email, business_name });
+            console.log("Registration Request:", { 
+                name, 
+                email, 
+                business_name,
+                userPhotoSize: userPhoto ? userPhoto.length : 0,
+                businessPhotoSize: businessPhoto ? businessPhoto.length : 0
+            });
 
             if (!name || !email || !password || !business_name) {
                 console.log("Registration Failed: Missing fields");
@@ -54,12 +65,14 @@ const authController = {
             });
             console.log("Admin role ID resolved:", adminRole.id);
 
-            // 4. Create User with role_id
+            // 4. Create User with role_id and photo
             const user = await User.create({
                 name,
                 email,
+                mobile: userMobile,
                 password: hashedPassword,
-                role_id: adminRole.id
+                role_id: adminRole.id,
+                photo: userPhoto
             }, { transaction: t });
             console.log("User created:", user.id);
 
@@ -72,6 +85,25 @@ const authController = {
                 address
             }, { transaction: t });
             console.log("Business created:", business.id);
+
+            // 6. Create Settings for the business
+            const Settings = require("../settings/settings.model");
+            await Settings.create({
+                business_id: business.id,
+                business_name: business_name,
+                business_phone: phone,
+                business_address: address,
+                gst_number: gstin,
+                business_logo: businessPhoto,
+                tax_percentage: taxPercentage || 0,
+                gst_percentage: gstPercentage || 0,
+                currency: currency || 'INR',
+                invoice_prefix: invoicePrefix || 'INV',
+                starting_invoice_number: startingNumber || 1001,
+                invoice_format: invoiceFormat || 'thermal',
+                footer_note: footerNote || ''
+            }, { transaction: t });
+            console.log("Settings created for business:", business.id);
 
             // 6. Map User to Business as Admin
             await UserBusiness.create({
@@ -180,7 +212,8 @@ const authController = {
                     id: user.id, 
                     name: user.name, 
                     email: user.email,
-                    role_id: user.role_id 
+                    role_id: user.role_id,
+                    photo: user.photo
                 },
                 businesses: userBusinesses.map(ub => ({
                     ...ub.business.get({ plain: true }),

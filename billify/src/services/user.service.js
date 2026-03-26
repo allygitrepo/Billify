@@ -35,5 +35,23 @@ export const userService = {
     } catch (error) {
       throw error.response?.data || { message: 'Failed to delete user' };
     }
+  },
+
+  changePassword: async (passwordData) => {
+    try {
+      const response = await api.post('/users/change-password', passwordData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to change password' };
+    }
+  },
+
+  updateProfile: async (profileData) => {
+    try {
+      const response = await api.put('/users/profile/update', profileData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to update profile' };
+    }
   }
 };

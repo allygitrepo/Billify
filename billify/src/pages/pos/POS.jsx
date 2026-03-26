@@ -4,16 +4,22 @@ import { useDataContext } from '../../hooks/useDataContext';
 import PageContainer from '../../components/layout/PageContainer';
 import ProductGrid from '../../components/pos/ProductGrid';
 import CartPanel from '../../components/pos/CartPanel';
+import InvoiceModal from '../../components/pos/InvoiceModal';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { printInvoice } from '../../utils/printService';
 
 const POS = () => {
-  const { products, categories, settings, addTransaction, showToast } = useDataContext();
+  const { products, categories, settings, user, addTransaction, showToast } = useDataContext();
 
   const [cart, setCart] = useState([]);
   const [activeCategory, setActiveCategory] = useState('All');
   const [discount, setDiscount] = useState('');
   const [flashOrderId, setFlashOrderId] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Invoice Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newInvoiceData, setNewInvoiceData] = useState(null);
 
   const handleAddToCart = (product, variant) => {
     setCart(prev => {
@@ -65,7 +71,7 @@ const POS = () => {
     setCart(prev => prev.filter(item => item.cartItemId !== cartItemId));
   };
 
-  const handleCheckout = (paymentMethod) => {
+  const handleCheckout = async (paymentMethod, customerInfo = {}) => {
     if (cart.length === 0) return;
 
     const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -85,13 +91,27 @@ const POS = () => {
       discount: discAmt,
       total,
       paymentMethod,
+      customerName: customerInfo.customerName || 'Walking Customer',
+      customerPhone: customerInfo.customerPhone || '',
       items: cart,
       itemsCount: cart.reduce((acc, i) => acc + i.quantity, 0)
     };
 
-    addTransaction(transaction);
-    setCart([]);
-    setDiscount('');
+    try {
+      const result = await addTransaction(transaction);
+      if (result) {
+        setNewInvoiceData(result);
+        setIsModalOpen(true);
+        setCart([]);
+        setDiscount('');
+      }
+    } catch (err) {
+      // Error is already handled with toast in useDataContext
+    }
+  };
+
+  const handlePrint = (transaction) => {
+    printInvoice(transaction, settings);
   };
 
   return (
@@ -146,6 +166,16 @@ const POS = () => {
           />
         </div>
       </motion.div>
+
+      {/* Invoice Modal to show after checkout */}
+      <InvoiceModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        transaction={newInvoiceData}
+        settings={settings}
+        user={user}
+        onPrint={handlePrint}
+      />
     </PageContainer>
   );
 };

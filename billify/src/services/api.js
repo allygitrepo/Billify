@@ -11,7 +11,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = sessionStorage.getItem('billify_token');
-    console.log(`API Request: ${config.method.toUpperCase()} ${config.url}`, { hasToken: !!token });
+    // console.log(`API Request: ${config.method.toUpperCase()} ${config.url}`, { hasToken: !!token });
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -26,7 +26,7 @@ api.interceptors.request.use(
 // Add a response interceptor to handle token expiration
 api.interceptors.response.use(
   (response) => {
-    console.log(`API Response: ${response.config.method.toUpperCase()} ${response.config.url} - ${response.status}`);
+    // console.log(`API Response: ${response.config.method.toUpperCase()} ${response.config.url} - ${response.status}`);
     return response;
   },
   (error) => {

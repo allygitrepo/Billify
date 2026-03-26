@@ -45,7 +45,7 @@ const usersController = {
     createUser: async (req, res) => {
         const t = await sequelize.transaction();
         try {
-            const { name, email, password, role_id, business_id, mobile } = req.body;
+            const { name, email, password, role_id, business_id, mobile, photo } = req.body;
 
             if (!name || !email || !password || !role_id || !business_id) {
                 return res.status(400).json({ message: "Missing required fields" });
@@ -60,6 +60,8 @@ const usersController = {
                 user = await User.create({
                     name,
                     email,
+                    mobile,
+                    photo,
                     password: hashedPassword,
                     role_id: role_id // Default role
                 }, { transaction: t });
@@ -101,7 +103,7 @@ const usersController = {
         const t = await sequelize.transaction();
         try {
             const { id } = req.params; // User ID
-            const { name, email, role_id, business_id, status } = req.body;
+            const { name, email, mobile, role_id, business_id, status, photo } = req.body;
 
             const user = await User.findByPk(id);
             if (!user) {
@@ -112,7 +114,9 @@ const usersController = {
             // Update user info
             await user.update({ 
                 name: name || user.name,
-                email: email || user.email
+                email: email || user.email,
+                mobile: mobile !== undefined ? mobile : user.mobile,
+                photo: photo !== undefined ? photo : user.photo
             }, { transaction: t });
 
             // Update business mapping
@@ -121,9 +125,14 @@ const usersController = {
                     where: { user_id: id, business_id }
                 });
                 if (mapping) {
+                    let finalStatus = mapping.status;
+                    if (status !== undefined) {
+                        finalStatus = (status === 'active' || status === true);
+                    }
+                    
                     await mapping.update({ 
                         role_id, 
-                        status: status !== undefined ? status : mapping.status 
+                        status: finalStatus
                     }, { transaction: t });
                 }
             }
@@ -133,6 +142,75 @@ const usersController = {
         } catch (error) {
             await t.rollback();
             console.error("Update User Error:", error);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    },
+
+    // ============ Change Password ============
+    changePassword: async (req, res) => {
+        try {
+            const { oldPassword, newPassword } = req.body;
+            const userId = req.user.id; // From authenticate middleware
+
+            if (!oldPassword || !newPassword) {
+                return res.status(400).json({ message: "Old and new passwords are required" });
+            }
+
+            const user = await User.findByPk(userId);
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
+            }
+
+            // Verify old password
+            const bcrypt = require("bcryptjs");
+            const isMatch = await bcrypt.compare(oldPassword, user.password);
+            if (!isMatch) {
+                return res.status(400).json({ message: "Incorrect current password" });
+            }
+
+            // Hash and update new password
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(newPassword, salt);
+            
+            await user.update({ password: hashedPassword });
+
+            return res.status(200).json({ message: "Password updated successfully" });
+        } catch (error) {
+            console.error("Change Password Error:", error);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    },
+
+    // ============ Update Profile (Own Data) ============
+    updateProfile: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const { name, mobile, photo } = req.body;
+
+            const user = await User.findByPk(userId);
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
+            }
+
+            // Update allowed fields only
+            await user.update({
+                name: name || user.name,
+                mobile: mobile !== undefined ? mobile : user.mobile,
+                photo: photo !== undefined ? photo : user.photo
+            });
+
+            return res.status(200).json({ 
+                message: "Profile updated successfully",
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    mobile: user.mobile,
+                    photo: user.photo
+                }
+            });
+        } catch (error) {
+            console.error("Update Profile Error:", error);
             return res.status(500).json({ message: "Internal server error" });
         }
     },

@@ -25,6 +25,7 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     userPhoto: '',
+    userMobile: '',
     
     // Step 2: Business
     businessName: '',
@@ -260,6 +261,16 @@ const Register = () => {
                       required 
                     />
                     
+                    <Input 
+                      label="Mobile Number" 
+                      name="userMobile" 
+                      placeholder="e.g. 9876543210"
+                      value={formData.userMobile} 
+                      onChange={handleChange} 
+                      error={errors.userMobile} 
+                      icon={<Phone size={18} />}
+                      required 
+                    />
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-6)' }}>
                       <Input 
                         label="Password" 
@@ -381,12 +392,12 @@ const Register = () => {
                     
                     <div className="settings-grid-2 mt-4">
                       <Select 
-                        label="Invoice Format" 
+                        label="Printing Size" 
                         name="invoiceFormat" 
                         value={formData.invoiceFormat} 
                         onChange={handleChange} 
                         options={[
-                          {label: 'Thermal (80mm)', value: 'thermal'}, 
+                          {label: 'Thermal (58/80mm)', value: 'thermal'}, 
                           {label: 'A4 Page', value: 'a4'}
                         ]} 
                       />

@@ -65,13 +65,13 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      console.log('Login component: calling login hook');
+      // console.log('Login component: calling login hook');
       const result = await login(formData.email, formData.password);
-      console.log('Login component: login result:', result);
+      // console.log('Login component: login result:', result);
       setIsLoading(false);
       
       if (result.success) {
-        console.log('Login component: navigating to dashboard');
+        // console.log('Login component: navigating to dashboard');
         navigate('/dashboard');
       } else {
         setLoginError(result.message);

@@ -28,7 +28,7 @@ const Dashboard = () => {
 
   const lowStockCount = products.reduce((acc, p) => {
     const minStock = Math.min(...p.variants.map(v => v.stock));
-    return minStock <= 5 ? acc + 1 : acc;
+    return minStock <= 10 ? acc + 1 : acc;
   }, 0);
 
   const thisMonth = new Date().getMonth();

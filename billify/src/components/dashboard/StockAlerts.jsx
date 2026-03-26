@@ -1,7 +1,7 @@
 const StockAlerts = ({ products = [], onViewAll }) => {
   const alerts = products.flatMap(p => 
     p.variants
-      .filter(v => v.stock <= 5)
+      .filter(v => v.stock <= 10)
       .map((v, index) => ({
         id: `${p.id}-${v.name}-${index}`,
         name: p.name,

@@ -102,11 +102,11 @@ const Users = () => {
 
   const validateUserForm = () => {
     const errors = {};
-    if (!userFormData.name.trim()) errors.name = 'Name is required';
-    if (!userFormData.email.trim() || !/\S+@\S+\.\S+/.test(userFormData.email)) errors.email = 'Valid email required';
-    if (!userFormData.mobile.trim() || !/^\d{10}$/.test(userFormData.mobile)) errors.mobile = '10-digit mobile required';
+    if (!userFormData.name?.trim()) errors.name = 'Name is required';
+    if (!userFormData.email?.trim() || !/\S+@\S+\.\S+/.test(userFormData.email)) errors.email = 'Valid email required';
+    if (!userFormData.mobile?.trim() || !/^\d{10}$/.test(userFormData.mobile)) errors.mobile = '10-digit mobile required';
     if (!userFormData.role) errors.role = 'Role required';
-    if (!isEditingUser && !userFormData.password.trim()) errors.password = 'Password is required';
+    if (!isEditingUser && !userFormData.password?.trim()) errors.password = 'Password is required';
     setUserErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -139,7 +139,12 @@ const Users = () => {
   const handleEditUser = (user) => {
     setIsEditingUser(true);
     setEditingUserId(user.id);
-    setUserFormData({ ...user });
+    setUserFormData({ 
+      ...user,
+      mobile: user.mobile || '',
+      photo: user.photo || '',
+      password: '' // Reset password on edit
+    });
     setActiveForm('user');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

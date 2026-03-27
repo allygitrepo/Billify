@@ -5,7 +5,7 @@ export const authService = {
     try {
       const response = await api.post('/auth/login', { email, password });
       if (response.data.token) {
-        sessionStorage.setItem('billify_token', response.data.token);
+        localStorage.setItem('billify_token', response.data.token);
         
         // Include default business and role info if available
         const userWithContext = { ...response.data.user };
@@ -15,7 +15,7 @@ export const authService = {
           userWithContext.businesses = response.data.businesses;
         }
         
-        sessionStorage.setItem('billify_user', JSON.stringify(userWithContext));
+        localStorage.setItem('billify_user', JSON.stringify(userWithContext));
         return { ...response.data, user: userWithContext };
       }
       return response.data;
@@ -34,7 +34,7 @@ export const authService = {
   },
 
   logout: () => {
-    sessionStorage.removeItem('billify_token');
-    sessionStorage.removeItem('billify_user');
+    localStorage.removeItem('billify_token');
+    localStorage.removeItem('billify_user');
   }
 };

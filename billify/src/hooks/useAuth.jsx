@@ -8,7 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = sessionStorage.getItem('billify_user');
+    const savedUser = localStorage.getItem('billify_user');
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
         setUser(parsed);
       } catch (error) {
         console.error('Error parsing saved user:', error);
-        sessionStorage.removeItem('billify_user');
+        localStorage.removeItem('billify_user');
       }
     }
     setLoading(false);
@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }) => {
     };
     
     setUser(updatedUser);
-    sessionStorage.setItem('billify_user', JSON.stringify(updatedUser));
+    localStorage.setItem('billify_user', JSON.stringify(updatedUser));
     return { success: true };
   };
 
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }) => {
     if (!user) return;
     const updatedUser = { ...user, ...newData };
     setUser(updatedUser);
-    sessionStorage.setItem('billify_user', JSON.stringify(updatedUser));
+    localStorage.setItem('billify_user', JSON.stringify(updatedUser));
   };
 
   const value = {

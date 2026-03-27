@@ -8,7 +8,7 @@ const Settings = sequelize.define("Settings", {
     gst_percentage: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
     currency: { type: DataTypes.STRING, defaultValue: 'INR' },
     invoice_prefix: { type: DataTypes.STRING, defaultValue: 'INV' },
-    starting_invoice_number: { type: DataTypes.INTEGER, defaultValue: 1001 },
+    starting_invoice_number: { type: DataTypes.INTEGER, defaultValue: 1 },
     footer_note: { type: DataTypes.TEXT, allowNull: true },
     invoice_format: { type: DataTypes.STRING, defaultValue: 'thermal' }, // 'thermal', 'a4'
     business_name: { type: DataTypes.STRING, allowNull: true },

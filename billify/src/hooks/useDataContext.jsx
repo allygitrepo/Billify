@@ -627,12 +627,32 @@ export const DataProvider = ({ children }) => {
   };
 
   // BUSINESSES
-  const addBusiness = (businessData) => {
-    showToast('Feature temporarily disabled pending API integration', 'error');
+  const addBusiness = async (businessData) => {
+    try {
+      const result = await businessService.createBusiness(businessData);
+      const newBiz = result.business;
+      setBusinesses(prev => [...prev, {
+        ...newBiz,
+        role: 'Admin',
+        role_id: newBiz.role_id
+      }]);
+      showToast('Business created successfully');
+      return result;
+    } catch (error) {
+      console.error('Add business error:', error);
+      showToast(error.message || 'Failed to create business', 'error');
+    }
   };
 
-  const deleteBusinessStore = (id) => {
-    showToast('Feature temporarily disabled pending API integration', 'error');
+  const deleteBusinessStore = async (id) => {
+    try {
+      await businessService.deleteBusiness(id);
+      setBusinesses(prev => prev.filter(b => b.id !== id));
+      showToast('Business deleted successfully');
+    } catch (error) {
+      console.error('Delete business error:', error);
+      showToast(error.message || 'Failed to delete business', 'error');
+    }
   };
 
   const value = {

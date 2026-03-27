@@ -33,7 +33,7 @@ const Settings = () => {
     gstPercentage: '',
     currency: 'INR',
     invoicePrefix: 'INV',
-    startingNumber: '1001',
+    startingNumber: '1',
     footerNote: '',
     invoiceFormat: 'thermal',
     photo: ''
@@ -348,7 +348,7 @@ const Settings = () => {
                   <Button 
                     variant="primary" 
                     style={{ width: '100%' }}
-                    onClick={() => {
+                    onClick={async () => {
                       const errors = {};
                       if (!newBizData.businessName.trim()) errors.businessName = 'Name is required';
                       if (!newBizData.phone.trim() || !/^\d{10}$/.test(newBizData.phone)) errors.phone = 'Valid 10-digit phone required';
@@ -358,15 +358,17 @@ const Settings = () => {
                         return;
                       }
 
-                      addBusiness(newBizData);
-                      setNewBizData({
-                        businessName: '',
-                        gstNumber: '',
-                        phone: '',
-                        address: '',
-                        photo: ''
-                      });
-                      setBizErrors({});
+                      const success = await addBusiness(newBizData);
+                      if (success) {
+                        setNewBizData({
+                          businessName: '',
+                          gstNumber: '',
+                          phone: '',
+                          address: '',
+                          photo: ''
+                        });
+                        setBizErrors({});
+                      }
                     }}
                   >
                     Create Business Entity
@@ -382,7 +384,7 @@ const Settings = () => {
                   <div key={biz.id} className="toggle-item" style={{ marginBottom: 'var(--spacing-4)', background: user?.businessId === biz.id ? 'var(--primary-50)' : '#f9fafb', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-lg)' }}>
                     <div className="toggle-info">
                       <span className="toggle-label">{biz.name}</span>
-                      <span className="toggle-desc">ID: {biz.id} {user?.businessId === biz.id ? '(Active)' : ''}</span>
+                      <span className="toggle-desc">{biz.address || 'No address provided'} {user?.businessId === biz.id ? '(Active)' : ''}</span>
                     </div>
                     <div style={{ display: 'flex', gap: 'var(--spacing-2)' }}>
                       {user?.businessId !== biz.id ? (

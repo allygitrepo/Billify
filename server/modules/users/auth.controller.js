@@ -99,7 +99,7 @@ const authController = {
                 gst_percentage: gstPercentage || 0,
                 currency: currency || 'INR',
                 invoice_prefix: invoicePrefix || 'INV',
-                starting_invoice_number: startingNumber || 1001,
+                starting_invoice_number: startingNumber || 1,
                 invoice_format: invoiceFormat || 'thermal',
                 footer_note: footerNote || ''
             }, { transaction: t });

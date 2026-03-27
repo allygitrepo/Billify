@@ -9,7 +9,7 @@ const Settings = require("../modules/settings/settings.model");
 const getNextSequenceNumber = async (business_id) => {
     const settings = await Settings.findOne({ where: { business_id } });
     const prefix = settings?.invoice_prefix || "BILL";
-    const startingNumber = settings?.starting_invoice_number || 1001;
+    const startingNumber = settings?.starting_invoice_number !== undefined ? settings.starting_invoice_number : 1;
 
     // Count existing invoices
     const invoiceCount = await Invoice.count({ where: { business_id } });
@@ -24,7 +24,8 @@ const getNextSequenceNumber = async (business_id) => {
     });
 
     const nextNumber = startingNumber + invoiceCount + inventorySaleCount;
-    return `${prefix}-${nextNumber}`;
+    const paddedNumber = String(nextNumber).padStart(3, '0');
+    return `${prefix}-${paddedNumber}`;
 };
 
 module.exports = { getNextSequenceNumber };

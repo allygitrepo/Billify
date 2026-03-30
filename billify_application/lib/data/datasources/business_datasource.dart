@@ -13,8 +13,12 @@ abstract class BusinessDatasource {
 
 class LocalBusinessDatasource implements BusinessDatasource {
   final LocalStorageService _storage;
+  final String _userId;
 
-  LocalBusinessDatasource(this._storage);
+  LocalBusinessDatasource(this._storage, this._userId);
+
+  String get _businessDataKey => AppConstants.userKey(_userId, AppConstants.keyBusinessData);
+  String get _currentBusinessIdKey => AppConstants.userKey(_userId, AppConstants.keyCurrentBusinessId);
 
   @override
   Future<bool> saveBusiness(BusinessModel business) async {
@@ -28,7 +32,7 @@ class LocalBusinessDatasource implements BusinessDatasource {
     }
 
     final businessesJson = jsonEncode(businesses.map((e) => e.toJson()).toList());
-    final saved = await _storage.setString(AppConstants.keyBusinessData, businessesJson);
+    final saved = await _storage.setString(_businessDataKey, businessesJson);
     
     // If it's the first business, set it as current
     if (saved && getCurrentBusinessId() == null) {
@@ -40,7 +44,7 @@ class LocalBusinessDatasource implements BusinessDatasource {
 
   @override
   List<BusinessModel> getBusinesses() {
-    final businessesJson = _storage.getString(AppConstants.keyBusinessData);
+    final businessesJson = _storage.getString(_businessDataKey);
     if (businessesJson != null) {
       try {
         final List<dynamic> list = jsonDecode(businessesJson);
@@ -60,17 +64,17 @@ class LocalBusinessDatasource implements BusinessDatasource {
 
   @override
   String? getCurrentBusinessId() {
-    return _storage.getString(AppConstants.keyCurrentBusinessId);
+    return _storage.getString(_currentBusinessIdKey);
   }
 
   @override
   Future<bool> setCurrentBusinessId(String id) async {
-    return await _storage.setString(AppConstants.keyCurrentBusinessId, id);
+    return await _storage.setString(_currentBusinessIdKey, id);
   }
 
   @override
   Future<void> clearAll() async {
-    await _storage.remove(AppConstants.keyBusinessData);
-    await _storage.remove(AppConstants.keyCurrentBusinessId);
+    await _storage.remove(_businessDataKey);
+    await _storage.remove(_currentBusinessIdKey);
   }
 }

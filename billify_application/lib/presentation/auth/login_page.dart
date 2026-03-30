@@ -27,10 +27,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      await ref.read(authProvider.notifier).login(
-            _emailController.text,
-            _passwordController.text,
-          );
+      await ref
+          .read(authProvider.notifier)
+          .login(_emailController.text, _passwordController.text);
 
       final authState = ref.read(authProvider);
       if (authState.isLoggedIn && mounted) {
@@ -41,9 +40,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           Navigator.pushReplacementNamed(context, '/home');
         }
       } else if (authState.error != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(authState.error!)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(authState.error!)));
       }
     }
   }
@@ -70,21 +69,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     height: 100,
                   ),
                 ),
+
                 const SizedBox(height: 40),
                 const Text(
                   'Welcome Back!',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   'Login to continue your business journey',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
                 ),
                 const SizedBox(height: 48),
                 CustomTextField(

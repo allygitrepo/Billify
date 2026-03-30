@@ -1,20 +1,22 @@
 import 'package:billify_application/data/datasources/business_datasource.dart';
 import 'package:billify_application/data/models/business_model.dart';
 import 'package:billify_application/data/repositories/business_repository.dart';
+import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/storage_provider.dart';
 import 'package:billify_application/providers/state/business_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final businessRepositoryProvider = Provider<BusinessRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
-  final datasource = LocalBusinessDatasource(storage);
+  final userId = ref.watch(authProvider).user?.email ?? 'guest';
+  final datasource = LocalBusinessDatasource(storage, userId);
   return BusinessRepository(datasource);
 });
 
 class BusinessNotifier extends Notifier<BusinessState> {
   @override
   BusinessState build() {
-    final repo = ref.read(businessRepositoryProvider);
+    final repo = ref.watch(businessRepositoryProvider);
     final businesses = repo.getBusinesses();
     final currentId = repo.getCurrentBusinessId();
     return BusinessState(

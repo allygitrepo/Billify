@@ -1,6 +1,9 @@
 class AppConstants {
   static const String appName = 'Billify';
   
+  // Helper for multi-user isolation
+  static String userKey(String userId, String key) => '${userId}_$key';
+  
   // SharedPreferences Keys
   static const String keyUserData = 'user_data';
   static const String keyBusinessData = 'business_data';

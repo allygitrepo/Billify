@@ -5,8 +5,11 @@ import 'package:billify_application/data/models/product_model.dart';
 
 class ProductRepository {
   final LocalStorageService _storage;
+  final String _userId;
 
-  ProductRepository(this._storage);
+  ProductRepository(this._storage, this._userId);
+
+  String get _productDataKey => AppConstants.userKey(_userId, AppConstants.keyProductData);
 
   Future<void> saveProduct(ProductModel product) async {
     final products = getProducts();
@@ -19,7 +22,7 @@ class ProductRepository {
     }
     
     await _storage.setString(
-      AppConstants.keyProductData,
+      _productDataKey,
       jsonEncode(products.map((e) => e.toJson()).toList()),
     );
   }
@@ -37,13 +40,13 @@ class ProductRepository {
     }
     
     await _storage.setString(
-      AppConstants.keyProductData,
+      _productDataKey,
       jsonEncode(products.map((e) => e.toJson()).toList()),
     );
   }
 
   List<ProductModel> getProducts() {
-    final data = _storage.getString(AppConstants.keyProductData);
+    final data = _storage.getString(_productDataKey);
     if (data == null) return [];
     
     final List<dynamic> list = jsonDecode(data);
@@ -63,7 +66,7 @@ class ProductRepository {
     final products = getProducts();
     products.removeWhere((p) => p.id == id);
     await _storage.setString(
-      AppConstants.keyProductData,
+      _productDataKey,
       jsonEncode(products.map((e) => e.toJson()).toList()),
     );
   }

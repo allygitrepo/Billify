@@ -5,8 +5,11 @@ import 'package:billify_application/data/models/stock_history_model.dart';
 
 class StockHistoryRepository {
   final LocalStorageService _storage;
+  final String _userId;
 
-  StockHistoryRepository(this._storage);
+  StockHistoryRepository(this._storage, this._userId);
+
+  String get _stockHistoryKey => AppConstants.userKey(_userId, AppConstants.keyStockHistory);
 
   Future<void> saveHistory(StockHistoryModel history) async {
     final allHistory = getHistory();
@@ -16,13 +19,13 @@ class StockHistoryRepository {
     final limitedHistory = allHistory.take(200).toList();
     
     await _storage.setString(
-      AppConstants.keyStockHistory,
+      _stockHistoryKey,
       jsonEncode(limitedHistory.map((e) => e.toJson()).toList()),
     );
   }
 
   List<StockHistoryModel> getHistory() {
-    final data = _storage.getString(AppConstants.keyStockHistory);
+    final data = _storage.getString(_stockHistoryKey);
     if (data == null) return [];
     
     try {

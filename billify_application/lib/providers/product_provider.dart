@@ -2,6 +2,7 @@ import 'package:billify_application/core/enums/stock_mode.dart';
 import 'package:billify_application/data/models/stock_history_model.dart';
 import 'package:billify_application/data/repositories/product_repository.dart';
 import 'package:billify_application/data/models/product_model.dart';
+import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/stock_history_provider.dart';
 import 'package:billify_application/providers/storage_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,13 +10,14 @@ import 'package:uuid/uuid.dart';
 
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
-  return ProductRepository(storage);
+  final userId = ref.watch(authProvider).user?.email ?? 'guest';
+  return ProductRepository(storage, userId);
 });
 
 class ProductNotifier extends Notifier<List<ProductModel>> {
   @override
   List<ProductModel> build() {
-    final repo = ref.read(productRepositoryProvider);
+    final repo = ref.watch(productRepositoryProvider);
     return repo.getProducts();
   }
 

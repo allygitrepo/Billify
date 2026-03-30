@@ -1,22 +1,25 @@
 import 'dart:convert';
 import 'package:billify_application/core/constants/app_constants.dart';
 import 'package:billify_application/data/models/invoice_model.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:billify_application/core/services/local_storage_service.dart';
 
 class InvoiceRepository {
-  final SharedPreferences _prefs;
+  final LocalStorageService _storage;
+  final String _userId;
 
-  InvoiceRepository(this._prefs);
+  InvoiceRepository(this._storage, this._userId);
+
+  String get _invoiceDataKey => AppConstants.userKey(_userId, AppConstants.keyInvoiceData);
 
   Future<void> saveInvoice(InvoiceModel invoice) async {
     final List<InvoiceModel> invoices = await getInvoices();
     invoices.insert(0, invoice); // Most recent first
     final List<String> data = invoices.map((e) => jsonEncode(e.toJson())).toList();
-    await _prefs.setStringList(AppConstants.keyInvoiceData, data);
+    await _storage.setStringList(_invoiceDataKey, data);
   }
 
   Future<List<InvoiceModel>> getInvoices() async {
-    final List<String>? data = _prefs.getStringList(AppConstants.keyInvoiceData);
+    final List<String>? data = _storage.getStringList(_invoiceDataKey);
     if (data == null) return [];
     return data.map((e) => InvoiceModel.fromJson(jsonDecode(e))).toList();
   }
@@ -25,6 +28,6 @@ class InvoiceRepository {
     final List<InvoiceModel> invoices = await getInvoices();
     invoices.removeWhere((e) => e.id == id);
     final List<String> data = invoices.map((e) => jsonEncode(e.toJson())).toList();
-    await _prefs.setStringList(AppConstants.keyInvoiceData, data);
+    await _storage.setStringList(_invoiceDataKey, data);
   }
 }

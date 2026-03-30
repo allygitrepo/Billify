@@ -92,11 +92,16 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
         logoBase64: _logoBase64,
       );
 
+      final isFirstBusiness = ref.read(businessProvider).businesses.isEmpty;
       await ref.read(businessProvider.notifier).saveBusiness(business);
       setState(() => _isLoading = false);
 
       if (mounted) {
-        setState(() => _isFormView = false);
+        if (isFirstBusiness) {
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          setState(() => _isFormView = false);
+        }
       }
     }
   }

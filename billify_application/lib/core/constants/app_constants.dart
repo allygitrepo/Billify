@@ -9,6 +9,7 @@ class AppConstants {
   static const String keyIsLoggedIn = 'is_logged_in';
   static const String keyProductData = 'product_data';
   static const String keyInvoiceData = 'invoice_data';
+  static const String keyStockHistory = 'stock_history';
   
   // Validation Regex
   static final RegExp emailRegex = RegExp(

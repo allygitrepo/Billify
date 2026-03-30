@@ -49,7 +49,13 @@ class BillifyApp extends ConsumerWidget {
         '/business-setup': (context) => const BusinessSetupPage(),
         '/home': (context) => const HomePage(),
         '/scanner': (context) => const ScannerScreen(),
-        '/add-product': (context) => const AddProductScreen(),
+        '/add-product': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is String) {
+            return AddProductScreen(initialBarcode: args);
+          }
+          return const AddProductScreen();
+        },
         '/invoice-history': (context) => const InvoiceHistoryPage(),
         '/stock-management': (context) => const StockManagementPage(),
       },

@@ -254,15 +254,15 @@ class _HomeDashboard extends ConsumerWidget {
                     color: Colors.blue,
                   ),
                   const Divider(height: 32),
+                  // _SummaryRow(
+                  //   label: 'Outstanding Amount',
+                  //   value: '₹ 0.00',
+                  //   icon: Icons.pending_actions,
+                  //   color: Colors.orange,
+                  // ),
+                  // const Divider(height: 32),
                   _SummaryRow(
-                    label: 'Outstanding Amount',
-                    value: '₹ 0.00',
-                    icon: Icons.pending_actions,
-                    color: Colors.orange,
-                  ),
-                  const Divider(height: 32),
-                  _SummaryRow(
-                    label: 'Total Collected',
+                    label: 'Total Revenew',
                     value: '₹ ${totalCollected.toStringAsFixed(2)}',
                     icon: Icons.account_balance_wallet,
                     color: Colors.green,
@@ -279,7 +279,8 @@ class _HomeDashboard extends ConsumerWidget {
                 crossAxisCount: 2,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
-                childAspectRatio: 1.3, // Increased height slightly to prevent overflow
+                childAspectRatio:
+                    1.3, // Increased height slightly to prevent overflow
                 children: [
                   _ActionCard(
                     title: 'Scan & Bill',
@@ -294,7 +295,7 @@ class _HomeDashboard extends ConsumerWidget {
                     onTap: () => Navigator.pushNamed(context, '/add-product'),
                   ),
                   _ActionCard(
-                    title: 'History',
+                    title: 'Invoices',
                     icon: Icons.history,
                     color: Colors.orange,
                     onTap: () =>

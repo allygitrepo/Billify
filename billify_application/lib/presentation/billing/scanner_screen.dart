@@ -3,6 +3,7 @@ import 'package:billify_application/presentation/billing/thermal_invoice_dialog.
 import 'package:billify_application/presentation/product/add_product_screen.dart';
 import 'package:billify_application/providers/billing_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
+import 'package:billify_application/data/models/product_model.dart';
 import 'package:billify_application/providers/product_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,12 +72,15 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       _resumeScanner();
     } else {
       _controller.stop();
-      Navigator.push(
+      Navigator.push<ProductModel>(
         context,
         MaterialPageRoute(
           builder: (context) => AddProductScreen(initialBarcode: barcode),
         ),
-      ).then((_) {
+      ).then((newProduct) {
+        if (newProduct != null) {
+          billingNotifier.addToCart(newProduct);
+        }
         _resumeScanner();
       });
     }

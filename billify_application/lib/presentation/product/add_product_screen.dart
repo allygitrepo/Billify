@@ -4,7 +4,6 @@ import 'package:billify_application/data/models/product_model.dart';
 import 'package:billify_application/presentation/widgets/custom_button.dart';
 import 'package:billify_application/presentation/widgets/custom_text_field.dart';
 import 'package:billify_application/presentation/widgets/section_card.dart';
-import 'package:billify_application/providers/billing_provider.dart';
 import 'package:billify_application/providers/product_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,6 +42,9 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
       _setEditingProduct(widget.existingProduct!);
     } else if (widget.initialBarcode != null) {
       _barcodeController.text = widget.initialBarcode!;
+      _stockController.text = '1';
+    } else {
+      _stockController.text = '1';
     }
   }
 
@@ -93,11 +95,6 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
 
       await ref.read(productProvider.notifier).saveProduct(product);
       
-      // Automatically add to cart after saving (if context is from billing flow)
-      // For general product management, maybe we don't always want this
-      if (widget.initialBarcode != null) {
-        ref.read(billingProvider.notifier).addToCart(product);
-      }
       
       setState(() => _isLoading = false);
       
@@ -106,7 +103,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
           SnackBar(content: Text(_editingProduct == null ? 'Product saved' : 'Product updated')),
         );
         if (widget.initialBarcode != null) {
-          Navigator.pop(context);
+          Navigator.pop(context, product);
         } else {
           _clearForm();
         }

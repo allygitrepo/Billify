@@ -1,7 +1,11 @@
+import 'package:billify_application/core/enums/stock_mode.dart';
+import 'package:billify_application/data/models/stock_history_model.dart';
 import 'package:billify_application/data/repositories/product_repository.dart';
 import 'package:billify_application/data/models/product_model.dart';
+import 'package:billify_application/providers/stock_history_provider.dart';
 import 'package:billify_application/providers/storage_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
@@ -41,23 +45,43 @@ class ProductNotifier extends Notifier<List<ProductModel>> {
     await repo.deleteProduct(id);
     state = repo.getProducts();
   }
-  Future<void> updateStockBulk(Map<String, int> deltas) async {
+
+  Future<void> updateStockBulk(Map<String, int> deltas, {StockMode mode = StockMode.inMode}) async {
     final repo = ref.read(productRepositoryProvider);
+    final historyRepo = ref.read(stockHistoryRepositoryProvider);
     final currentProducts = state;
     final List<ProductModel> updatedProducts = [];
 
-    deltas.forEach((productId, delta) {
+    for (var entry in deltas.entries) {
+      final productId = entry.key;
+      final delta = entry.value;
+      
       final index = currentProducts.indexWhere((p) => p.id == productId);
       if (index >= 0) {
         final product = currentProducts[index];
         final newStock = (product.stock + delta).clamp(0, 999999);
-        updatedProducts.add(product.copyWith(stock: newStock));
+        final updatedProduct = product.copyWith(stock: newStock);
+        updatedProducts.add(updatedProduct);
+
+        // Record history
+        await historyRepo.saveHistory(
+          StockHistoryModel(
+            id: const Uuid().v4(),
+            productId: productId,
+            productName: product.name,
+            quantity: delta.abs(),
+            type: delta > 0 ? StockMode.inMode : StockMode.outMode,
+            timestamp: DateTime.now(),
+          ),
+        );
       }
-    });
+    }
 
     if (updatedProducts.isNotEmpty) {
       await repo.saveProducts(updatedProducts);
       state = repo.getProducts();
+      // Refresh history state
+      ref.invalidate(stockHistoryProvider);
     }
   }
 }

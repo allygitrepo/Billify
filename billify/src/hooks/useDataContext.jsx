@@ -101,7 +101,9 @@ export const DataProvider = ({ children }) => {
             startingNumber: settingsResult.starting_invoice_number || 1001,
             footerNote: settingsResult.footer_note || '',
             invoiceFormat: settingsResult.invoice_format || 'thermal',
-            photo: settingsResult.business_logo || ''
+            photo: settingsResult.business_logo || '',
+            categoryCompulsory: settingsResult.category_compulsory !== undefined ? settingsResult.category_compulsory : true,
+            variantsEnabled: settingsResult.variants_enabled !== undefined ? settingsResult.variants_enabled : true
           } : {};
 
           const mappedLogs = (inventoryResult || []).map(log => ({
@@ -503,7 +505,9 @@ export const DataProvider = ({ children }) => {
         starting_invoice_number: newSettings.startingNumber,
         footer_note: newSettings.footerNote,
         invoice_format: newSettings.invoiceFormat,
-        business_logo: newSettings.photo
+        business_logo: newSettings.photo,
+        category_compulsory: newSettings.categoryCompulsory,
+        variants_enabled: newSettings.variantsEnabled
       };
 
       const result = await settingsService.updateSettings(businessId, payload);

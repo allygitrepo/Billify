@@ -1805,6 +1805,19 @@ input:checked+.slider:before {
   align-items: start;
 }
 
+.product-layout-split.full-width {
+  grid-template-columns: 1fr;
+}
+
+/* Expanded grid for single-column (no variants) mode */
+.product-layout-split.full-width .product-form-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.product-layout-split.full-width .product-form-grid .form-col-all {
+  grid-column: span 3;
+}
+
 @media (max-width: 1024px) {
   .product-layout-split {
     grid-template-columns: 1fr;

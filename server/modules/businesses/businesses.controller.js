@@ -2,6 +2,7 @@ const Business = require("./businesses.model");
 const UserBusiness = require("../users/user_businesses.model");
 const Role = require("../roles/roles.model");
 const Settings = require("../settings/settings.model");
+const UOM = require("../uoms/uoms.model");
 const sequelize = require("../../config/db");
 
 const businessController = {
@@ -83,8 +84,17 @@ const businessController = {
                 invoice_prefix: 'INV',
                 starting_invoice_number: 1,
                 invoice_format: 'thermal',
-                footer_note: ''
+                footer_note: '',
+                category_compulsory: true,
+                variants_enabled: true
             }, { transaction: t });
+
+            // 5. Create default UOMs
+            await UOM.bulkCreate([
+                { business_id: business.id, name: 'Kilograms', shortCode: 'kg' },
+                { business_id: business.id, name: 'Litres', shortCode: 'ltr' },
+                { business_id: business.id, name: 'Pieces', shortCode: 'pcs' }
+            ], { transaction: t });
 
             await t.commit();
 

@@ -15,7 +15,9 @@ const Settings = sequelize.define("Settings", {
     business_logo: { type: DataTypes.TEXT, allowNull: true },
     business_address: { type: DataTypes.TEXT, allowNull: true },
     business_phone: { type: DataTypes.STRING, allowNull: true },
-    gst_number: { type: DataTypes.STRING, allowNull: true }
+    gst_number: { type: DataTypes.STRING, allowNull: true },
+    category_compulsory: { type: DataTypes.BOOLEAN, defaultValue: true },
+    variants_enabled: { type: DataTypes.BOOLEAN, defaultValue: true }
 }, {
     tableName: "settings",
     timestamps: true

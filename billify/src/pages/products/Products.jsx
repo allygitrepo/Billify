@@ -8,7 +8,7 @@ import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
-import Switch from '../../components/common/Switch';
+import ToggleSwitch from '../../components/common/ToggleSwitch';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { fileToBase64, validateImage } from '../../utils/fileHelpers';
@@ -16,7 +16,7 @@ import { exportToCSV, importFromCSV, downloadTemplate as downloadCSVTemplate } f
 
 const Products = () => {
   const fileInputRef = useRef(null);
-  const { products, categories: allCategories, uoms, addProduct, updateProduct, deleteProduct, showToast } = useDataContext();
+  const { products, categories: allCategories, uoms, addProduct, updateProduct, deleteProduct, showToast, settings } = useDataContext();
 
   const categoryOptions = useMemo(() => {
     return [
@@ -59,8 +59,9 @@ const Products = () => {
 
   // Handlers
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    const val = type === 'checkbox' ? (checked ? 'active' : 'inactive') : value;
+    setFormData(prev => ({ ...prev, [name]: val }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
@@ -84,9 +85,10 @@ const Products = () => {
   };
 
   const handleVariantChange = (index, e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    const val = type === 'checkbox' ? (checked ? 'active' : 'inactive') : value;
     const newVariants = [...formData.variants];
-    newVariants[index] = { ...newVariants[index], [name]: value };
+    newVariants[index] = { ...newVariants[index], [name]: val };
     setFormData(prev => ({ ...prev, variants: newVariants }));
   };
 
@@ -106,10 +108,10 @@ const Products = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Product name is required';
-    // Category is optional
+    if (settings.categoryCompulsory && !formData.category) newErrors.category = 'Category is required';
 
     formData.variants.forEach((v, idx) => {
-      if (!v.name.trim()) newErrors[`variant_name_${idx}`] = 'Required';
+      if (settings.variantsEnabled && !v.name.trim()) newErrors[`variant_name_${idx}`] = 'Required';
       // SKU is optional
       if (v.price === '' || isNaN(v.price)) newErrors[`variant_price_${idx}`] = 'Invalid';
       if (v.stock === '' || isNaN(v.stock)) newErrors[`variant_stock_${idx}`] = 'Invalid';
@@ -120,6 +122,14 @@ const Products = () => {
   };
 
   const handleFormSubmit = () => {
+    // If variants are disabled, ensure the single variant has a default name
+    if (!settings.variantsEnabled) {
+      const newVariants = [...formData.variants];
+      newVariants[0] = { ...newVariants[0], name: 'Standard' };
+      setFormData(prev => ({ ...prev, variants: newVariants }));
+      // We'll use the updated data for validation
+    }
+
     if (!validateForm()) return;
 
     // Simulate FormData
@@ -517,7 +527,7 @@ const Products = () => {
                 onCancel={isEditing ? handleCancel : null}
                 submitLabel={isEditing ? "Update Product" : "Save Product"}
               >
-                <div className="product-layout-split">
+                <div className={`product-layout-split ${!settings.variantsEnabled ? 'full-width' : ''}`}>
                   {/* Left Column: Add New Product fields */}
                   <div className="product-left-col">
                     <div className="product-form-grid">
@@ -537,7 +547,7 @@ const Products = () => {
                       </div>
                       <Input label="Product Name" name="name" value={formData.name} onChange={handleInputChange} error={errors.name} required />
 
-                      <Select label="Category" name="category" value={formData.category} onChange={handleInputChange} options={categoryOptions} error={errors.category} />
+                      <Select label={`Category ${settings.categoryCompulsory ? '*' : ''}`} name="category" value={formData.category} onChange={handleInputChange} options={categoryOptions} error={errors.category} />
                       <Input label="HSN Code" name="hsnCode" value={formData.hsnCode} onChange={handleInputChange} />
                       <Select 
                         label="UOM" 
@@ -548,63 +558,88 @@ const Products = () => {
                         error={errors.uom} 
                         required 
                       />
+                      
+                      {!settings.variantsEnabled && (
+                        <>
+                          <Input 
+                            label="Price" 
+                            name="price" 
+                            type="number" 
+                            value={formData.variants[0].price} 
+                            onChange={(e) => handleVariantChange(0, e)} 
+                            error={errors['variant_price_0']}
+                            required
+                          />
+                          <Input 
+                            label="Initial Stock" 
+                            name="stock" 
+                            type="number" 
+                            value={formData.variants[0].stock} 
+                            onChange={(e) => handleVariantChange(0, e)} 
+                            error={errors['variant_stock_0']}
+                            required
+                          />
+                        </>
+                      )}
 
-                      <Input label="Base Price" name="basePrice" type="number" value={formData.basePrice} onChange={handleInputChange} />
-                      <Switch label="Active Status" name="status" checked={formData.status === 'active'} onChange={handleInputChange} />
-                      <div className="col-span-2">
+                      <Input label="Base Price (Reference)" name="basePrice" type="number" value={formData.basePrice} onChange={handleInputChange} />
+                      <ToggleSwitch label="Active Status" name="status" checked={formData.status === 'active'} onChange={handleInputChange} />
+                      <div className="form-col-all">
                         <Input label="Description" name="description" value={formData.description} onChange={handleInputChange} />
                       </div>
                     </div>
                   </div>
 
                   {/* Right Column: Product Variants */}
-                  <div className="product-right-col">
-                    <div className="variants-section-split">
-                      <div className="section-header-compact">
-                        <h3 className="section-title-small">Product Variants</h3>
-                        <Button type="button" variant="secondary" onClick={addVariant} style={{ padding: '4px 12px', fontSize: '12px' }}>+ Add Variant</Button>
-                      </div>
-
-                      <div className="variants-list">
-                        <div style={{ 
-                          display: 'grid', 
-                          gridTemplateColumns: '2fr 1.2fr 1fr 1fr 0.6fr 40px', 
-                          gap: 'var(--spacing-3)', 
-                          padding: '0 var(--spacing-3)',
-                          marginBottom: '4px' 
-                        }}>
-                          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Variant Name</span>
-                          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SKU</span>
-                          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Price</span>
-                          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Stock</span>
-                          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</span>
-                          <span></span>
+                  {settings.variantsEnabled && (
+                    <div className="product-right-col">
+                      <div className="variants-section-split">
+                        <div className="section-header-compact">
+                          <h3 className="section-title-small">Product Variants</h3>
+                          <Button type="button" variant="secondary" onClick={addVariant} style={{ padding: '4px 12px', fontSize: '12px' }}>+ Add Variant</Button>
                         </div>
-                        {formData.variants.map((v, idx) => (
-                          <div key={v.id} className="variant-item-card-split">
-                            <Input placeholder="Variant Name" name="name" value={v.name} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_name_${idx}`]} />
-                            <Input placeholder="SKU" name="sku" value={v.sku} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_sku_${idx}`]} />
-                            <Input placeholder="Price" name="price" type="number" value={v.price} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_price_${idx}`]} />
-                            <Input placeholder="Stock" name="stock" type="number" value={v.stock} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_stock_${idx}`]} />
-                            <Switch
-                              name="status"
-                              checked={v.status === 'active'}
-                              onChange={(e) => handleVariantChange(idx, e)}
-                            />
-                            <button
-                              type="button"
-                              className="btn-icon-danger"
-                              onClick={() => removeVariant(idx)}
-                              disabled={formData.variants.length === 1}
-                              title="Remove Variant"
-                            >
-                              🗑
-                            </button>
+
+                        <div className="variants-list">
+                          <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '2fr 1.2fr 1fr 1fr 0.6fr 40px', 
+                            gap: 'var(--spacing-3)', 
+                            padding: '0 var(--spacing-3)',
+                            marginBottom: '4px' 
+                          }}>
+                            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Variant Name</span>
+                            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SKU</span>
+                            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Price</span>
+                            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Stock</span>
+                            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</span>
+                            <span></span>
                           </div>
-                        ))}
+                          {formData.variants.map((v, idx) => (
+                            <div key={v.id} className="variant-item-card-split">
+                              <Input placeholder="Variant Name" name="name" value={v.name} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_name_${idx}`]} />
+                              <Input placeholder="SKU" name="sku" value={v.sku} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_sku_${idx}`]} />
+                              <Input placeholder="Price" name="price" type="number" value={v.price} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_price_${idx}`]} />
+                              <Input placeholder="Stock" name="stock" type="number" value={v.stock} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_stock_${idx}`]} />
+                              <ToggleSwitch
+                                name="status"
+                                checked={v.status === 'active'}
+                                onChange={(e) => handleVariantChange(idx, e)}
+                              />
+                              <button
+                                type="button"
+                                className="btn-icon-danger"
+                                onClick={() => removeVariant(idx)}
+                                disabled={formData.variants.length === 1}
+                                title="Remove Variant"
+                              >
+                                🗑
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </FormWrapper>
             </motion.div>

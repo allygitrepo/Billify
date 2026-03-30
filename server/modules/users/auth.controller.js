@@ -5,6 +5,7 @@ const Business = require("../businesses/businesses.model");
 const UserBusiness = require("./user_businesses.model");
 const RolePermission = require("../role_permission/role_permission.model");
 const Role = require("../roles/roles.model");
+const UOM = require("../uoms/uoms.model");
 const sequelize = require("../../config/db");
 require("dotenv").config();
 
@@ -101,9 +102,19 @@ const authController = {
                 invoice_prefix: invoicePrefix || 'INV',
                 starting_invoice_number: startingNumber || 1,
                 invoice_format: invoiceFormat || 'thermal',
-                footer_note: footerNote || ''
+                footer_note: footerNote || '',
+                category_compulsory: true,
+                variants_enabled: true
             }, { transaction: t });
             console.log("Settings created for business:", business.id);
+
+            // 7. Create default UOMs
+            await UOM.bulkCreate([
+                { business_id: business.id, name: 'Kilograms', shortCode: 'kg' },
+                { business_id: business.id, name: 'Litres', shortCode: 'ltr' },
+                { business_id: business.id, name: 'Pieces', shortCode: 'pcs' }
+            ], { transaction: t });
+            console.log("Default UOMs created for business:", business.id);
 
             // 6. Map User to Business as Admin
             await UserBusiness.create({

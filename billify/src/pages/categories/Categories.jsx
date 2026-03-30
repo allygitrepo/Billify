@@ -7,7 +7,7 @@ import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
-import Switch from '../../components/common/Switch';
+import ToggleSwitch from '../../components/common/ToggleSwitch';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { exportToCSV, importFromCSV, downloadTemplate as downloadCSVTemplate } from '../../utils/csvService';
 
@@ -32,8 +32,9 @@ const Categories = () => {
 
   // Handlers
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    const val = type === 'checkbox' ? (checked ? 'active' : 'inactive') : value;
+    setFormData(prev => ({ ...prev, [name]: val }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
@@ -247,7 +248,7 @@ const Categories = () => {
             value={formData.description}
             onChange={handleInputChange}
           />
-          <Switch 
+          <ToggleSwitch 
             label="Category Status" 
             name="status" 
             checked={formData.status === 'active'} 

@@ -5,6 +5,7 @@ import PageContainer from '../../components/layout/PageContainer';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import Button from '../../components/common/Button';
+import ToggleSwitch from '../../components/common/ToggleSwitch';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import { fileToBase64, validateImage } from '../../utils/fileHelpers';
 
@@ -36,7 +37,9 @@ const Settings = () => {
     startingNumber: '1',
     footerNote: '',
     invoiceFormat: 'thermal',
-    photo: ''
+    photo: '',
+    categoryCompulsory: true,
+    variantsEnabled: true
   });
 
   useEffect(() => {
@@ -95,7 +98,6 @@ const Settings = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.businessName.trim()) newErrors.businessName = 'Business name is required';
-    if (!formData.gstNumber.trim()) newErrors.gstNumber = 'GST Number is required';
     if (!formData.phone.trim() || !/^\d{10}$/.test(formData.phone)) newErrors.phone = 'Valid 10-digit phone required';
     
     setErrors(newErrors);
@@ -178,7 +180,6 @@ const Settings = () => {
                     value={formData.gstNumber} 
                     onChange={handleInputChange} 
                     error={errors.gstNumber} 
-                    required 
                   />
                   <Input 
                     label="Phone Number" 
@@ -277,6 +278,36 @@ const Settings = () => {
                     ]} 
                   />
                   <p className="upload-hint mt-2">Choose the layout that matches your printer type.</p>
+                </div>
+              </div>
+
+              <div className="card mt-6">
+                <h3 className="card-title mb-4">Product Configurations</h3>
+                <div className="settings-group">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ fontWeight: '600', display: 'block' }}>Mandatory Category</span>
+                        <span style={{ fontSize: '12px', color: 'var(--neutral-500)' }}>Require a category for every product</span>
+                      </div>
+                      <ToggleSwitch 
+                        name="categoryCompulsory" 
+                        checked={formData.categoryCompulsory} 
+                        onChange={handleInputChange} 
+                      />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ fontWeight: '600', display: 'block' }}>Product Variants</span>
+                        <span style={{ fontSize: '12px', color: 'var(--neutral-500)' }}>Enable multiple sizes/colors per product</span>
+                      </div>
+                      <ToggleSwitch 
+                        name="variantsEnabled" 
+                        checked={formData.variantsEnabled} 
+                        onChange={handleInputChange} 
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 

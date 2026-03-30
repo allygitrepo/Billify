@@ -7,7 +7,7 @@ import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
-import Switch from '../../components/common/Switch';
+import ToggleSwitch from '../../components/common/ToggleSwitch';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { fileToBase64, validateImage } from '../../utils/fileHelpers';
 import { exportToCSV, importFromCSV, downloadTemplate as downloadCSVTemplate } from '../../utils/csvService';
@@ -76,8 +76,9 @@ const Users = () => {
 
   // User Handlers
   const handleUserInputChange = (e) => {
-    const { name, value } = e.target;
-    setUserFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    const val = type === 'checkbox' ? (checked ? 'active' : 'inactive') : value;
+    setUserFormData(prev => ({ ...prev, [name]: val }));
     if (userErrors[name]) setUserErrors(prev => ({ ...prev, [name]: '' }));
   };
 
@@ -619,7 +620,7 @@ const Users = () => {
                         required={!isEditingUser}
                         placeholder={isEditingUser ? "Leave blank to keep current" : "Enter password"}
                       />
-                      <Switch 
+                      <ToggleSwitch 
                         label="Account Status" 
                         name="status" 
                         checked={userFormData.status === 'active'} 

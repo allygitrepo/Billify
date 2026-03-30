@@ -26,6 +26,8 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
   final _addressController = TextEditingController();
   final _taxController = TextEditingController();
   final _gstPercentController = TextEditingController();
+  final _invoicePrefixController = TextEditingController();
+  final _nextInvoiceNumberController = TextEditingController();
   String? _logoBase64;
   bool _isLoading = false;
   String? _activeBusinessId;
@@ -50,6 +52,12 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
         _addressController.text = business.address ?? '';
         _taxController.text = business.tax.toString();
         _gstPercentController.text = business.gst.toString();
+        
+        // Defensive assignment for migration to handle cases where 
+        // older models might lack these properties at runtime
+        _invoicePrefixController.text = (business.invoicePrefix as dynamic) ?? 'INV-';
+        _nextInvoiceNumberController.text = ((business.nextInvoiceNumber as dynamic) ?? 1).toString();
+        
         _logoBase64 = business.logoBase64;
       });
     }
@@ -63,6 +71,8 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
     _addressController.dispose();
     _taxController.dispose();
     _gstPercentController.dispose();
+    _invoicePrefixController.dispose();
+    _nextInvoiceNumberController.dispose();
     super.dispose();
   }
 
@@ -77,6 +87,8 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
         address: _addressController.text,
         tax: double.tryParse(_taxController.text) ?? 0.0,
         gst: double.tryParse(_gstPercentController.text) ?? 0.0,
+        invoicePrefix: _invoicePrefixController.text.isEmpty ? 'INV-' : _invoicePrefixController.text,
+        nextInvoiceNumber: int.tryParse(_nextInvoiceNumberController.text) ?? 1,
         logoBase64: _logoBase64,
       );
 
@@ -99,6 +111,8 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
       _addressController.text = business.address ?? '';
       _taxController.text = business.tax.toString();
       _gstPercentController.text = business.gst.toString();
+      _invoicePrefixController.text = business.invoicePrefix;
+      _nextInvoiceNumberController.text = business.nextInvoiceNumber.toString();
       _logoBase64 = business.logoBase64;
     });
   }
@@ -113,6 +127,8 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
       _addressController.clear();
       _taxController.clear();
       _gstPercentController.clear();
+      _invoicePrefixController.text = 'INV-';
+      _nextInvoiceNumberController.text = '1';
       _logoBase64 = null;
     });
   }
@@ -278,6 +294,32 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
                       label: 'GST %',
                       keyboardType: TextInputType.number,
                       prefixIcon: Icons.receipt_long,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            SectionCard(
+              title: 'Invoice Configuration',
+              child: Row(
+                children: [
+                  Expanded(
+                    child: CustomTextField(
+                      controller: _invoicePrefixController,
+                      label: 'Invoice Prefix',
+                      hint: 'e.g. INV-',
+                      prefixIcon: Icons.tag,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: CustomTextField(
+                      controller: _nextInvoiceNumberController,
+                      label: 'Starting No.',
+                      hint: 'e.g. 1001',
+                      keyboardType: TextInputType.number,
+                      prefixIcon: Icons.format_list_numbered,
                     ),
                   ),
                 ],

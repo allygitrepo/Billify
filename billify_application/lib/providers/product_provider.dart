@@ -1,0 +1,65 @@
+import 'package:billify_application/data/repositories/product_repository.dart';
+import 'package:billify_application/data/models/product_model.dart';
+import 'package:billify_application/providers/storage_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+final productRepositoryProvider = Provider<ProductRepository>((ref) {
+  final storage = ref.watch(localStorageServiceProvider);
+  return ProductRepository(storage);
+});
+
+class ProductNotifier extends Notifier<List<ProductModel>> {
+  @override
+  List<ProductModel> build() {
+    final repo = ref.read(productRepositoryProvider);
+    return repo.getProducts();
+  }
+
+  Future<void> saveProduct(ProductModel product) async {
+    final repo = ref.read(productRepositoryProvider);
+    await repo.saveProduct(product);
+    state = repo.getProducts();
+  }
+
+  ProductModel? getByBarcode(String barcode) {
+    return state.firstWhere(
+      (p) => p.barcode == barcode,
+      orElse: () => throw Exception('Product not found'),
+    );
+  }
+  
+  ProductModel? findByBarcode(String barcode) {
+    try {
+      return state.firstWhere((p) => p.barcode == barcode);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> deleteProduct(String id) async {
+    final repo = ref.read(productRepositoryProvider);
+    await repo.deleteProduct(id);
+    state = repo.getProducts();
+  }
+  Future<void> updateStockBulk(Map<String, int> deltas) async {
+    final repo = ref.read(productRepositoryProvider);
+    final currentProducts = state;
+    final List<ProductModel> updatedProducts = [];
+
+    deltas.forEach((productId, delta) {
+      final index = currentProducts.indexWhere((p) => p.id == productId);
+      if (index >= 0) {
+        final product = currentProducts[index];
+        final newStock = (product.stock + delta).clamp(0, 999999);
+        updatedProducts.add(product.copyWith(stock: newStock));
+      }
+    });
+
+    if (updatedProducts.isNotEmpty) {
+      await repo.saveProducts(updatedProducts);
+      state = repo.getProducts();
+    }
+  }
+}
+
+final productProvider = NotifierProvider<ProductNotifier, List<ProductModel>>(ProductNotifier.new);

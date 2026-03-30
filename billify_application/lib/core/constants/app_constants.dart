@@ -7,6 +7,8 @@ class AppConstants {
   static const String keyCurrentBusinessId = 'current_business_id';
   static const String keyThemeMode = 'theme_mode';
   static const String keyIsLoggedIn = 'is_logged_in';
+  static const String keyProductData = 'product_data';
+  static const String keyInvoiceData = 'invoice_data';
   
   // Validation Regex
   static final RegExp emailRegex = RegExp(

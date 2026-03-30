@@ -3,6 +3,10 @@ import 'package:billify_application/presentation/auth/login_page.dart';
 import 'package:billify_application/presentation/auth/register_page.dart';
 import 'package:billify_application/presentation/business/business_setup_page.dart';
 import 'package:billify_application/presentation/home/home_page.dart';
+import 'package:billify_application/presentation/billing/invoice_history_page.dart';
+import 'package:billify_application/presentation/billing/scanner_screen.dart';
+import 'package:billify_application/presentation/inventory/stock_management_page.dart';
+import 'package:billify_application/presentation/product/add_product_screen.dart';
 import 'package:billify_application/presentation/splash/splash_page.dart';
 import 'package:billify_application/providers/storage_provider.dart';
 import 'package:billify_application/providers/theme_provider.dart';
@@ -12,15 +16,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize SharedPreferences
   final prefs = await SharedPreferences.getInstance();
-  
+
   runApp(
     ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ],
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       child: const BillifyApp(),
     ),
   );
@@ -46,6 +48,10 @@ class BillifyApp extends ConsumerWidget {
         '/register': (context) => const RegisterPage(),
         '/business-setup': (context) => const BusinessSetupPage(),
         '/home': (context) => const HomePage(),
+        '/scanner': (context) => const ScannerScreen(),
+        '/add-product': (context) => const AddProductScreen(),
+        '/invoice-history': (context) => const InvoiceHistoryPage(),
+        '/stock-management': (context) => const StockManagementPage(),
       },
     );
   }

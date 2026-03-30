@@ -7,6 +7,8 @@ class BusinessModel {
   final double tax;
   final double gst;
   final String? logoBase64;
+  final String invoicePrefix;
+  final int nextInvoiceNumber;
 
   BusinessModel({
     required this.id,
@@ -17,6 +19,8 @@ class BusinessModel {
     required this.tax,
     required this.gst,
     this.logoBase64,
+    this.invoicePrefix = 'INV-',
+    this.nextInvoiceNumber = 1,
   });
 
   factory BusinessModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +33,8 @@ class BusinessModel {
       tax: (json['tax'] as num?)?.toDouble() ?? 0.0,
       gst: (json['gst'] as num?)?.toDouble() ?? 0.0,
       logoBase64: json['logoBase64'],
+      invoicePrefix: (json['invoicePrefix'] as String?) ?? 'INV-',
+      nextInvoiceNumber: (json['nextInvoiceNumber'] as num?)?.toInt() ?? 1,
     );
   }
 
@@ -42,6 +48,8 @@ class BusinessModel {
       'tax': tax,
       'gst': gst,
       'logoBase64': logoBase64,
+      'invoicePrefix': invoicePrefix,
+      'nextInvoiceNumber': nextInvoiceNumber,
     };
   }
 
@@ -54,6 +62,8 @@ class BusinessModel {
     double? tax,
     double? gst,
     String? logoBase64,
+    String? invoicePrefix,
+    int? nextInvoiceNumber,
   }) {
     return BusinessModel(
       id: id ?? this.id,
@@ -64,6 +74,8 @@ class BusinessModel {
       tax: tax ?? this.tax,
       gst: gst ?? this.gst,
       logoBase64: logoBase64 ?? this.logoBase64,
+      invoicePrefix: invoicePrefix ?? this.invoicePrefix,
+      nextInvoiceNumber: nextInvoiceNumber ?? this.nextInvoiceNumber,
     );
   }
 }

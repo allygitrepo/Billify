@@ -62,6 +62,14 @@ class BusinessNotifier extends Notifier<BusinessState> {
     );
   }
 
+  Future<void> updateBusiness(BusinessModel business) async {
+    final repo = ref.read(businessRepositoryProvider);
+    await repo.saveBusiness(business);
+    
+    final businesses = repo.getBusinesses();
+    state = state.copyWith(businesses: businesses);
+  }
+
   Future<void> clearAll() async {
     final repo = ref.read(businessRepositoryProvider);
     await repo.clearAll();

@@ -7,6 +7,8 @@ class CustomButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isLoading;
   final bool isSecondary;
+  final Color? color;
+  final bool isGradient;
 
   const CustomButton({
     super.key,
@@ -14,6 +16,8 @@ class CustomButton extends StatelessWidget {
     required this.onPressed,
     this.isLoading = false,
     this.isSecondary = false,
+    this.color,
+    this.isGradient = true,
   });
 
   @override
@@ -23,22 +27,22 @@ class CustomButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(double.infinity, 50),
-          side: const BorderSide(color: AppTheme.primaryTeal),
+          side: BorderSide(color: color ?? AppTheme.primaryTeal),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppConstants.borderRadius),
           ),
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 height: 20,
                 width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(strokeWidth: 2, color: color ?? AppTheme.primaryTeal),
               )
             : Text(
                 text,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryTeal,
+                  color: color ?? AppTheme.primaryTeal,
                 ),
               ),
       );
@@ -48,9 +52,9 @@ class CustomButton extends StatelessWidget {
       width: double.infinity,
       height: 50,
       decoration: BoxDecoration(
-        gradient: onPressed == null ? null : AppTheme.tealGradient,
+        gradient: (onPressed == null || !isGradient) ? null : AppTheme.tealGradient,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        color: onPressed == null ? Colors.grey : null,
+        color: onPressed == null ? Colors.grey : (isGradient ? null : color ?? AppTheme.primaryTeal),
       ),
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,

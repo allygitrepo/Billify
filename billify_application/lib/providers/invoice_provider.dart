@@ -1,13 +1,15 @@
 import 'package:billify_application/data/models/invoice_model.dart';
 import 'package:billify_application/data/repositories/invoice_repository.dart';
 import 'package:billify_application/providers/auth_provider.dart';
+import 'package:billify_application/providers/business_provider.dart';
 import 'package:billify_application/providers/storage_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final invoiceRepositoryProvider = Provider<InvoiceRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
   final userId = ref.watch(authProvider).user?.email ?? 'guest';
-  return InvoiceRepository(storage, userId);
+  final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
+  return InvoiceRepository(storage, userId, businessId);
 });
 
 final invoiceProvider = StateNotifierProvider<InvoiceNotifier, List<InvoiceModel>>((ref) {

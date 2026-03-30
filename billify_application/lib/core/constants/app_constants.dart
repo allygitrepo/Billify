@@ -3,6 +3,10 @@ class AppConstants {
   
   // Helper for multi-user isolation
   static String userKey(String userId, String key) => '${userId}_$key';
+
+  // Helper for per-business isolation
+  static String businessKey(String userId, String businessId, String key) => 
+      '${userId}_${businessId}_$key';
   
   // SharedPreferences Keys
   static const String keyUserData = 'user_data';

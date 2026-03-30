@@ -6,10 +6,11 @@ import 'package:billify_application/core/services/local_storage_service.dart';
 class InvoiceRepository {
   final LocalStorageService _storage;
   final String _userId;
+  final String _businessId;
 
-  InvoiceRepository(this._storage, this._userId);
+  InvoiceRepository(this._storage, this._userId, this._businessId);
 
-  String get _invoiceDataKey => AppConstants.userKey(_userId, AppConstants.keyInvoiceData);
+  String get _invoiceDataKey => AppConstants.businessKey(_userId, _businessId, AppConstants.keyInvoiceData);
 
   Future<void> saveInvoice(InvoiceModel invoice) async {
     final List<InvoiceModel> invoices = await getInvoices();

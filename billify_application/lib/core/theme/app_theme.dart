@@ -18,6 +18,15 @@ class AppTheme {
     end: Alignment.bottomRight,
   );
 
+  static const LinearGradient authGradient = LinearGradient(
+    colors: [
+      Color.fromARGB(255, 46, 117, 107),
+      Color(0xFF004D40),
+    ], // Primary Teal to Deep Teal
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+
   // Light Theme
   static ThemeData get lightTheme {
     return ThemeData(

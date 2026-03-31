@@ -721,34 +721,76 @@ class _TabButton extends StatelessWidget {
   }
 }
 
-class _HistoryItem extends StatelessWidget {
+class _HistoryItem extends ConsumerWidget {
   final StockHistoryModel history;
 
   const _HistoryItem({required this.history});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final timeFormat = DateFormat('hh:mm a');
     final isStockIn = history.type == StockMode.inMode;
     final isInvoice = history.source == 'invoice';
+    
+    // Find product to get image
+    final product = ref.watch(productProvider).cast<ProductModel?>().firstWhere(
+      (p) => p?.id == history.productId, 
+      orElse: () => null
+    );
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.05)),
+      ),
       child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: (isInvoice ? AppTheme.primaryTeal : (isStockIn ? Colors.green : Colors.orange)).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            isInvoice 
-              ? Icons.receipt_long_outlined 
-              : (isStockIn ? Icons.add_circle_outline : Icons.remove_circle_outline),
-            color: isInvoice ? AppTheme.primaryTeal : (isStockIn ? Colors.green : Colors.orange),
-            size: 20,
-          ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        leading: Stack(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: (isInvoice ? AppTheme.primaryTeal : (isStockIn ? Colors.green : Colors.orange)).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: product?.imageUrl != null && product!.imageUrl!.isNotEmpty
+                  ? Image.memory(
+                      base64Decode(product.imageUrl!.split(',').last),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => 
+                        const Icon(Icons.image_not_supported_outlined, size: 20),
+                    )
+                  : Icon(
+                      isInvoice 
+                        ? Icons.receipt_long_outlined 
+                        : (isStockIn ? Icons.add_circle_outline : Icons.remove_circle_outline),
+                      color: isInvoice ? AppTheme.primaryTeal : (isStockIn ? Colors.green : Colors.orange),
+                      size: 20,
+                    ),
+            ),
+            // Tiny indicator icon at bottom right
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: isInvoice ? AppTheme.primaryTeal : (isStockIn ? Colors.green : Colors.orange),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+                child: Icon(
+                  isInvoice ? Icons.receipt : (isStockIn ? Icons.add : Icons.remove),
+                  size: 8,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
         ),
         title: Row(
           children: [

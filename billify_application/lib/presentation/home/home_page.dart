@@ -110,7 +110,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final todayInvoiceCount = invoiceNotifier.getTodayInvoiceCount();
     final monthlyRevenue = invoiceNotifier.getMonthlyRevenue();
     final topSelling = invoiceNotifier.getTopSellingProducts(5);
-    final lowStock = allProducts.where((p) => p.stock < 3).toList();
+    final lowStock = allProducts.where((p) => p.totalStock < 3).toList();
 
     final List<double> graphData = _isWeeklyFilter 
       ? invoiceNotifier.getWeeklySalesData()
@@ -128,7 +128,11 @@ class _HomePageState extends ConsumerState<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _HomeHeader(business: business, user: user),
+              _HomeHeader(
+                business: business, 
+                user: user,
+                onTap: () => _showBusinessSwitcher(context),
+              ),
               const SizedBox(height: 24),
 
               Row(
@@ -214,6 +218,106 @@ class _HomePageState extends ConsumerState<HomePage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showBusinessSwitcher(BuildContext context) {
+    final businessState = ref.read(businessProvider);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Switch Business', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryTeal),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    setState(() => _currentIndex = 2); // Go to Business tab
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: businessState.businesses.length,
+                itemBuilder: (context, index) {
+                  final b = businessState.businesses[index];
+                  final isCurrent = b.id == businessState.currentBusinessId;
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    leading: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryTeal.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: b.logoBase64 != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.memory(base64Decode(b.logoBase64!), fit: BoxFit.cover),
+                            )
+                          : const Icon(Icons.business_rounded, color: AppTheme.primaryTeal),
+                    ),
+                    title: Text(b.name, style: TextStyle(fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
+                    subtitle: isCurrent ? const Text('Active Now', style: TextStyle(color: AppTheme.primaryTeal, fontSize: 12, fontWeight: FontWeight.bold)) : null,
+                    trailing: isCurrent ? const Icon(Icons.check_circle, color: AppTheme.primaryTeal) : null,
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (!isCurrent) {
+                        _showSwitchConfirmation(context, b);
+                      }
+                    },
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSwitchConfirmation(BuildContext context, dynamic targetBusiness) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Switch Business?'),
+        content: Text('Do you want to switch to "${targetBusiness.name}"? Dashboard data will refresh.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(businessProvider.notifier).switchBusiness(targetBusiness.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Switched to ${targetBusiness.name}')),
+                );
+              }
+            },
+            child: const Text('SWITCH', style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
@@ -328,40 +432,56 @@ class _FilterChip extends StatelessWidget {
 class _HomeHeader extends StatelessWidget {
   final dynamic business;
   final dynamic user;
+  final VoidCallback onTap;
 
-  const _HomeHeader({required this.business, required this.user});
+  const _HomeHeader({required this.business, required this.user, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Hello, ${user?.fullName ?? 'User'} 👋', style: const TextStyle(color: Colors.grey, fontSize: 16)),
-              const SizedBox(height: 4),
-              Text(business?.name ?? 'No Business Setup', 
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  overflow: TextOverflow.ellipsis),
-            ],
-          ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Hello, ${user?.fullName ?? 'User'} 👋', style: const TextStyle(color: Colors.grey, fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(business?.name ?? 'No Business Setup', 
+                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey, size: 20),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryTeal.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: business?.logoBase64 != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: Image.memory(base64Decode(business!.logoBase64!), fit: BoxFit.cover),
+                    )
+                  : const Icon(Icons.business_rounded, color: AppTheme.primaryTeal, size: 28),
+            ),
+          ],
         ),
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: AppTheme.primaryTeal.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: business?.logoBase64 != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
-                  child: Image.memory(base64Decode(business!.logoBase64!), fit: BoxFit.cover),
-                )
-              : const Icon(Icons.business_rounded, color: AppTheme.primaryTeal, size: 28),
-        ),
-      ],
+      ),
     );
   }
 }

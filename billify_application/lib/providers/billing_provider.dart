@@ -106,14 +106,14 @@ class BillingNotifier extends Notifier<BillingState> {
     }
   }
 
-  void updateQuantity(String productId, int newQuantity) {
+  void updateQuantity(String productId, int newQuantity, {String? variantId}) {
     if (newQuantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(productId, variantId: variantId);
       return;
     }
     
     final updatedItems = state.items.map((item) {
-      if (item.product.id == productId) {
+      if (item.product.id == productId && item.product.selectedVariantId == variantId) {
         return item.copyWith(quantity: newQuantity);
       }
       return item;
@@ -121,9 +121,9 @@ class BillingNotifier extends Notifier<BillingState> {
     state = state.copyWith(items: updatedItems);
   }
 
-  void updateItem(String productId, {String? customName, double? customPrice}) {
+  void updateItem(String productId, {String? variantId, String? customName, double? customPrice}) {
     final updatedItems = state.items.map((item) {
-      if (item.product.id == productId) {
+      if (item.product.id == productId && item.product.selectedVariantId == variantId) {
         return item.copyWith(customName: customName, customPrice: customPrice);
       }
       return item;
@@ -131,9 +131,9 @@ class BillingNotifier extends Notifier<BillingState> {
     state = state.copyWith(items: updatedItems);
   }
 
-  void removeFromCart(String productId) {
+  void removeFromCart(String productId, {String? variantId}) {
     state = state.copyWith(
-      items: state.items.where((i) => i.product.id != productId).toList(),
+      items: state.items.where((i) => i.product.id != productId || i.product.selectedVariantId != variantId).toList(),
     );
   }
 

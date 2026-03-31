@@ -138,6 +138,31 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
     });
   }
 
+  void _showSwitchConfirmation(BuildContext context, BusinessModel targetBusiness) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Switch Business?'),
+        content: Text('Do you want to switch to "${targetBusiness.name}"? Dashboard data will refresh.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(businessProvider.notifier).switchBusiness(targetBusiness.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Switched to ${targetBusiness.name}')),
+                );
+              }
+            },
+            child: const Text('SWITCH', style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final businessState = ref.watch(businessProvider);
@@ -210,9 +235,32 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
                     ? const Icon(Icons.business, size: 30, color: AppTheme.primaryTeal)
                     : null,
               ),
-              title: Text(
-                business.name,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      business.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                  ),
+                  if (isCurrent)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryTeal.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.primaryTeal),
+                      ),
+                      child: const Text(
+                        'ACTIVE',
+                        style: TextStyle(
+                          color: AppTheme.primaryTeal,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,8 +271,11 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
                     Text('GST: ${business.gstNumber}'),
                 ],
               ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _editBusiness(business),
+              trailing: IconButton(
+                icon: const Icon(Icons.edit_note, color: Colors.grey),
+                onPressed: () => _editBusiness(business),
+              ),
+              onTap: isCurrent ? null : () => _showSwitchConfirmation(context, business),
             ),
           ),
         );

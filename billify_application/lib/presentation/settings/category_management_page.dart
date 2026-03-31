@@ -2,6 +2,7 @@ import 'package:billify_application/core/theme/app_theme.dart';
 import 'package:billify_application/data/models/category_model.dart';
 import 'package:billify_application/presentation/widgets/custom_text_field.dart';
 import 'package:billify_application/providers/category_provider.dart';
+import 'package:billify_application/providers/product_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -14,17 +15,22 @@ class CategoryManagementPage extends ConsumerWidget {
     final categories = ref.watch(categoryProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Category Management'),
-      ),
+      appBar: AppBar(title: const Text('Category Management')),
       body: categories.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.category_outlined, size: 64, color: Colors.grey[400]),
+                  Icon(
+                    Icons.category_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
                   const SizedBox(height: 16),
-                  const Text('No categories added yet', style: TextStyle(color: Colors.grey)),
+                  const Text(
+                    'No categories added yet',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             )
@@ -33,21 +39,34 @@ class CategoryManagementPage extends ConsumerWidget {
               itemCount: categories.length,
               itemBuilder: (context, index) {
                 final category = categories[index];
+                final productCount = ref.watch(productProvider).where((p) => p.categoryId == category.id).length;
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: ListTile(
-                    title: Text(category.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(
+                      category.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text('$productCount ${productCount == 1 ? 'Product' : 'Products'}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
                           icon: const Icon(Icons.edit_outlined, size: 20),
-                          onPressed: () => _showAddEditBottomSheet(context, ref, category),
+                          onPressed: () =>
+                              _showAddEditBottomSheet(context, ref, category),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                          onPressed: () => _showDeleteDialog(context, ref, category),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: Colors.red,
+                          ),
+                          onPressed: () =>
+                              _showDeleteDialog(context, ref, category),
                         ),
                       ],
                     ),
@@ -57,13 +76,19 @@ class CategoryManagementPage extends ConsumerWidget {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditBottomSheet(context, ref),
+
         backgroundColor: AppTheme.primaryTeal,
+
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
-  void _showAddEditBottomSheet(BuildContext context, WidgetRef ref, [CategoryModel? category]) {
+  void _showAddEditBottomSheet(
+    BuildContext context,
+    WidgetRef ref, [
+    CategoryModel? category,
+  ]) {
     final controller = TextEditingController(text: category?.name);
     showModalBottomSheet(
       context: context,
@@ -97,7 +122,10 @@ class CategoryManagementPage extends ConsumerWidget {
                 const SizedBox(height: 24),
                 Text(
                   category == null ? 'Add Category' : 'Edit Category',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 CustomTextField(
@@ -124,7 +152,9 @@ class CategoryManagementPage extends ConsumerWidget {
                               id: category?.id ?? const Uuid().v4(),
                               name: controller.text.trim(),
                             );
-                            ref.read(categoryProvider.notifier).saveCategory(newCategory);
+                            ref
+                                .read(categoryProvider.notifier)
+                                .saveCategory(newCategory);
                             Navigator.pop(context);
                           }
                         },
@@ -132,7 +162,9 @@ class CategoryManagementPage extends ConsumerWidget {
                           backgroundColor: AppTheme.primaryTeal,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: Text(category == null ? 'ADD' : 'SAVE'),
                       ),
@@ -148,14 +180,23 @@ class CategoryManagementPage extends ConsumerWidget {
     );
   }
 
-  void _showDeleteDialog(BuildContext context, WidgetRef ref, CategoryModel category) {
+  void _showDeleteDialog(
+    BuildContext context,
+    WidgetRef ref,
+    CategoryModel category,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Category'),
-        content: Text('Are you sure you want to delete "${category.name}"? Products in this category will become uncategorized.'),
+        content: Text(
+          'Are you sure you want to delete "${category.name}"? Products in this category will become uncategorized.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
           TextButton(
             onPressed: () {
               ref.read(categoryProvider.notifier).deleteCategory(category.id);

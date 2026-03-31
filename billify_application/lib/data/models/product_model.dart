@@ -89,6 +89,11 @@ class ProductModel {
       selectedVariantId: selectedVariantId ?? this.selectedVariantId,
     );
   }
+
+  int get totalStock {
+    if (!hasVariants || variants.isEmpty) return stock;
+    return variants.fold(0, (sum, v) => sum + v.stock);
+  }
 }
 
 

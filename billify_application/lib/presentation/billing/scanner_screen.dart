@@ -63,6 +63,23 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     final product = ref.read(productProvider.notifier).findByBarcode(barcode);
 
     if (product != null) {
+      // If product has variants but we scanned the main barcode, show variant picker
+      if (product.hasVariants && product.selectedVariantId == null) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => _ProductPickerSheet(
+            products: [product],
+            onSelected: (selectedVariant) {
+              billingNotifier.addToCart(selectedVariant);
+              Navigator.pop(context);
+            },
+          ),
+        ).then((_) => _resumeScanner());
+        return;
+      }
+
       billingNotifier.addToCart(product);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -73,7 +90,6 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       );
       _resumeScanner();
     } else {
-      _controller.stop();
       Navigator.push<ProductModel>(
         context,
         MaterialPageRoute(
@@ -89,10 +105,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   }
 
   void _resumeScanner() {
-    Future.delayed(const Duration(milliseconds: 800), () {
+    Future.delayed(const Duration(milliseconds: 1000), () {
       if (mounted) {
         setState(() => _isProcessing = false);
-        _controller.start();
       }
     });
   }
@@ -394,12 +409,21 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
   }
 
   void _filterProducts(String query) {
+    final lowerQuery = query.toLowerCase();
     setState(() {
-      _filteredProducts = widget.products
-          .where((p) =>
-              p.name.toLowerCase().contains(query.toLowerCase()) ||
-              p.barcode.toLowerCase().contains(query.toLowerCase()))
-          .toList();
+      _filteredProducts = widget.products.where((p) {
+        final matchesProduct = p.name.toLowerCase().contains(lowerQuery) || 
+                             p.barcode.toLowerCase().contains(lowerQuery);
+        if (matchesProduct) return true;
+        
+        if (p.hasVariants) {
+          return p.variants.any((v) => 
+            v.name.toLowerCase().contains(lowerQuery) || 
+            v.barcode.toLowerCase().contains(lowerQuery)
+          );
+        }
+        return false;
+      }).toList();
     });
   }
 
@@ -407,7 +431,7 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
   Widget build(BuildContext context) {
     final billingState = ref.watch(billingProvider);
     return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
+      height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -465,107 +489,178 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
             child: _filteredProducts.isEmpty
                 ? const Center(child: Text('No products found'))
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: _filteredProducts.length,
                     itemBuilder: (context, index) {
                       final p = _filteredProducts[index];
-                      final cartItemIndex = billingState.items.indexWhere((i) => i.product.id == p.id);
-                      final isInCart = cartItemIndex >= 0;
-                      final quantity = isInCart ? billingState.items[cartItemIndex].quantity : 0;
+                      
+                      if (!p.hasVariants || p.variants.isEmpty) {
+                        return _ProductListTile(
+                          product: p,
+                          billingState: billingState,
+                          onSelected: widget.onSelected,
+                        );
+                      }
 
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: isInCart 
-                            ? BorderSide(color: AppTheme.primaryTeal.withOpacity(0.5), width: 1)
-                            : BorderSide.none,
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          title: Text(
-                            p.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                            child: Text(
+                              p.name,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+                            ),
                           ),
-                          subtitle: Text(
-                            'Stock: ${p.stock} | Barcode: ${p.barcode}',
-                            style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '₹${p.price.toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.primaryTeal,
-                                    ),
-                                  ),
-                                  if (isInCart)
-                                    Text(
-                                      'In Cart: $quantity',
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.primaryTeal,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(width: 12),
-                              if (!isInCart)
-                                IconButton(
-                                  icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryTeal),
-                                  onPressed: () => widget.onSelected(p),
-                                )
-                              else
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.background,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.remove, size: 18),
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                        onPressed: () => ref.read(billingProvider.notifier).updateQuantity(p.id, quantity - 1),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                                        child: Text(
-                                          '$quantity',
-                                          style: const TextStyle(fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.add, size: 18),
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                        onPressed: () => ref.read(billingProvider.notifier).updateQuantity(p.id, quantity + 1),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
-                          onTap: () {
-                            if (!isInCart) {
-                              widget.onSelected(p);
-                            }
-                          },
-                        ),
+                          ...p.variants.map((v) {
+                            final variantProduct = p.copyWith(
+                              name: v.name.isNotEmpty ? '${p.name} (${v.name})' : p.name,
+                              price: v.price,
+                              stock: v.stock,
+                              barcode: v.barcode,
+                              selectedVariantId: v.id,
+                              uomId: v.uomId,
+                            );
+                            return _ProductListTile(
+                              product: variantProduct,
+                              billingState: billingState,
+                              onSelected: widget.onSelected,
+                              isVariant: true,
+                            );
+                          }).toList(),
+                          const Divider(height: 24),
+                        ],
                       );
                     },
                   ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProductListTile extends ConsumerWidget {
+  final ProductModel product;
+  final BillingState billingState;
+  final Function(ProductModel) onSelected;
+  final bool isVariant;
+
+  const _ProductListTile({
+    required this.product,
+    required this.billingState,
+    required this.onSelected,
+    this.isVariant = false,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cartItemIndex = billingState.items.indexWhere(
+      (i) => i.product.id == product.id && i.product.selectedVariantId == product.selectedVariantId
+    );
+    final isInCart = cartItemIndex >= 0;
+    final quantity = isInCart ? billingState.items[cartItemIndex].quantity : 0;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      color: Theme.of(context).cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: isInCart 
+          ? const BorderSide(color: AppTheme.primaryTeal, width: 1.5)
+          : BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.1)),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        title: Text(
+          isVariant ? product.name.split(' (').last.replaceAll(')', '') : product.name,
+          style: TextStyle(
+            fontWeight: isVariant ? FontWeight.w500 : FontWeight.bold,
+            fontSize: isVariant ? 14 : 16,
+          ),
+        ),
+        subtitle: Text(
+          'Stock: ${product.stock} | Barcode: ${product.barcode}',
+          style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 12),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '₹${product.price.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryTeal,
+                  ),
+                ),
+                if (isInCart)
+                  const Text(
+                    'In Cart',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryTeal,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 12),
+            if (!isInCart)
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryTeal),
+                onPressed: () => onSelected(product),
+              )
+            else
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.background,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove, size: 18),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      onPressed: () => ref.read(billingProvider.notifier).updateQuantity(
+                        product.id, 
+                        quantity - 1, 
+                        variantId: product.selectedVariantId
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        '$quantity',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add, size: 18),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      onPressed: () => ref.read(billingProvider.notifier).updateQuantity(
+                        product.id, 
+                        quantity + 1, 
+                        variantId: product.selectedVariantId
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        onTap: () {
+          if (!isInCart) {
+            onSelected(product);
+          }
+        },
       ),
     );
   }
@@ -641,7 +736,7 @@ class _PanelItemTile extends ConsumerWidget {
                   icon: Icon(Icons.remove, size: 18, color: Theme.of(context).iconTheme.color),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                  onPressed: () => ref.read(billingProvider.notifier).updateQuantity(item.product.id, item.quantity - 1),
+                  onPressed: () => ref.read(billingProvider.notifier).updateQuantity(item.product.id, item.quantity - 1, variantId: item.product.selectedVariantId),
                 ),
                 Text(
                   '${item.quantity}',
@@ -655,7 +750,7 @@ class _PanelItemTile extends ConsumerWidget {
                   icon: Icon(Icons.add, size: 18, color: Theme.of(context).iconTheme.color),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                  onPressed: () => ref.read(billingProvider.notifier).updateQuantity(item.product.id, item.quantity + 1),
+                  onPressed: () => ref.read(billingProvider.notifier).updateQuantity(item.product.id, item.quantity + 1, variantId: item.product.selectedVariantId),
                 ),
               ],
             ),

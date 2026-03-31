@@ -31,21 +31,27 @@ class ProductNotifier extends Notifier<List<ProductModel>> {
   }
 
   ProductModel? findByBarcode(String barcode) {
+    if (barcode.isEmpty) return null;
+    
     for (final product in state) {
-      if (product.barcode == barcode) return product;
+      // 1. Try finding a variant match first
       if (product.hasVariants) {
         for (final variant in product.variants) {
           if (variant.barcode == barcode) {
             return product.copyWith(
-              name: '${product.name} (${variant.name})',
+              name: variant.name.isNotEmpty ? '${product.name} (${variant.name})' : product.name,
               price: variant.price,
               barcode: variant.barcode,
               stock: variant.stock,
               selectedVariantId: variant.id,
+              uomId: variant.uomId, // Ensure UOM is also from variant
             );
           }
         }
       }
+      
+      // 2. Then try matching the main product if no variant matched
+      if (product.barcode == barcode) return product;
     }
     return null;
   }

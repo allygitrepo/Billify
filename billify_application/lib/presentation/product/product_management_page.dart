@@ -255,12 +255,13 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
                                 Row(
                                   children: [
                                     Expanded(
-                                      child: CustomTextField(
-                                        label: 'Variant Name (Size/Color)',
-                                        hint: 'XL, Red, etc.',
-                                        initialValue: variant.name,
-                                        onChanged: (v) => variants[idx] = variant.copyWith(name: v),
-                                      ),
+                                        child: CustomTextField(
+                                          label: 'Variant Name (Size/Color)',
+                                          hint: 'XL, Red, etc.',
+                                          initialValue: variant.name,
+                                          validator: (v) => Validators.validateRequired(v, 'Variant Name'),
+                                          onChanged: (v) => variants[idx] = variants[idx].copyWith(name: v),
+                                        ),
                                     ),
                                     IconButton(
                                       icon: const Icon(Icons.delete_outline, color: Colors.red),
@@ -281,11 +282,12 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
                                           onPressed: () async {
                                             final result = await _showScannerBottomSheet();
                                             if (result != null) {
-                                              setSheetState(() => variants[idx] = variant.copyWith(barcode: result));
+                                              setSheetState(() => variants[idx] = variants[idx].copyWith(barcode: result));
                                             }
                                           },
                                         ),
-                                        onChanged: (v) => variants[idx] = variant.copyWith(barcode: v),
+                                        onChanged: (v) => variants[idx] = variants[idx].copyWith(barcode: v),
+                                        validator: (v) => Validators.validateRequired(v, 'Barcode'),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -294,7 +296,8 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
                                         label: 'Price',
                                         keyboardType: TextInputType.number,
                                         initialValue: variant.price.toString(),
-                                        onChanged: (v) => variants[idx] = variant.copyWith(price: double.tryParse(v) ?? 0.0),
+                                        onChanged: (v) => variants[idx] = variants[idx].copyWith(price: double.tryParse(v) ?? 0.0),
+                                        validator: (v) => Validators.validateRequired(v, 'Price'),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -304,7 +307,7 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
                                         keyboardType: TextInputType.number,
                                         initialValue: variant.stock.toString(),
                                         enabled: product == null,
-                                        onChanged: (v) => variants[idx] = variant.copyWith(stock: int.tryParse(v) ?? 0),
+                                        onChanged: (v) => variants[idx] = variants[idx].copyWith(stock: int.tryParse(v) ?? 0),
                                       ),
                                     ),
                                   ],

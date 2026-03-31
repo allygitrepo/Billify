@@ -366,7 +366,7 @@ class _StockAlertTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              '${product.stock} left',
+              '${product.totalStock} left',
               style: const TextStyle(
                 color: Colors.orange,
                 fontWeight: FontWeight.bold,

@@ -38,11 +38,73 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
     state = state.where((e) => e.id != id).toList();
   }
 
-  double getTotalCollected() {
-    return state.fold(0, (sum, e) => sum + e.total);
+  double getTodaySales() {
+    final now = DateTime.now();
+    return state
+        .where((e) => e.date.year == now.year && e.date.month == now.month && e.date.day == now.day)
+        .fold(0, (sum, e) => sum + e.total);
   }
 
-  int getInvoiceCount() {
-    return state.length;
+  int getTodayInvoiceCount() {
+    final now = DateTime.now();
+    return state.where((e) => e.date.year == now.year && e.date.month == now.month && e.date.day == now.day).length;
+  }
+
+  double getMonthlyRevenue() {
+    final now = DateTime.now();
+    return state.where((e) => e.date.year == now.year && e.date.month == now.month).fold(0, (sum, e) => sum + e.total);
+  }
+
+  Map<String, double> getTopSellingProducts(int count) {
+    final Map<String, double> productSales = {};
+    for (var invoice in state) {
+      for (var item in invoice.items) {
+        productSales[item.name] = (productSales[item.name] ?? 0) + item.subtotal;
+      }
+    }
+    
+    final sortedEntries = productSales.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return Map.fromEntries(sortedEntries.take(count));
+  }
+
+  List<double> getWeeklySalesData() {
+    final now = DateTime.now();
+    final List<double> dailyTotals = List.filled(7, 0.0);
+    
+    for (int i = 0; i < 7; i++) {
+        final date = now.subtract(Duration(days: 6 - i));
+        dailyTotals[i] = state
+            .where((e) => e.date.year == date.year && e.date.month == date.month && e.date.day == date.day)
+            .fold(0.0, (sum, e) => sum + e.total);
+    }
+    return dailyTotals;
+  }
+
+  List<String> getWeeklyLabels() {
+    final now = DateTime.now();
+    final List<String> labels = [];
+    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    
+    for (int i = 0; i < 7; i++) {
+        final date = now.subtract(Duration(days: 6 - i));
+        labels.add(days[date.weekday - 1]);
+    }
+    return labels;
+  }
+
+  List<double> getMonthlySalesData() {
+    final now = DateTime.now();
+    final List<double> monthlyTotals = List.filled(12, 0.0);
+    
+    for (int i = 0; i < 12; i++) {
+        monthlyTotals[i] = state
+            .where((e) => e.date.year == now.year && e.date.month == (i + 1))
+            .fold(0.0, (sum, e) => sum + e.total);
+    }
+    return monthlyTotals;
+  }
+
+  List<String> getMonthlyLabels() {
+    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   }
 }

@@ -3,7 +3,9 @@ import 'package:billify_application/providers/invoice_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:billify_application/core/theme/app_theme.dart';
 import 'package:billify_application/presentation/business/business_setup_page.dart';
+import 'package:billify_application/presentation/settings/category_management_page.dart';
 import 'package:billify_application/presentation/settings/settings_page.dart';
+import 'package:billify_application/presentation/settings/uom_management_page.dart';
 import 'package:billify_application/presentation/widgets/section_card.dart';
 import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
@@ -289,10 +291,10 @@ class _HomeDashboard extends ConsumerWidget {
                     onTap: () => Navigator.pushNamed(context, '/scanner'),
                   ),
                   _ActionCard(
-                    title: 'Add Product',
-                    icon: Icons.add_box_outlined,
+                    title: 'Products',
+                    icon: Icons.inventory_2_outlined,
                     color: Colors.blue,
-                    onTap: () => Navigator.pushNamed(context, '/add-product'),
+                    onTap: () => Navigator.pushNamed(context, '/products'),
                   ),
                   _ActionCard(
                     title: 'Invoices',
@@ -307,6 +309,28 @@ class _HomeDashboard extends ConsumerWidget {
                     color: Colors.purple,
                     onTap: () =>
                         Navigator.pushNamed(context, '/stock-management'),
+                  ),
+                  _ActionCard(
+                    title: 'Categories',
+                    icon: Icons.category_outlined,
+                    color: Colors.teal,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CategoryManagementPage(),
+                      ),
+                    ),
+                  ),
+                  _ActionCard(
+                    title: 'Units (UOM)',
+                    icon: Icons.straighten,
+                    color: Colors.indigo,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const UomManagementPage(),
+                      ),
+                    ),
                   ),
                 ],
               ),

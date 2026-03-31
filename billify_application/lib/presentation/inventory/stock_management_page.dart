@@ -144,7 +144,7 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                 onPressed: () async {
                   final newProduct = await Navigator.pushNamed(
                     context,
-                    '/add-product',
+                    '/products',
                     arguments: result,
                   );
                   if (newProduct != null && newProduct is ProductModel) {

@@ -4,7 +4,8 @@ class ProductModel {
   final String name;
   final double price;
   final int stock;
-  final String? unit;
+  final String? categoryId;
+  final String uomId;
 
   ProductModel({
     required this.id,
@@ -12,17 +13,19 @@ class ProductModel {
     required this.name,
     required this.price,
     required this.stock,
-    this.unit,
+    this.categoryId,
+    required this.uomId,
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     return ProductModel(
       id: json['id'],
-      barcode: json['barcode'],
+      barcode: json['barcode'] ?? '',
       name: json['name'],
       price: (json['price'] as num).toDouble(),
       stock: (json['stock'] as num).toInt(),
-      unit: json['unit'],
+      categoryId: json['categoryId'],
+      uomId: json['uomId'] ?? 'pcs', // Default fallback
     );
   }
 
@@ -33,7 +36,8 @@ class ProductModel {
       'name': name,
       'price': price,
       'stock': stock,
-      'unit': unit,
+      'categoryId': categoryId,
+      'uomId': uomId,
     };
   }
 
@@ -43,7 +47,8 @@ class ProductModel {
     String? name,
     double? price,
     int? stock,
-    String? unit,
+    String? categoryId,
+    String? uomId,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -51,7 +56,8 @@ class ProductModel {
       name: name ?? this.name,
       price: price ?? this.price,
       stock: stock ?? this.stock,
-      unit: unit ?? this.unit,
+      categoryId: categoryId ?? this.categoryId,
+      uomId: uomId ?? this.uomId,
     );
   }
 }

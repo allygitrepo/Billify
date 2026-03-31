@@ -1,6 +1,6 @@
 import 'package:billify_application/core/theme/app_theme.dart';
 import 'package:billify_application/presentation/billing/thermal_invoice_dialog.dart';
-import 'package:billify_application/presentation/product/add_product_screen.dart';
+import 'package:billify_application/presentation/product/product_management_page.dart';
 import 'package:billify_application/providers/billing_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
 import 'package:billify_application/data/models/product_model.dart';
@@ -75,7 +75,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       Navigator.push<ProductModel>(
         context,
         MaterialPageRoute(
-          builder: (context) => AddProductScreen(initialBarcode: barcode),
+          builder: (context) => ProductManagementPage(initialBarcode: barcode),
         ),
       ).then((newProduct) {
         if (newProduct != null) {

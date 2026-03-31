@@ -6,7 +6,7 @@ import 'package:billify_application/presentation/home/home_page.dart';
 import 'package:billify_application/presentation/billing/invoice_history_page.dart';
 import 'package:billify_application/presentation/billing/scanner_screen.dart';
 import 'package:billify_application/presentation/inventory/stock_management_page.dart';
-import 'package:billify_application/presentation/product/add_product_screen.dart';
+import 'package:billify_application/presentation/product/product_management_page.dart';
 import 'package:billify_application/presentation/splash/splash_page.dart';
 import 'package:billify_application/providers/storage_provider.dart';
 import 'package:billify_application/providers/theme_provider.dart';
@@ -49,13 +49,14 @@ class BillifyApp extends ConsumerWidget {
         '/business-setup': (context) => const BusinessSetupPage(),
         '/home': (context) => const HomePage(),
         '/scanner': (context) => const ScannerScreen(),
-        '/add-product': (context) {
+        '/products': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           if (args is String) {
-            return AddProductScreen(initialBarcode: args);
+            return ProductManagementPage(initialBarcode: args);
           }
-          return const AddProductScreen();
+          return const ProductManagementPage();
         },
+        '/add-product': (context) => const ProductManagementPage(), // Alias for compatibility
         '/invoice-history': (context) => const InvoiceHistoryPage(),
         '/stock-management': (context) => const StockManagementPage(),
       },

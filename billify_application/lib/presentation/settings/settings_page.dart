@@ -3,6 +3,7 @@ import 'package:billify_application/presentation/widgets/section_card.dart';
 import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
 import 'package:billify_application/providers/theme_provider.dart';
+import 'package:billify_application/providers/feature_settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,36 +15,68 @@ class SettingsPage extends ConsumerWidget {
     final themeMode = ref.watch(themeProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             SectionCard(
               title: 'Appearance',
+              child: ListTile(
+                leading: _ThemeIcon(themeMode: themeMode),
+                title: const Text('Theme'),
+                subtitle: Text(_themeModeLabel(themeMode)),
+
+                onTap: () {
+                  final next = switch (themeMode) {
+                    ThemeMode.light => ThemeMode.dark,
+                    ThemeMode.dark => ThemeMode.system,
+                    ThemeMode.system => ThemeMode.light,
+                  };
+                  ref.read(themeProvider.notifier).setTheme(next);
+                },
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ref.watch(featureSettingsProvider).isVariantsEnabled ||
+                    ref.watch(featureSettingsProvider).isCategoryEnabled
+                ? const SizedBox.shrink()
+                : const SizedBox.shrink(), // Dummy check just to ensure it's watched
+            SectionCard(
+              title: 'Feature Configuration',
               child: Column(
                 children: [
-                  _ThemeOption(
-                    label: 'Light Mode',
-                    icon: Icons.light_mode_outlined,
-                    isSelected: themeMode == ThemeMode.light,
-                    onTap: () => ref.read(themeProvider.notifier).setTheme(ThemeMode.light),
+                  SwitchListTile(
+                    secondary: const Icon(
+                      Icons.category_outlined,
+                      color: AppTheme.primaryTeal,
+                    ),
+                    title: const Text('Enable Categories'),
+                    subtitle: const Text('Organize products into categories'),
+                    activeColor: AppTheme.primaryTeal,
+                    value: ref.watch(featureSettingsProvider).isCategoryEnabled,
+                    onChanged: (val) => ref
+                        .read(featureSettingsProvider.notifier)
+                        .updateCategoryEnabled(val),
                   ),
                   const Divider(height: 1),
-                  _ThemeOption(
-                    label: 'Dark Mode',
-                    icon: Icons.dark_mode_outlined,
-                    isSelected: themeMode == ThemeMode.dark,
-                    onTap: () => ref.read(themeProvider.notifier).setTheme(ThemeMode.dark),
-                  ),
-                  const Divider(height: 1),
-                  _ThemeOption(
-                    label: 'System Default',
-                    icon: Icons.settings_brightness_outlined,
-                    isSelected: themeMode == ThemeMode.system,
-                    onTap: () => ref.read(themeProvider.notifier).setTheme(ThemeMode.system),
+                  SwitchListTile(
+                    secondary: const Icon(
+                      Icons.layers_outlined,
+                      color: AppTheme.primaryTeal,
+                    ),
+                    title: const Text('Enable Product Variants'),
+                    subtitle: const Text(
+                      'Add multiple sizes, colors, etc. for products',
+                    ),
+                    activeColor: AppTheme.primaryTeal,
+                    value: ref.watch(featureSettingsProvider).isVariantsEnabled,
+                    onChanged: (val) => ref
+                        .read(featureSettingsProvider.notifier)
+                        .updateVariantsEnabled(val),
                   ),
                 ],
               ),
@@ -55,25 +88,17 @@ class SettingsPage extends ConsumerWidget {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.logout, color: Colors.red),
-                    title: const Text('Logout', style: TextStyle(color: Colors.red)),
+                    title: const Text(
+                      'Logout',
+                      style: TextStyle(color: Colors.red),
+                    ),
                     onTap: () => _showLogoutDialog(context, ref),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.delete_forever_outlined, color: Colors.grey),
-                    title: const Text('Reset All Data'),
-                    subtitle: const Text('Clear all user and business information'),
-                    onTap: () => _showResetDialog(context, ref),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 48),
-            const Text(
-              'Billify v1.0.0',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ],
         ),
@@ -95,7 +120,11 @@ class SettingsPage extends ConsumerWidget {
           TextButton(
             onPressed: () {
               ref.read(authProvider.notifier).logout();
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/login',
+                (route) => false,
+              );
             },
             child: const Text('Logout', style: TextStyle(color: Colors.red)),
           ),
@@ -122,12 +151,129 @@ class SettingsPage extends ConsumerWidget {
               await ref.read(authProvider.notifier).logout();
               await ref.read(businessProvider.notifier).clearAll();
               if (context.mounted) {
-                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',
+                  (route) => false,
+                );
               }
             },
             child: const Text('RESET', style: TextStyle(color: Colors.red)),
           ),
         ],
+      ),
+    );
+  }
+
+  String _themeModeLabel(ThemeMode mode) => switch (mode) {
+    ThemeMode.light => 'Light mode',
+    ThemeMode.dark => 'Dark mode',
+    ThemeMode.system => 'System default',
+  };
+}
+
+class _ThemeIcon extends StatelessWidget {
+  final ThemeMode themeMode;
+  const _ThemeIcon({required this.themeMode});
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, color) = switch (themeMode) {
+      ThemeMode.light => (Icons.light_mode_rounded, Colors.amber),
+      ThemeMode.dark => (Icons.dark_mode_rounded, Colors.indigo),
+      ThemeMode.system => (Icons.brightness_auto_rounded, AppTheme.primaryTeal),
+    };
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      switchInCurve: Curves.easeIn,
+      switchOutCurve: Curves.easeOut,
+      transitionBuilder: (child, anim) =>
+          ScaleTransition(scale: anim, child: child),
+      child: Icon(icon, key: ValueKey(themeMode), color: color, size: 26),
+    );
+  }
+}
+
+class _ThemeSegmentedControl extends StatelessWidget {
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onChanged;
+
+  const _ThemeSegmentedControl({
+    required this.themeMode,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final options = [
+      (ThemeMode.light, Icons.light_mode_rounded, 'Light'),
+      (ThemeMode.dark, Icons.dark_mode_rounded, 'Dark'),
+      (ThemeMode.system, Icons.brightness_auto_rounded, 'System'),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: options.map((option) {
+          final (mode, icon, label) = option;
+          final isSelected = themeMode == mode;
+
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(mode),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.surface
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(9),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ]
+                      : [],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 20,
+                      color: isSelected
+                          ? AppTheme.primaryTeal
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: isSelected
+                            ? AppTheme.primaryTeal
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -149,7 +295,10 @@ class _ThemeOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: isSelected ? AppTheme.primaryTeal : Colors.grey),
+      leading: Icon(
+        icon,
+        color: isSelected ? AppTheme.primaryTeal : Colors.grey,
+      ),
       title: Text(label),
       trailing: isSelected
           ? const Icon(Icons.check_circle, color: AppTheme.primaryTeal)

@@ -1,3 +1,4 @@
+import 'package:billify_application/core/enums/stock_mode.dart';
 import 'package:billify_application/data/models/business_model.dart';
 import 'package:billify_application/data/models/cart_item_model.dart';
 import 'package:billify_application/data/models/invoice_model.dart';
@@ -38,7 +39,9 @@ class BillingNotifier extends Notifier<BillingState> {
   }
 
   void addToCart(ProductModel product) {
-    final index = state.items.indexWhere((i) => i.product.id == product.id);
+    final index = state.items.indexWhere(
+      (i) => i.product.id == product.id && i.product.selectedVariantId == product.selectedVariantId,
+    );
     
     if (index >= 0) {
       final existingItem = state.items[index];
@@ -75,6 +78,20 @@ class BillingNotifier extends Notifier<BillingState> {
       business.copyWith(nextInvoiceNumber: business.nextInvoiceNumber + 1),
     );
     
+    // Deduct Stock
+    final Map<String, int> stockDeltas = {};
+    for (var item in state.items) {
+      final key = item.product.selectedVariantId != null 
+        ? '${item.product.id}:${item.product.selectedVariantId}' 
+        : item.product.id;
+      stockDeltas[key] = (stockDeltas[key] ?? 0) - item.quantity;
+    }
+    await ref.read(productProvider.notifier).updateStockBulk(
+      stockDeltas,
+      mode: StockMode.outMode,
+      reason: 'Sale: Invoice ${invoice.id}',
+    );
+
     // Clear cart
     clearCart();
   }

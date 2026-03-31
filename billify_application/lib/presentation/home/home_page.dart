@@ -9,6 +9,7 @@ import 'package:billify_application/presentation/settings/uom_management_page.da
 import 'package:billify_application/presentation/widgets/section_card.dart';
 import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
+import 'package:billify_application/providers/feature_settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -310,17 +311,19 @@ class _HomeDashboard extends ConsumerWidget {
                     onTap: () =>
                         Navigator.pushNamed(context, '/stock-management'),
                   ),
-                  _ActionCard(
-                    title: 'Categories',
-                    icon: Icons.category_outlined,
-                    color: Colors.teal,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CategoryManagementPage(),
+                  if (ref.watch(featureSettingsProvider).isCategoryEnabled)
+                    _ActionCard(
+                      title: 'Categories',
+                      icon: Icons.category_outlined,
+                      color: Colors.teal,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CategoryManagementPage(),
+                        ),
                       ),
                     ),
-                  ),
+
                   _ActionCard(
                     title: 'Units (UOM)',
                     icon: Icons.straighten,

@@ -1,5 +1,6 @@
 import 'package:billify_application/core/enums/stock_mode.dart';
 import 'package:billify_application/data/models/stock_history_model.dart';
+import 'package:billify_application/data/models/product_variant_model.dart';
 import 'package:billify_application/data/repositories/product_repository.dart';
 import 'package:billify_application/data/models/product_model.dart';
 import 'package:billify_application/providers/auth_provider.dart';
@@ -29,19 +30,24 @@ class ProductNotifier extends Notifier<List<ProductModel>> {
     state = repo.getProducts();
   }
 
-  ProductModel? getByBarcode(String barcode) {
-    return state.firstWhere(
-      (p) => p.barcode == barcode,
-      orElse: () => throw Exception('Product not found'),
-    );
-  }
-  
   ProductModel? findByBarcode(String barcode) {
-    try {
-      return state.firstWhere((p) => p.barcode == barcode);
-    } catch (_) {
-      return null;
+    for (final product in state) {
+      if (product.barcode == barcode) return product;
+      if (product.hasVariants) {
+        for (final variant in product.variants) {
+          if (variant.barcode == barcode) {
+            return product.copyWith(
+              name: '${product.name} (${variant.name})',
+              price: variant.price,
+              barcode: variant.barcode,
+              stock: variant.stock,
+              selectedVariantId: variant.id,
+            );
+          }
+        }
+      }
     }
+    return null;
   }
 
   Future<void> deleteProduct(String id) async {
@@ -57,14 +63,36 @@ class ProductNotifier extends Notifier<List<ProductModel>> {
     final List<ProductModel> updatedProducts = [];
 
     for (var entry in deltas.entries) {
-      final productId = entry.key;
+      final compositeId = entry.key;
       final delta = entry.value;
+      
+      final parts = compositeId.split(':');
+      final productId = parts[0];
+      final variantId = parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null;
       
       final index = currentProducts.indexWhere((p) => p.id == productId);
       if (index >= 0) {
         final product = currentProducts[index];
-        final newStock = (product.stock + delta).clamp(0, 999999);
-        final updatedProduct = product.copyWith(stock: newStock);
+        ProductModel updatedProduct;
+        String historyProductName = product.name;
+
+        if (variantId != null && product.hasVariants) {
+          final variantIndex = product.variants.indexWhere((v) => v.id == variantId);
+          if (variantIndex >= 0) {
+            final variant = product.variants[variantIndex];
+            final newVariantStock = (variant.stock + delta).clamp(0, 999999);
+            final updatedVariants = List<ProductVariantModel>.from(product.variants);
+            updatedVariants[variantIndex] = variant.copyWith(stock: newVariantStock);
+            updatedProduct = product.copyWith(variants: updatedVariants);
+            historyProductName = '${product.name} (${variant.name})';
+          } else {
+            updatedProduct = product; // Should not happen
+          }
+        } else {
+          final newStock = (product.stock + delta).clamp(0, 999999);
+          updatedProduct = product.copyWith(stock: newStock);
+        }
+        
         updatedProducts.add(updatedProduct);
 
         // Record history
@@ -72,7 +100,7 @@ class ProductNotifier extends Notifier<List<ProductModel>> {
           StockHistoryModel(
             id: const Uuid().v4(),
             productId: productId,
-            productName: product.name,
+            productName: historyProductName,
             quantity: delta.abs(),
             type: delta > 0 ? StockMode.inMode : StockMode.outMode,
             timestamp: DateTime.now(),
@@ -85,7 +113,6 @@ class ProductNotifier extends Notifier<List<ProductModel>> {
     if (updatedProducts.isNotEmpty) {
       await repo.saveProducts(updatedProducts);
       state = repo.getProducts();
-      // Refresh history state
       ref.invalidate(stockHistoryProvider);
     }
   }

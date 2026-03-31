@@ -2,9 +2,11 @@ import 'package:billify_application/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 
 class CustomTextField extends StatefulWidget {
-  final TextEditingController controller;
+  final TextEditingController? controller;
   final String label;
   final String? hint;
+  final String? initialValue;
+  final Function(String)? onChanged;
   final bool isPassword;
   final String? Function(String?)? validator;
   final TextInputType keyboardType;
@@ -17,9 +19,11 @@ class CustomTextField extends StatefulWidget {
 
   const CustomTextField({
     super.key,
-    required this.controller,
+    this.controller,
     required this.label,
     this.hint,
+    this.initialValue,
+    this.onChanged,
     this.isPassword = false,
     this.validator,
     this.keyboardType = TextInputType.text,
@@ -60,9 +64,11 @@ class _CustomTextFieldState extends State<CustomTextField> {
         const SizedBox(height: 8),
         TextFormField(
           controller: widget.controller,
+          initialValue: widget.controller == null ? widget.initialValue : null,
           obscureText: _obscureText,
           validator: widget.validator,
           keyboardType: widget.keyboardType,
+          onChanged: widget.onChanged,
           maxLines: widget.maxLines,
           autofocus: widget.autofocus,
           enabled: widget.enabled,

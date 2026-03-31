@@ -1,3 +1,5 @@
+import 'product_variant_model.dart';
+
 class ProductModel {
   final String id;
   final String barcode;
@@ -6,6 +8,10 @@ class ProductModel {
   final int stock;
   final String? categoryId;
   final String uomId;
+  final String? imageUrl;
+  final bool hasVariants;
+  final List<ProductVariantModel> variants;
+  final String? selectedVariantId;
 
   ProductModel({
     required this.id,
@@ -15,6 +21,10 @@ class ProductModel {
     required this.stock,
     this.categoryId,
     required this.uomId,
+    this.imageUrl,
+    this.hasVariants = false,
+    this.variants = const [],
+    this.selectedVariantId,
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
@@ -25,7 +35,14 @@ class ProductModel {
       price: (json['price'] as num).toDouble(),
       stock: (json['stock'] as num).toInt(),
       categoryId: json['categoryId'],
-      uomId: json['uomId'] ?? 'pcs', // Default fallback
+      uomId: json['uomId'] ?? 'pcs',
+      imageUrl: json['imageUrl'] as String?,
+      hasVariants: json['hasVariants'] ?? false,
+      variants: (json['variants'] as List<dynamic>?)
+              ?.map((v) => ProductVariantModel.fromJson(v))
+              .toList() ??
+          [],
+      selectedVariantId: json['selectedVariantId'] as String?,
     );
   }
 
@@ -38,6 +55,10 @@ class ProductModel {
       'stock': stock,
       'categoryId': categoryId,
       'uomId': uomId,
+      'imageUrl': imageUrl,
+      'hasVariants': hasVariants,
+      'variants': variants.map((v) => v.toJson()).toList(),
+      'selectedVariantId': selectedVariantId,
     };
   }
 
@@ -49,6 +70,10 @@ class ProductModel {
     int? stock,
     String? categoryId,
     String? uomId,
+    String? imageUrl,
+    bool? hasVariants,
+    List<ProductVariantModel>? variants,
+    String? selectedVariantId,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -58,6 +83,12 @@ class ProductModel {
       stock: stock ?? this.stock,
       categoryId: categoryId ?? this.categoryId,
       uomId: uomId ?? this.uomId,
+      imageUrl: imageUrl ?? this.imageUrl,
+      hasVariants: hasVariants ?? this.hasVariants,
+      variants: variants ?? this.variants,
+      selectedVariantId: selectedVariantId ?? this.selectedVariantId,
     );
   }
 }
+
+

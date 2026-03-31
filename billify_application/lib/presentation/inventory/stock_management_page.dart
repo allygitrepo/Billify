@@ -24,6 +24,17 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
   bool _showHistory = false;
   final Map<String, int> _transactionItems = {}; // ProductId -> Quantity
   bool _isProcessing = false;
+  String? _selectedReason;
+  final TextEditingController _otherReasonController = TextEditingController();
+
+  final List<String> _inReasons = ['Bulk Purchase', 'Stock Return', 'Manual Adjustment', 'Other'];
+  final List<String> _outReasons = ['Damage Correction', 'Return', 'Manual Adjustment', 'Other'];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedReason = _inReasons[0];
+  }
 
   void _addItem(ProductModel product) {
     setState(() {
@@ -55,7 +66,15 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
         deltas[id] = _mode == StockMode.inMode ? qty : -qty;
       });
 
-      await ref.read(productProvider.notifier).updateStockBulk(deltas, mode: _mode);
+      final finalReason = _selectedReason == 'Other' 
+        ? (_otherReasonController.text.isEmpty ? 'Other' : _otherReasonController.text)
+        : (_selectedReason ?? 'Manual Adjustment');
+
+      await ref.read(productProvider.notifier).updateStockBulk(
+        deltas, 
+        mode: _mode,
+        reason: finalReason,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -236,118 +255,133 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
           ),
 
           if (!_showHistory) ...[
-            // Header - Mode Swtich
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SectionCard(
-                padding: const EdgeInsets.all(8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _ModeButton(
-                        label: 'STOCK IN',
-                        isSelected: _mode == StockMode.inMode,
-                        icon: Icons.add_circle_outline,
-                        color: Colors.green,
-                        onTap: () => setState(() => _mode = StockMode.inMode),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _ModeButton(
-                        label: 'STOCK OUT',
-                        isSelected: _mode == StockMode.outMode,
-                        icon: Icons.remove_circle_outline,
-                        color: Colors.orange,
-                        onTap: () => setState(() => _mode = StockMode.outMode),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Actions
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.all(12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: _showScannerDialog,
-                      icon: const Icon(Icons.qr_code_scanner),
-                      label: const Text('SCAN BARCODE'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.all(12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: _showProductPicker,
-                      icon: const Icon(Icons.search),
-                      label: const Text('SEARCH MANUAL'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-            const Divider(),
-
-            // List Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _mode == StockMode.inMode ? 'TO BE ADDED' : 'TO BE REMOVED',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  Text(
-                    '${_transactionItems.length} items',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-
-            // Transaction List
             Expanded(
-              child: _transactionItems.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  // Header - Mode Swtich
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: SectionCard(
+                      padding: const EdgeInsets.all(8),
+                      child: Row(
                         children: [
-                          Icon(
-                            Icons.inventory_2_outlined,
-                            size: 64,
-                            color: Colors.grey[300],
+                          Expanded(
+                            child: _ModeButton(
+                              label: 'STOCK IN',
+                              isSelected: _mode == StockMode.inMode,
+                              icon: Icons.add_circle_outline,
+                              color: Colors.green,
+                              onTap: () => setState(() {
+                                _mode = StockMode.inMode;
+                                _selectedReason = _inReasons[0];
+                              }),
+                            ),
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Add products to see them here',
-                            style: TextStyle(color: Colors.grey),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _ModeButton(
+                              label: 'STOCK OUT',
+                              isSelected: _mode == StockMode.outMode,
+                              icon: Icons.remove_circle_outline,
+                              color: Colors.orange,
+                              onTap: () => setState(() {
+                                _mode = StockMode.outMode;
+                                _selectedReason = _outReasons[0];
+                              }),
+                            ),
                           ),
                         ],
                       ),
+                    ),
+                  ),
+
+                  // Actions
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.all(12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: _showScannerDialog,
+                            icon: const Icon(Icons.qr_code_scanner),
+                            label: const Text('SCAN BARCODE'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.all(12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: _showProductPicker,
+                            icon: const Icon(Icons.search),
+                            label: const Text('SEARCH MANUAL'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+                  const Divider(),
+
+                  // List Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _mode == StockMode.inMode ? 'TO BE ADDED' : 'TO BE REMOVED',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Text(
+                          '${_transactionItems.length} items',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Transaction List
+                  if (_transactionItems.isEmpty)
+                    SizedBox(
+                      height: 200,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.inventory_2_outlined,
+                              size: 64,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Add products to see them here',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
                     )
-                  : ListView.builder(
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
                       itemCount: _transactionItems.length,
                       itemBuilder: (context, index) {
                         final id = _transactionItems.keys.elementAt(index);
@@ -361,17 +395,71 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                         );
                       },
                     ),
-            ),
 
-            // Commit Button
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: CustomButton(
-                text: 'COMMIT STOCK ${_mode == StockMode.inMode ? 'IN' : 'OUT'}',
-                onPressed: _transactionItems.isEmpty ? null : _handleCommit,
-                isLoading: _isProcessing,
-                color: _mode == StockMode.inMode ? Colors.green : Colors.orange,
-                isGradient: false,
+                  // Reason Selector
+                  if (_transactionItems.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: SectionCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Transaction Reason',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              value: _selectedReason,
+                              decoration: const InputDecoration(
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                                border: InputBorder.none,
+                                prefixIcon: Icon(Icons.info_outline, size: 18),
+                              ),
+                              items: (_mode == StockMode.inMode ? _inReasons : _outReasons)
+                                  .map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontSize: 14))))
+                                  .toList(),
+                              onChanged: (val) => setState(() => _selectedReason = val),
+                            ),
+                            if (_selectedReason == 'Other') ...[
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _otherReasonController,
+                                decoration: InputDecoration(
+                                  hintText: 'Enter specific reason',
+                                  hintStyle: const TextStyle(fontSize: 14),
+                                  filled: true,
+                                  fillColor: Theme.of(context).colorScheme.surface,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 8),
+
+                  // Commit Button
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: CustomButton(
+                      text: 'COMMIT STOCK ${_mode == StockMode.inMode ? 'IN' : 'OUT'}',
+                      onPressed: _transactionItems.isEmpty ? null : _handleCommit,
+                      isLoading: _isProcessing,
+                      color: _mode == StockMode.inMode ? Colors.green : Colors.orange,
+                      isGradient: false,
+                    ),
+                  ),
+                ],
               ),
             ),
           ] else ...[
@@ -401,6 +489,12 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _otherReasonController.dispose();
+    super.dispose();
   }
 
   Widget _buildHistoryList(List<StockHistoryModel> history) {
@@ -517,9 +611,18 @@ class _HistoryItem extends StatelessWidget {
           history.productName,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
-        subtitle: Text(
-          timeFormat.format(history.timestamp),
-          style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Reason: ${history.reason}',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryTeal),
+            ),
+            Text(
+              timeFormat.format(history.timestamp),
+              style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color),
+            ),
+          ],
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

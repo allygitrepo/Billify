@@ -164,10 +164,17 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
                         Expanded(
                           child: CustomTextField(
                             controller: stockController,
-                            label: 'Stock',
+                            label: product == null ? 'Opening Stock' : 'Opening Stock (Locked)',
                             hint: '0',
+                            enabled: product == null, // Only editable on creation
                             keyboardType: TextInputType.number,
                             prefixIcon: Icons.inventory_2_outlined,
+                            suffixIcon: product != null 
+                              ? const Tooltip(
+                                  message: 'Opening stock cannot be changed. Use Stock Management to adjust current stock.',
+                                  child: Icon(Icons.lock_outline, size: 16, color: Colors.grey),
+                                )
+                              : null,
                           ),
                         ),
                       ],

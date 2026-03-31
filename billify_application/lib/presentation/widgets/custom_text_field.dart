@@ -12,6 +12,8 @@ class CustomTextField extends StatefulWidget {
   final Widget? suffixIcon;
   final int maxLines;
   final bool autofocus;
+  final bool enabled;
+  final bool readOnly;
 
   const CustomTextField({
     super.key,
@@ -25,6 +27,8 @@ class CustomTextField extends StatefulWidget {
     this.suffixIcon,
     this.maxLines = 1,
     this.autofocus = false,
+    this.enabled = true,
+    this.readOnly = false,
   });
 
   @override
@@ -47,9 +51,10 @@ class _CustomTextFieldState extends State<CustomTextField> {
       children: [
         Text(
           widget.label,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 14,
+            color: widget.enabled ? null : Colors.grey,
           ),
         ),
         const SizedBox(height: 8),
@@ -60,6 +65,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
           keyboardType: widget.keyboardType,
           maxLines: widget.maxLines,
           autofocus: widget.autofocus,
+          enabled: widget.enabled,
+          readOnly: widget.readOnly,
           decoration: InputDecoration(
             hintText: widget.hint,
             prefixIcon: widget.prefixIcon != null ? Icon(widget.prefixIcon) : null,

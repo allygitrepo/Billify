@@ -90,6 +90,7 @@ class BillingNotifier extends Notifier<BillingState> {
       stockDeltas,
       mode: StockMode.outMode,
       reason: 'Sale: Invoice ${invoice.id}',
+      source: 'invoice',
     );
 
     // Clear cart

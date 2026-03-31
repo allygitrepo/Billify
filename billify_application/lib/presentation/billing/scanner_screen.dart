@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'package:billify_application/core/theme/app_theme.dart';
 import 'package:billify_application/presentation/billing/thermal_invoice_dialog.dart';
 import 'package:billify_application/presentation/product/product_management_page.dart';
 import 'package:billify_application/providers/billing_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
 import 'package:billify_application/data/models/product_model.dart';
+import 'package:billify_application/data/models/cart_item_model.dart';
 import 'package:billify_application/providers/product_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -570,7 +572,7 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
 }
 
 class _PanelItemTile extends ConsumerWidget {
-  final dynamic item;
+  final CartItemModel item; // Corrected type
 
   const _PanelItemTile({required this.item});
 
@@ -585,6 +587,26 @@ class _PanelItemTile extends ConsumerWidget {
       ),
       child: Row(
         children: [
+          // Product Image
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.background,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: item.product.imageUrl != null && item.product.imageUrl!.isNotEmpty
+                ? Image.memory(
+                    base64Decode(item.product.imageUrl!.split(',').last),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => 
+                      const Icon(Icons.image_not_supported_outlined, size: 20),
+                  )
+                : const Icon(Icons.shopping_bag_outlined, color: AppTheme.primaryTeal),
+          ),
+          const SizedBox(width: 12),
+          
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -593,20 +615,21 @@ class _PanelItemTile extends ConsumerWidget {
                   item.name,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Theme.of(context).textTheme.titleMedium?.color,
                   ),
                 ),
                 Text(
-                  '₹${item.price.toStringAsFixed(2)}',
+                  '₹${item.price.toStringAsFixed(2)}${item.product.uomId.isNotEmpty ? ' / ${item.product.uomId}' : ''}',
                   style: TextStyle(
                     color: Theme.of(context).textTheme.bodySmall?.color,
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
+          
           Container(
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.background,
@@ -616,29 +639,33 @@ class _PanelItemTile extends ConsumerWidget {
               children: [
                 IconButton(
                   icon: Icon(Icons.remove, size: 18, color: Theme.of(context).iconTheme.color),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                   onPressed: () => ref.read(billingProvider.notifier).updateQuantity(item.product.id, item.quantity - 1),
                 ),
                 Text(
-                  item.quantity.toString(),
+                  '${item.quantity}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 14,
                     color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
                 IconButton(
                   icon: Icon(Icons.add, size: 18, color: Theme.of(context).iconTheme.color),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                   onPressed: () => ref.read(billingProvider.notifier).updateQuantity(item.product.id, item.quantity + 1),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Text(
             '₹${item.subtotal.toStringAsFixed(2)}',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 14,
               color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
           ),

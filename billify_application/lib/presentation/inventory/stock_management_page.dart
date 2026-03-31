@@ -1,6 +1,8 @@
 import 'package:billify_application/core/enums/stock_mode.dart';
+import 'dart:convert';
 import 'package:billify_application/core/theme/app_theme.dart';
 import 'package:billify_application/data/models/product_model.dart';
+import 'package:billify_application/data/models/product_variant_model.dart';
 import 'package:billify_application/data/models/stock_history_model.dart';
 import 'package:billify_application/presentation/widgets/custom_button.dart';
 import 'package:billify_application/presentation/widgets/section_card.dart';
@@ -21,11 +23,16 @@ class StockManagementPage extends ConsumerStatefulWidget {
 
 class _StockManagementPageState extends ConsumerState<StockManagementPage> {
   StockMode _mode = StockMode.inMode;
-  bool _showHistory = false;
+  int _selectedTabIndex = 0; // 0: Transaction, 1: In-Stock, 2: History
   final Map<String, int> _transactionItems = {}; // ProductId -> Quantity
   bool _isProcessing = false;
   String? _selectedReason;
   final TextEditingController _otherReasonController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _ledgerSearchController = TextEditingController();
+  String _searchQuery = '';
+  String _ledgerSearchQuery = '';
+  String _selectedLedgerFilter = 'All'; // 'All', 'Sale', 'Manual'
 
   final List<String> _inReasons = ['Bulk Purchase', 'Stock Return', 'Manual Adjustment', 'Other'];
   final List<String> _outReasons = ['Damage Correction', 'Return', 'Manual Adjustment', 'Other'];
@@ -34,23 +41,32 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
   void initState() {
     super.initState();
     _selectedReason = _inReasons[0];
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text.toLowerCase());
+    });
+    _ledgerSearchController.addListener(() {
+      setState(() => _ledgerSearchQuery = _ledgerSearchController.text.toLowerCase());
+    });
   }
 
   void _addItem(ProductModel product) {
     setState(() {
-      _transactionItems[product.id] = (_transactionItems[product.id] ?? 0) + 1;
+      final key = product.selectedVariantId != null 
+        ? '${product.id}:${product.selectedVariantId}' 
+        : product.id;
+      _transactionItems[key] = (_transactionItems[key] ?? 0) + 1;
     });
   }
 
-  void _updateQuantity(String productId, int newQuantity) {
+  void _updateQuantity(String compositeId, int newQuantity) {
     if (newQuantity <= 0) {
       setState(() {
-        _transactionItems.remove(productId);
+        _transactionItems.remove(compositeId);
       });
       return;
     }
     setState(() {
-      _transactionItems[productId] = newQuantity;
+      _transactionItems[compositeId] = newQuantity;
     });
   }
 
@@ -62,8 +78,8 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
     try {
       // For Out mode, we send negative deltas
       final Map<String, int> deltas = {};
-      _transactionItems.forEach((id, qty) {
-        deltas[id] = _mode == StockMode.inMode ? qty : -qty;
+      _transactionItems.forEach((key, qty) {
+        deltas[key] = _mode == StockMode.inMode ? qty : -qty;
       });
 
       final finalReason = _selectedReason == 'Other' 
@@ -74,6 +90,7 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
         deltas, 
         mode: _mode,
         reason: finalReason,
+        source: 'manual',
       );
 
       if (mounted) {
@@ -86,7 +103,7 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
         );
         setState(() {
           _transactionItems.clear();
-          _showHistory = true; // Switch to history to see the change
+          _selectedTabIndex = 2; // Switch to history to see the change
         });
       }
     } catch (e) {
@@ -240,26 +257,33 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
             child: Row(
               children: [
                 _TabButton(
-                  label: 'Transaction',
-                  isSelected: !_showHistory,
-                  onTap: () => setState(() => _showHistory = false),
+                  label: 'Adjustment',
+                  isSelected: _selectedTabIndex == 0,
+                  onTap: () => setState(() => _selectedTabIndex = 0),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
+                _TabButton(
+                  label: 'Portfolio',
+                  isSelected: _selectedTabIndex == 1,
+                  onTap: () => setState(() => _selectedTabIndex = 1),
+                ),
+                const SizedBox(width: 8),
                 _TabButton(
                   label: 'History',
-                  isSelected: _showHistory,
-                  onTap: () => setState(() => _showHistory = true),
+                  isSelected: _selectedTabIndex == 2,
+                  onTap: () => setState(() => _selectedTabIndex = 2),
                 ),
               ],
             ),
           ),
 
-          if (!_showHistory) ...[
+          if (_selectedTabIndex == 0) ...[
             Expanded(
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  // Header - Mode Swtich
+                   // ... (Rest of Transaction implementation remains similar)
+                   // Header - Mode Swtich
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: SectionCard(
@@ -384,13 +408,20 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _transactionItems.length,
                       itemBuilder: (context, index) {
-                        final id = _transactionItems.keys.elementAt(index);
-                        final qty = _transactionItems[id]!;
-                        final p = allProducts.firstWhere((p) => p.id == id);
+                        final compositeId = _transactionItems.keys.elementAt(index);
+                        final qty = _transactionItems[compositeId]!;
+                        
+                        final parts = compositeId.split(':');
+                        final productId = parts[0];
+                        final variantId = parts.length > 1 ? parts[1] : null;
+                        
+                        final p = allProducts.firstWhere((p) => p.id == productId);
+                        
                         return _StockItemTile(
                           product: p,
+                          variantId: variantId,
                           quantity: qty,
-                          onUpdateQty: (newQty) => _updateQuantity(id, newQty),
+                          onUpdateQty: (newQty) => _updateQuantity(compositeId, newQty),
                           isStockOut: _mode == StockMode.outMode,
                         );
                       },
@@ -462,8 +493,96 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                 ],
               ),
             ),
+          ] else if (_selectedTabIndex == 1) ...[
+            // Portfolio / In-Stock Tab
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search products or barcodes...',
+                  prefixIcon: const Icon(Icons.search, color: AppTheme.primaryTeal),
+                  filled: true,
+                  fillColor: AppTheme.softGrey.withOpacity(0.5),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.only(bottom: 20),
+                itemCount: allProducts.length,
+                itemBuilder: (context, index) {
+                  final p = allProducts[index];
+                  
+                  // Filter logic
+                  if (_searchQuery.isNotEmpty) {
+                    final matchesName = p.name.toLowerCase().contains(_searchQuery);
+                    final matchesBarcode = p.barcode.toLowerCase().contains(_searchQuery);
+                    final matchesVariant = p.variants.any((v) => 
+                      v.name.toLowerCase().contains(_searchQuery) || 
+                      v.barcode.toLowerCase().contains(_searchQuery));
+                    
+                    if (!matchesName && !matchesBarcode && !matchesVariant) {
+                      return const SizedBox.shrink();
+                    }
+                  }
+
+                  return _InventoryProductTile(product: p);
+                },
+              ),
+            ),
           ] else ...[
-            // History View
+            // Ledger / History View
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _ledgerSearchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search ledger (product, reason)...',
+                      prefixIcon: const Icon(Icons.search, color: AppTheme.primaryTeal),
+                      filled: true,
+                      fillColor: AppTheme.softGrey.withOpacity(0.5),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: ['All', 'Sale', 'Manual'].map((filter) {
+                        final isSelected = _selectedLedgerFilter == filter;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(filter),
+                            selected: isSelected,
+                            onSelected: (val) {
+                              if (val) setState(() => _selectedLedgerFilter = filter);
+                            },
+                            selectedColor: AppTheme.primaryTeal.withOpacity(0.2),
+                            labelStyle: TextStyle(
+                              color: isSelected ? AppTheme.primaryTeal : Colors.grey,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               child: history.isEmpty
                   ? Center(
@@ -494,15 +613,36 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
   @override
   void dispose() {
     _otherReasonController.dispose();
+    _searchController.dispose();
+    _ledgerSearchController.dispose();
     super.dispose();
   }
 
   Widget _buildHistoryList(List<StockHistoryModel> history) {
+    // Filter history
+    final filteredHistory = history.where((item) {
+      final matchesSearch = item.productName.toLowerCase().contains(_ledgerSearchQuery) ||
+          item.reason.toLowerCase().contains(_ledgerSearchQuery);
+      
+      bool matchesFilter = true;
+      if (_selectedLedgerFilter == 'Sale') {
+        matchesFilter = item.source == 'invoice';
+      } else if (_selectedLedgerFilter == 'Manual') {
+        matchesFilter = item.source == 'manual';
+      }
+      
+      return matchesSearch && matchesFilter;
+    }).toList();
+
+    if (filteredHistory.isEmpty) {
+      return const Center(child: Text('No results match your filters', style: TextStyle(color: Colors.grey)));
+    }
+
     // Group history by date
     final Map<String, List<StockHistoryModel>> grouped = {};
     final dateFormat = DateFormat('MMM dd, yyyy');
 
-    for (var item in history) {
+    for (var item in filteredHistory) {
       final dateKey = dateFormat.format(item.timestamp);
       if (!grouped.containsKey(dateKey)) {
         grouped[dateKey] = [];
@@ -590,6 +730,7 @@ class _HistoryItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final timeFormat = DateFormat('hh:mm a');
     final isStockIn = history.type == StockMode.inMode;
+    final isInvoice = history.source == 'invoice';
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -598,18 +739,41 @@ class _HistoryItem extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: (isStockIn ? Colors.green : Colors.orange).withOpacity(0.1),
+            color: (isInvoice ? AppTheme.primaryTeal : (isStockIn ? Colors.green : Colors.orange)).withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
-            isStockIn ? Icons.add_circle_outline : Icons.remove_circle_outline,
-            color: isStockIn ? Colors.green : Colors.orange,
+            isInvoice 
+              ? Icons.receipt_long_outlined 
+              : (isStockIn ? Icons.add_circle_outline : Icons.remove_circle_outline),
+            color: isInvoice ? AppTheme.primaryTeal : (isStockIn ? Colors.green : Colors.orange),
             size: 20,
           ),
         ),
-        title: Text(
-          history.productName,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                history.productName,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: (isInvoice ? Colors.blue : Colors.grey).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                history.source.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 9, 
+                  fontWeight: FontWeight.bold, 
+                  color: isInvoice ? Colors.blue : Colors.grey,
+                ),
+              ),
+            ),
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -696,12 +860,14 @@ class _ModeButton extends StatelessWidget {
 
 class _StockItemTile extends StatelessWidget {
   final ProductModel product;
+  final String? variantId;
   final int quantity;
   final Function(int) onUpdateQty;
   final bool isStockOut;
 
   const _StockItemTile({
     required this.product,
+    this.variantId,
     required this.quantity,
     required this.onUpdateQty,
     required this.isStockOut,
@@ -709,6 +875,17 @@ class _StockItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String name = product.name;
+    String barcode = product.barcode;
+    int currentStock = product.stock;
+
+    if (variantId != null) {
+      final variant = product.variants.firstWhere((v) => v.id == variantId);
+      name = '${product.name} (${variant.name})';
+      barcode = variant.barcode;
+      currentStock = variant.stock;
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       color: Theme.of(context).cardColor,
@@ -720,15 +897,25 @@ class _StockItemTile extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
+                    color: AppTheme.primaryTeal.withOpacity(0.1),
                   ),
-                  child: const Icon(
-                    Icons.shopping_bag_outlined,
-                    color: AppTheme.primaryTeal,
-                    size: 20,
-                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                      ? Image.memory(
+                          base64Decode(product.imageUrl!.split(',').last),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => 
+                            const Icon(Icons.image_not_supported_outlined, size: 18),
+                        )
+                      : const Icon(
+                          Icons.shopping_bag_outlined,
+                          color: AppTheme.primaryTeal,
+                          size: 20,
+                        ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -736,13 +923,13 @@ class _StockItemTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        product.name,
+                        name,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        'Stock: ${product.stock}',
+                        'Stock: $currentStock ${product.uomId.isNotEmpty ? product.uomId : ''} | Barcode: $barcode',
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context).textTheme.bodySmall?.color,
@@ -791,7 +978,7 @@ class _StockItemTile extends StatelessWidget {
                 ),
               ],
             ),
-            if (isStockOut && product.stock < quantity)
+            if (isStockOut && currentStock < quantity)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Row(
@@ -803,7 +990,7 @@ class _StockItemTile extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Insufficient stock! Remaining: ${product.stock}',
+                      'Insufficient stock! Remaining: $currentStock',
                       style: const TextStyle(
                         color: Colors.orange,
                         fontSize: 11,
@@ -857,5 +1044,129 @@ class _StockItemTile extends StatelessWidget {
     if (result != null) {
       onUpdateQty(result);
     }
+  }
+}
+
+class _InventoryProductTile extends StatelessWidget {
+  final ProductModel product;
+
+  const _InventoryProductTile({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ExpansionTile(
+        key: PageStorageKey('inventory_${product.id}'),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryTeal.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+              ? Image.memory(
+                  base64Decode(product.imageUrl!.split(',').last),
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => 
+                    const Icon(Icons.image_not_supported_outlined, size: 20),
+                )
+              : const Icon(Icons.inventory_2_outlined, color: AppTheme.primaryTeal, size: 24),
+        ),
+        title: Text(
+          product.name,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        subtitle: product.hasVariants 
+          ? Text('${product.variants.length} Variants', style: const TextStyle(color: Colors.grey, fontSize: 13))
+          : Text('Qty: ${product.stock} ${product.uomId.isNotEmpty ? product.uomId : ''} | Barcode: ${product.barcode}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        trailing: !product.hasVariants 
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: (product.stock > 10 ? Colors.green : Colors.orange).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${product.stock}',
+                style: TextStyle(
+                  color: product.stock > 10 ? Colors.green : Colors.orange,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          : null,
+        children: product.hasVariants 
+          ? product.variants.map((v) => _InventoryVariantTile(variant: v, uom: product.uomId)).toList()
+          : [],
+      ),
+    );
+  }
+}
+
+class _InventoryVariantTile extends StatelessWidget {
+  final ProductVariantModel variant;
+  final String uom;
+
+  const _InventoryVariantTile({required this.variant, required this.uom});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.subdirectory_arrow_right, size: 14, color: Colors.grey),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(variant.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                Text('Barcode: ${variant.barcode}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: (variant.stock > 5 ? Colors.green : Colors.orange).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '${variant.stock} ${uom.isNotEmpty ? uom : ''}',
+              style: TextStyle(
+                color: variant.stock > 5 ? Colors.green : Colors.orange,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -8,6 +8,7 @@ class StockHistoryModel {
   final StockMode type;
   final DateTime timestamp;
   final String reason;
+  final String source; // 'manual', 'invoice', etc.
 
   StockHistoryModel({
     required this.id,
@@ -17,6 +18,7 @@ class StockHistoryModel {
     required this.type,
     required this.timestamp,
     required this.reason,
+    this.source = 'manual',
   });
 
   factory StockHistoryModel.fromJson(Map<String, dynamic> json) {
@@ -27,7 +29,8 @@ class StockHistoryModel {
       quantity: json['quantity'],
       type: json['type'] == 'inMode' ? StockMode.inMode : StockMode.outMode,
       timestamp: DateTime.parse(json['timestamp']),
-      reason: json['reason'] ?? 'Manual Adjustment', // Fallback for legacy
+      reason: json['reason'] ?? 'Manual Adjustment',
+      source: json['source'] ?? 'manual',
     );
   }
 
@@ -40,6 +43,7 @@ class StockHistoryModel {
       'type': type == StockMode.inMode ? 'inMode' : 'outMode',
       'timestamp': timestamp.toIso8601String(),
       'reason': reason,
+      'source': source,
     };
   }
 }

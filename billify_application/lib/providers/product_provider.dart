@@ -56,7 +56,7 @@ class ProductNotifier extends Notifier<List<ProductModel>> {
     state = repo.getProducts();
   }
 
-  Future<void> updateStockBulk(Map<String, int> deltas, {StockMode mode = StockMode.inMode, required String reason}) async {
+  Future<void> updateStockBulk(Map<String, int> deltas, {StockMode mode = StockMode.inMode, required String reason, String source = 'manual'}) async {
     final repo = ref.read(productRepositoryProvider);
     final historyRepo = ref.read(stockHistoryRepositoryProvider);
     final currentProducts = state;
@@ -105,6 +105,7 @@ class ProductNotifier extends Notifier<List<ProductModel>> {
             type: delta > 0 ? StockMode.inMode : StockMode.outMode,
             timestamp: DateTime.now(),
             reason: reason,
+            source: source,
           ),
         );
       }

@@ -125,6 +125,22 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     );
   }
 
+  void _showProductPicker() {
+    final allProducts = ref.read(productProvider);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _ProductPickerSheet(
+        products: allProducts,
+        onSelected: (product) {
+          final billingNotifier = ref.read(billingProvider.notifier);
+          billingNotifier.addToCart(product);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final billingState = ref.watch(billingProvider);
@@ -140,7 +156,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.camera_alt_outlined, size: 64, color: Colors.grey),
+              Icon(
+                Icons.camera_alt_outlined,
+                size: 64,
+                color: Theme.of(context).disabledColor,
+              ),
               const SizedBox(height: 16),
               const Text('Camera permission is required to scan barcodes'),
               const SizedBox(height: 24),
@@ -155,10 +175,14 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Checkout Terminal'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: _showProductPicker,
+          ),
           IconButton(
             icon: const Icon(Icons.flash_on),
             onPressed: () => _controller.toggleTorch(),
@@ -189,7 +213,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           // Scrollable List Below
           Expanded(
             child: Container(
-              color: AppTheme.softGrey.withOpacity(0.5),
+              color: Theme.of(context).colorScheme.background.withOpacity(0.8),
               child: Column(
                 children: [
                   Padding(
@@ -199,11 +223,19 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                       children: [
                         Text(
                           'Scanned Items (${billingState.items.length})',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Theme.of(context).textTheme.titleLarge?.color,
+                          ),
                         ),
                         Text(
                           'Total: ₹${billingState.getTotal(taxPercent, gstPercent).toStringAsFixed(2)}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primaryTeal),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: AppTheme.primaryTeal,
+                          ),
                         ),
                       ],
                     ),
@@ -211,8 +243,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                   const Divider(height: 1),
                   Expanded(
                     child: billingState.items.isEmpty
-                        ? const Center(
-                            child: Text('No items scanned yet', style: TextStyle(color: Colors.grey)),
+                        ? Center(
+                          child: Text(
+                            'No items scanned yet',
+                            style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
+                          ),
                           )
                         : ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -228,9 +263,13 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5)),
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, -5),
+                        ),
                       ],
                     ),
                     child: ElevatedButton(
@@ -329,6 +368,207 @@ class _ScannerOverlayPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+class _ProductPickerSheet extends ConsumerStatefulWidget {
+  final List<ProductModel> products;
+  final Function(ProductModel) onSelected;
+
+  const _ProductPickerSheet({
+    required this.products,
+    required this.onSelected,
+  });
+
+  @override
+  ConsumerState<_ProductPickerSheet> createState() => _ProductPickerSheetState();
+}
+
+class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
+  late List<ProductModel> _filteredProducts;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredProducts = widget.products;
+  }
+
+  void _filterProducts(String query) {
+    setState(() {
+      _filteredProducts = widget.products
+          .where((p) =>
+              p.name.toLowerCase().contains(query.toLowerCase()) ||
+              p.barcode.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final billingState = ref.watch(billingProvider);
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(context).dividerColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                const Text(
+                  'Select Product',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by name or barcode...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.background,
+              ),
+              onChanged: _filterProducts,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _filteredProducts.isEmpty
+                ? const Center(child: Text('No products found'))
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    itemCount: _filteredProducts.length,
+                    itemBuilder: (context, index) {
+                      final p = _filteredProducts[index];
+                      final cartItemIndex = billingState.items.indexWhere((i) => i.product.id == p.id);
+                      final isInCart = cartItemIndex >= 0;
+                      final quantity = isInCart ? billingState.items[cartItemIndex].quantity : 0;
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: isInCart 
+                            ? BorderSide(color: AppTheme.primaryTeal.withOpacity(0.5), width: 1)
+                            : BorderSide.none,
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          title: Text(
+                            p.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            'Stock: ${p.stock} | Barcode: ${p.barcode}',
+                            style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '₹${p.price.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primaryTeal,
+                                    ),
+                                  ),
+                                  if (isInCart)
+                                    Text(
+                                      'In Cart: $quantity',
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.primaryTeal,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(width: 12),
+                              if (!isInCart)
+                                IconButton(
+                                  icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryTeal),
+                                  onPressed: () => widget.onSelected(p),
+                                )
+                              else
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.background,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.remove, size: 18),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                        onPressed: () => ref.read(billingProvider.notifier).updateQuantity(p.id, quantity - 1),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        child: Text(
+                                          '$quantity',
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.add, size: 18),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                        onPressed: () => ref.read(billingProvider.notifier).updateQuantity(p.id, quantity + 1),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                          onTap: () {
+                            if (!isInCart) {
+                              widget.onSelected(p);
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PanelItemTile extends ConsumerWidget {
   final dynamic item;
 
@@ -340,7 +580,7 @@ class _PanelItemTile extends ConsumerWidget {
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -351,32 +591,43 @@ class _PanelItemTile extends ConsumerWidget {
               children: [
                 Text(
                   item.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Theme.of(context).textTheme.titleMedium?.color,
+                  ),
                 ),
                 Text(
                   '₹${item.price.toStringAsFixed(2)}',
-                  style: const TextStyle(color: Colors.black54, fontSize: 14),
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                    fontSize: 14,
+                  ),
                 ),
               ],
             ),
           ),
           Container(
             decoration: BoxDecoration(
-              color: AppTheme.softGrey,
+              color: Theme.of(context).colorScheme.background,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.remove, size: 18, color: Colors.black),
+                  icon: Icon(Icons.remove, size: 18, color: Theme.of(context).iconTheme.color),
                   onPressed: () => ref.read(billingProvider.notifier).updateQuantity(item.product.id, item.quantity - 1),
                 ),
                 Text(
                   item.quantity.toString(),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.add, size: 18, color: Colors.black),
+                  icon: Icon(Icons.add, size: 18, color: Theme.of(context).iconTheme.color),
                   onPressed: () => ref.read(billingProvider.notifier).updateQuantity(item.product.id, item.quantity + 1),
                 ),
               ],
@@ -385,7 +636,11 @@ class _PanelItemTile extends ConsumerWidget {
           const SizedBox(width: 12),
           Text(
             '₹${item.subtotal.toStringAsFixed(2)}',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
           ),
         ],
       ),

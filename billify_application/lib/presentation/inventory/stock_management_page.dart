@@ -385,12 +385,12 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                           Icon(
                             Icons.history,
                             size: 64,
-                            color: Colors.grey[300],
+                            color: Theme.of(context).disabledColor,
                           ),
                           const SizedBox(height: 16),
-                          const Text(
+                          Text(
                             'No stock history found',
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
                           ),
                         ],
                       ),
@@ -469,14 +469,14 @@ class _TabButton extends StatelessWidget {
             color: isSelected ? AppTheme.primaryTeal.withOpacity(0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected ? AppTheme.primaryTeal : Colors.grey[300]!,
+              color: isSelected ? AppTheme.primaryTeal : Theme.of(context).dividerColor,
             ),
           ),
           child: Center(
             child: Text(
               label,
               style: TextStyle(
-                color: isSelected ? AppTheme.primaryTeal : Colors.grey,
+                color: isSelected ? AppTheme.primaryTeal : Theme.of(context).textTheme.bodySmall?.color,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -519,7 +519,7 @@ class _HistoryItem extends StatelessWidget {
         ),
         subtitle: Text(
           timeFormat.format(history.timestamp),
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
+          style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -563,9 +563,9 @@ class _ModeButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color : Colors.white,
+          color: isSelected ? color : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isSelected ? color : Colors.grey[300]!),
+          border: Border.all(color: isSelected ? color : Theme.of(context).dividerColor),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -576,7 +576,7 @@ class _ModeButton extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black87,
+                  color: isSelected ? Colors.white : Theme.of(context).textTheme.bodyMedium?.color,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
@@ -608,6 +608,7 @@ class _StockItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      color: Theme.of(context).cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -639,9 +640,9 @@ class _StockItemTile extends StatelessWidget {
                       ),
                       Text(
                         'Stock: ${product.stock}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                         ),
                       ),
                     ],
@@ -666,7 +667,7 @@ class _StockItemTile extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: Theme.of(context).dividerColor),
                         ),
                         child: Text(
                           '$quantity',

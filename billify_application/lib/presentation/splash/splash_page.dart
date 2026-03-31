@@ -410,15 +410,6 @@ class _SplashPageState extends ConsumerState<SplashPage>
                         height: 1,
                         color: Colors.white.withOpacity(0.2),
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'FROM RAJKOT, WITH ♥',
-                        style: GoogleFonts.outfit(
-                          fontSize: 9,
-                          letterSpacing: 3,
-                          color: Colors.white.withOpacity(0.3),
-                        ),
-                      ),
                     ],
                   ),
                 );

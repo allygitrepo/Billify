@@ -10,6 +10,7 @@ class InvoiceModel {
   final double taxAmount;
   final double gstAmount;
   final double total;
+  final String staffName;
 
   InvoiceModel({
     required this.id,
@@ -20,6 +21,7 @@ class InvoiceModel {
     required this.taxAmount,
     required this.gstAmount,
     required this.total,
+    required this.staffName,
   });
 
   factory InvoiceModel.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class InvoiceModel {
       taxAmount: (json['taxAmount'] as num).toDouble(),
       gstAmount: (json['gstAmount'] as num?)?.toDouble() ?? 0.0,
       total: (json['total'] as num).toDouble(),
+      staffName: json['staffName'] ?? 'Owner',
     );
   }
 
@@ -45,6 +48,7 @@ class InvoiceModel {
       'taxAmount': taxAmount,
       'gstAmount': gstAmount,
       'total': total,
+      'staffName': staffName,
     };
   }
 }

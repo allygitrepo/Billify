@@ -4,6 +4,8 @@ import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
 import 'package:billify_application/providers/theme_provider.dart';
 import 'package:billify_application/providers/feature_settings_provider.dart';
+import 'package:billify_application/data/models/user_permission.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,6 +22,20 @@ class SettingsPage extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            SectionCard(
+              title: 'Account',
+              child: ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: AppTheme.primaryTeal,
+                  child: Icon(Icons.person, color: Colors.white),
+                ),
+                title: const Text('My Profile'),
+                subtitle: const Text('View and update your personal details'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.pushNamed(context, '/profile'),
+              ),
+            ),
+            const SizedBox(height: 24),
             SectionCard(
               title: 'Appearance',
               child: ListTile(
@@ -41,43 +57,54 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            ref.watch(featureSettingsProvider).isVariantsEnabled ||
-                    ref.watch(featureSettingsProvider).isCategoryEnabled
-                ? const SizedBox.shrink()
-                : const SizedBox.shrink(), // Dummy check just to ensure it's watched
-            SectionCard(
-              title: 'Feature Configuration',
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    secondary: const Icon(
-                      Icons.category_outlined,
-                      color: AppTheme.primaryTeal,
+
+            if (ref.watch(authProvider).hasPermission(PermissionModule.systemSettings, PermissionAction.all) && 
+                (ref.watch(authProvider).hasPermission(PermissionModule.categories, PermissionAction.all) || 
+                 ref.watch(authProvider).hasPermission(PermissionModule.products, PermissionAction.all)))
+              const SizedBox(height: 24),
+            if (ref.watch(authProvider).hasPermission(PermissionModule.systemSettings, PermissionAction.all) && 
+                (ref.watch(authProvider).hasPermission(PermissionModule.categories, PermissionAction.all) || 
+                 ref.watch(authProvider).hasPermission(PermissionModule.products, PermissionAction.all)))
+              SectionCard(
+                title: 'Feature Configuration',
+                child: Column(
+                  children: [
+
+
+                  if (ref.watch(authProvider).hasPermission(PermissionModule.categories, PermissionAction.all))
+                    SwitchListTile(
+                      secondary: const Icon(
+                        Icons.category_outlined,
+                        color: AppTheme.primaryTeal,
+                      ),
+                      title: const Text('Enable Categories'),
+                      subtitle: const Text('Organize products into categories'),
+                      activeColor: AppTheme.primaryTeal,
+                      value: ref.watch(featureSettingsProvider).isCategoryEnabled,
+                      onChanged: (val) => ref
+                          .read(featureSettingsProvider.notifier)
+                          .updateCategoryEnabled(val),
                     ),
-                    title: const Text('Enable Categories'),
-                    subtitle: const Text('Organize products into categories'),
-                    activeColor: AppTheme.primaryTeal,
-                    value: ref.watch(featureSettingsProvider).isCategoryEnabled,
-                    onChanged: (val) => ref
-                        .read(featureSettingsProvider.notifier)
-                        .updateCategoryEnabled(val),
-                  ),
-                  const Divider(height: 1),
-                  SwitchListTile(
-                    secondary: const Icon(
-                      Icons.layers_outlined,
-                      color: AppTheme.primaryTeal,
+                  if (ref.watch(authProvider).hasPermission(PermissionModule.categories, PermissionAction.all) && 
+                      ref.watch(authProvider).hasPermission(PermissionModule.products, PermissionAction.all))
+                    const Divider(height: 1),
+                  if (ref.watch(authProvider).hasPermission(PermissionModule.products, PermissionAction.all))
+                    SwitchListTile(
+                      secondary: const Icon(
+                        Icons.layers_outlined,
+                        color: AppTheme.primaryTeal,
+                      ),
+                      title: const Text('Enable Product Variants'),
+                      subtitle: const Text(
+                        'Add multiple sizes, colors, etc. for products',
+                      ),
+                      activeColor: AppTheme.primaryTeal,
+                      value: ref.watch(featureSettingsProvider).isVariantsEnabled,
+                      onChanged: (val) => ref
+                          .read(featureSettingsProvider.notifier)
+                          .updateVariantsEnabled(val),
                     ),
-                    title: const Text('Enable Product Variants'),
-                    subtitle: const Text(
-                      'Add multiple sizes, colors, etc. for products',
-                    ),
-                    activeColor: AppTheme.primaryTeal,
-                    value: ref.watch(featureSettingsProvider).isVariantsEnabled,
-                    onChanged: (val) => ref
-                        .read(featureSettingsProvider.notifier)
-                        .updateVariantsEnabled(val),
-                  ),
+
                 ],
               ),
             ),

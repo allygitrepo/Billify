@@ -29,6 +29,16 @@ class ProductManagementPage extends ConsumerStatefulWidget {
 }
 
 class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String? _selectedCategoryId;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+
   @override
   void initState() {
     super.initState();
@@ -43,34 +53,109 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
   @override
   Widget build(BuildContext context) {
     final productList = ref.watch(productProvider);
+    final categories = ref.watch(categoryProvider);
+
+    // Filter products
+    final filteredProducts = productList.where((product) {
+      final matchesSearch = _searchController.text.isEmpty ||
+          product.name.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+          product.barcode.toLowerCase().contains(_searchController.text.toLowerCase());
+      
+      final matchesCategory = _selectedCategoryId == null || 
+          product.categoryId == _selectedCategoryId;
+
+      return matchesSearch && matchesCategory;
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Product Management'),
       ),
-      body: productList.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  const Text('No products added yet', style: TextStyle(color: Colors.grey)),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: productList.length,
-              itemBuilder: (context, index) {
-                final product = productList[index];
-                return _ProductListTile(
-                  product: product,
-                  onEdit: () => _showProductBottomSheet(product: product),
-                  onDelete: () => _showDeleteDialog(product),
-                );
-              },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search product...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
+                    ),
+                    onChanged: (_) => setState(() {}), // Trigger filter
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedCategoryId,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
+                      hintText: 'Category',
+                    ),
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: null,
+                        child: Text('All'),
+                      ),
+                      ...categories.map((c) => DropdownMenuItem(
+                        value: c.id,
+                        child: Text(c.name, overflow: TextOverflow.ellipsis),
+                      )),
+                    ],
+                    onChanged: (val) => setState(() => _selectedCategoryId = val),
+                  ),
+                ),
+              ],
             ),
+          ),
+          Expanded(
+            child: filteredProducts.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          productList.isEmpty 
+                            ? 'No products added yet' 
+                            : 'No products match your search', 
+                          style: const TextStyle(color: Colors.grey)
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filteredProducts.length,
+                    itemBuilder: (context, index) {
+                      final product = filteredProducts[index];
+                      return _ProductListTile(
+                        product: product,
+                        onEdit: () => _showProductBottomSheet(product: product),
+                        onDelete: () => _showDeleteDialog(product),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showProductBottomSheet(),
         backgroundColor: AppTheme.primaryTeal,

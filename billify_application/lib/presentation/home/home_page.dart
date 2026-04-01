@@ -6,6 +6,7 @@ import 'package:billify_application/presentation/home/widgets/dashboard_componen
 import 'package:billify_application/presentation/settings/category_management_page.dart';
 import 'package:billify_application/presentation/settings/settings_page.dart';
 import 'package:billify_application/presentation/settings/uom_management_page.dart';
+import 'package:billify_application/presentation/widgets/full_screen_image_viewer.dart';
 import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
 import 'package:billify_application/providers/feature_settings_provider.dart';
@@ -15,6 +16,7 @@ import 'package:billify_application/data/models/user_permission.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -50,7 +52,11 @@ class _HomePageState extends ConsumerState<HomePage> {
       },
       child: Scaffold(
         body: pages[_currentIndex],
-        floatingActionButton: authState.hasPermission(PermissionModule.billing, PermissionAction.view) 
+        floatingActionButton:
+            authState.hasPermission(
+              PermissionModule.billing,
+              PermissionAction.view,
+            )
             ? FloatingActionButton(
                 onPressed: () => _showQuickMenu(context),
                 backgroundColor: AppTheme.primaryTeal,
@@ -74,16 +80,25 @@ class _HomePageState extends ConsumerState<HomePage> {
                   isSelected: _currentIndex == 0,
                   onTap: () => setState(() => _currentIndex = 0),
                 ),
-                if (authState.hasPermission(PermissionModule.billing, PermissionAction.view))
+                if (authState.hasPermission(
+                  PermissionModule.billing,
+                  PermissionAction.view,
+                ))
                   _NavButton(
                     icon: Icons.qr_code_scanner_rounded,
                     label: 'Scan & Bill',
                     isSelected: _currentIndex == 1,
                     onTap: () => setState(() => _currentIndex = 1),
                   ),
-                if (authState.hasPermission(PermissionModule.billing, PermissionAction.view))
+                if (authState.hasPermission(
+                  PermissionModule.billing,
+                  PermissionAction.view,
+                ))
                   const SizedBox(width: 48), // Space for FAB
-                if (authState.hasPermission(PermissionModule.systemSettings, PermissionAction.view))
+                if (authState.hasPermission(
+                  PermissionModule.systemSettings,
+                  PermissionAction.view,
+                ))
                   _NavButton(
                     icon: Icons.business_center_rounded,
                     label: 'Business',
@@ -142,7 +157,10 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
               const SizedBox(height: 24),
 
-              if (authState.hasPermission(PermissionModule.dashboard, PermissionAction.view)) ...[
+              if (authState.hasPermission(
+                PermissionModule.dashboard,
+                PermissionAction.view,
+              )) ...[
                 Row(
                   children: [
                     Expanded(
@@ -152,7 +170,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                           title: 'Sales',
                           value: '₹${todaySales.toStringAsFixed(0)}',
                           icon: Icons.currency_rupee,
-                          gradient: const [Color(0xFF00B4D8), Color(0xFF0077B6)],
+                          gradient: const [
+                            Color(0xFF00B4D8),
+                            Color(0xFF0077B6),
+                          ],
                         ),
                       ),
                     ),
@@ -164,7 +185,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                           title: 'Invoices',
                           value: todayInvoiceCount.toString(),
                           icon: Icons.receipt_long,
-                          gradient: const [Color(0xFF48CAE4), Color(0xFF00B4D8)],
+                          gradient: const [
+                            Color(0xFF48CAE4),
+                            Color(0xFF00B4D8),
+                          ],
                         ),
                       ),
                     ),
@@ -189,13 +213,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                 const SizedBox(height: 24),
               ],
 
-              if (authState.hasPermission(PermissionModule.analytics, PermissionAction.view)) ...[
+              if (authState.hasPermission(
+                PermissionModule.analytics,
+                PermissionAction.view,
+              )) ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
                       'Revenue Overview',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
                     Container(
                       decoration: BoxDecoration(
@@ -212,7 +242,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                           _FilterChip(
                             label: 'Monthly',
                             isSelected: !_isWeeklyFilter,
-                            onTap: () => setState(() => _isWeeklyFilter = false),
+                            onTap: () =>
+                                setState(() => _isWeeklyFilter = false),
                           ),
                         ],
                       ),
@@ -228,12 +259,21 @@ class _HomePageState extends ConsumerState<HomePage> {
                 const SizedBox(height: 24),
               ],
 
-              if (authState.hasPermission(PermissionModule.reports, PermissionAction.view)) ...[
-                TopSellingList(products: topSelling, productModels: allProducts),
+              if (authState.hasPermission(
+                PermissionModule.reports,
+                PermissionAction.view,
+              )) ...[
+                TopSellingList(
+                  products: topSelling,
+                  productModels: allProducts,
+                ),
                 const SizedBox(height: 24),
               ],
 
-              if (authState.hasPermission(PermissionModule.inventory, PermissionAction.view)) ...[
+              if (authState.hasPermission(
+                PermissionModule.inventory,
+                PermissionAction.view,
+              )) ...[
                 StockAlertSection(lowStockProducts: lowStock),
               ],
               const SizedBox(height: 100),
@@ -415,22 +455,25 @@ class _HomePageState extends ConsumerState<HomePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(2),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            GridView.count(
-              shrinkWrap: true,
-              crossAxisCount: 3,
-              mainAxisSpacing: 20,
-              crossAxisSpacing: 20,
-              children: [
-                  if (authState.hasPermission(PermissionModule.inventory, PermissionAction.view))
+              GridView.count(
+                shrinkWrap: true,
+                crossAxisCount: 3,
+                mainAxisSpacing: 20,
+                crossAxisSpacing: 20,
+                children: [
+                  if (authState.hasPermission(
+                    PermissionModule.inventory,
+                    PermissionAction.view,
+                  ))
                     _QuickMenuItem(
                       icon: Icons.inventory_2_outlined,
                       label: 'Inventory',
@@ -440,7 +483,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                         Navigator.pushNamed(context, '/stock-management');
                       },
                     ),
-                  if (authState.hasPermission(PermissionModule.billing, PermissionAction.view))
+                  if (authState.hasPermission(
+                    PermissionModule.billing,
+                    PermissionAction.view,
+                  ))
                     _QuickMenuItem(
                       icon: Icons.history,
                       label: 'History',
@@ -450,7 +496,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                         Navigator.pushNamed(context, '/invoice-history');
                       },
                     ),
-                  if (authState.hasPermission(PermissionModule.products, PermissionAction.view))
+                  if (authState.hasPermission(
+                    PermissionModule.products,
+                    PermissionAction.view,
+                  ))
                     _QuickMenuItem(
                       icon: Icons.add_circle_outline,
                       label: 'Products',
@@ -460,22 +509,29 @@ class _HomePageState extends ConsumerState<HomePage> {
                         Navigator.pushNamed(context, '/products');
                       },
                     ),
-                  if (ref.watch(featureSettingsProvider).isCategoryEnabled && authState.hasPermission(PermissionModule.categories, PermissionAction.view))
+                  if (ref.watch(featureSettingsProvider).isCategoryEnabled &&
+                      authState.hasPermission(
+                        PermissionModule.categories,
+                        PermissionAction.view,
+                      ))
                     _QuickMenuItem(
-                    icon: Icons.category_outlined,
-                    label: 'Categories',
-                    color: Colors.teal,
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CategoryManagementPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  if (authState.hasPermission(PermissionModule.userManagement, PermissionAction.view))
+                      icon: Icons.category_outlined,
+                      label: 'Categories',
+                      color: Colors.teal,
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CategoryManagementPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  if (authState.hasPermission(
+                    PermissionModule.userManagement,
+                    PermissionAction.view,
+                  ))
                     _QuickMenuItem(
                       icon: Icons.person_add_alt_1_outlined,
                       label: 'Staff',
@@ -485,7 +541,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                         Navigator.pushNamed(context, '/user-management');
                       },
                     ),
-                  if (authState.hasPermission(PermissionModule.uom, PermissionAction.view))
+                  if (authState.hasPermission(
+                    PermissionModule.uom,
+                    PermissionAction.view,
+                  ))
                     _QuickMenuItem(
                       icon: Icons.straighten,
                       label: 'UOM',
@@ -578,46 +637,100 @@ class _HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hello, ${user?.fullName ?? 'User'} 👋',
-                    style: const TextStyle(color: Colors.grey, fontSize: 16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          // User Profile Photo on the Left - WhatsApp style Full View
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FullScreenImageViewer(
+                    imagePath: user?.profileImage,
+                    tag: 'profile_photo_dashboard',
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          business?.name ?? 'No Business Setup',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: Colors.grey,
-                        size: 20,
-                      ),
-                    ],
+                ),
+              );
+            },
+            child: Hero(
+              tag: 'profile_photo_dashboard',
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppTheme.primaryTeal.withOpacity(0.2),
+                    width: 2,
                   ),
-                ],
+                ),
+                child: CircleAvatar(
+                  radius: 25,
+                  backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
+                  backgroundImage:
+                      user?.profileImage != null &&
+                          user!.profileImage!.isNotEmpty
+                      ? FileImage(File(user!.profileImage!))
+                      : null,
+                  child:
+                      user?.profileImage == null || user!.profileImage!.isEmpty
+                      ? const Icon(
+                          Icons.person,
+                          color: AppTheme.primaryTeal,
+                          size: 30,
+                        )
+                      : null,
+                ),
               ),
             ),
-            Container(
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: InkWell(
+              onTap: () => Navigator.pushNamed(context, '/profile'),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hello, ${user?.fullName ?? 'User'}',
+                      style: const TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            business?.name ?? 'No Business Setup',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: Colors.grey,
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Business Logo on the Right - Current behavior (switch business)
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(15),
+            child: Container(
               width: 50,
               height: 50,
               decoration: BoxDecoration(
@@ -638,8 +751,8 @@ class _HomeHeader extends StatelessWidget {
                       size: 28,
                     ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

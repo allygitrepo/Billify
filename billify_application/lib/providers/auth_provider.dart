@@ -156,6 +156,33 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  Future<void> updateProfile(UserModel updatedUser) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final repo = ref.read(authRepositoryProvider);
+      
+      // 1. Update the currently logged in user info in local storage
+      await repo.setAsLoggedInUser(updatedUser);
+      
+      // 2. If the user is staff, we also need to update the record in the owner's user management list
+      if (updatedUser.businessOwnerId != null) {
+        final storage = ref.read(localStorageServiceProvider);
+        final businessId = storage.getString(AppConstants.userKey(updatedUser.businessOwnerId!, AppConstants.keyCurrentBusinessId));
+        if (businessId != null) {
+          final userMgmtRepo = ref.read(userManagementRepositoryProvider);
+          final users = await userMgmtRepo.getUsers(businessId);
+          final updatedUsers = users.map((u) => u.email == updatedUser.email ? updatedUser : u).toList();
+          await userMgmtRepo.saveUsers(businessId, updatedUsers);
+        }
+      }
+      
+      state = state.copyWith(user: updatedUser, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      throw e;
+    }
+  }
+
   Future<void> logout() async {
     final repo = ref.read(authRepositoryProvider);
     await repo.logout();

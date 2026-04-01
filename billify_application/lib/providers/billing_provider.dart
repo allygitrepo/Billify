@@ -3,6 +3,7 @@ import 'package:billify_application/data/models/business_model.dart';
 import 'package:billify_application/data/models/cart_item_model.dart';
 import 'package:billify_application/data/models/invoice_model.dart';
 import 'package:billify_application/data/models/product_model.dart';
+import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/invoice_provider.dart';
 import 'package:billify_application/providers/product_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
@@ -58,6 +59,8 @@ class BillingNotifier extends Notifier<BillingState> {
 
     // Generate sequential ID
     final invoiceId = '${business.invoicePrefix}${business.nextInvoiceNumber}';
+    final currentUser = ref.read(authProvider).user;
+    final staffName = currentUser?.fullName ?? 'Owner';
 
     final invoice = InvoiceModel(
       id: invoiceId,
@@ -68,6 +71,7 @@ class BillingNotifier extends Notifier<BillingState> {
       taxAmount: state.calculateTax(business.tax),
       gstAmount: state.calculateTax(business.gst),
       total: state.getTotal(business.tax, business.gst),
+      staffName: staffName,
     );
 
     // Save to history

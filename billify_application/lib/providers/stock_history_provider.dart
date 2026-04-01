@@ -7,7 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final stockHistoryRepositoryProvider = Provider<StockHistoryRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
-  final userId = ref.watch(authProvider).user?.email ?? 'guest';
+  final user = ref.watch(authProvider).user;
+  final userId = user?.businessOwnerId ?? user?.email ?? 'guest';
   final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
   return StockHistoryRepository(storage, userId, businessId);
 });

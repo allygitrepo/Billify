@@ -8,6 +8,7 @@ import 'package:billify_application/presentation/billing/scanner_screen.dart';
 import 'package:billify_application/presentation/inventory/stock_management_page.dart';
 import 'package:billify_application/presentation/product/product_management_page.dart';
 import 'package:billify_application/presentation/splash/splash_page.dart';
+import 'package:billify_application/presentation/settings/user_management_page.dart';
 import 'package:billify_application/providers/storage_provider.dart';
 import 'package:billify_application/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
@@ -59,6 +60,7 @@ class BillifyApp extends ConsumerWidget {
         '/add-product': (context) => const ProductManagementPage(), // Alias for compatibility
         '/invoice-history': (context) => const InvoiceHistoryPage(),
         '/stock-management': (context) => const StockManagementPage(),
+        '/user-management': (context) => const UserManagementPage(),
       },
     );
   }

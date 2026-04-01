@@ -9,12 +9,20 @@ abstract class AuthDatasource {
   Future<void> logout();
   UserModel? getUser();
   bool isLoggedIn();
+  Future<void> setAsLoggedInUser(UserModel user);
 }
 
 class LocalAuthDatasource implements AuthDatasource {
   final LocalStorageService _storage;
 
   LocalAuthDatasource(this._storage);
+
+  @override
+  Future<void> setAsLoggedInUser(UserModel user) async {
+    final userJson = jsonEncode(user.toJson());
+    await _storage.setString(AppConstants.keyUserData, userJson);
+    await _storage.setBool(AppConstants.keyIsLoggedIn, true);
+  }
 
   @override
   Future<bool> register(UserModel user) async {

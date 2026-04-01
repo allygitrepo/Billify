@@ -12,7 +12,8 @@ import 'package:uuid/uuid.dart';
 
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
-  final userId = ref.watch(authProvider).user?.email ?? 'guest';
+  final user = ref.watch(authProvider).user;
+  final userId = user?.businessOwnerId ?? user?.email ?? 'guest';
   final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
   return ProductRepository(storage, userId, businessId);
 });

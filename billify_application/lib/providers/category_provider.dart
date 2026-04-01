@@ -7,7 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
-  final userId = ref.watch(authProvider).user?.email ?? 'guest';
+  final user = ref.watch(authProvider).user;
+  final userId = user?.businessOwnerId ?? user?.email ?? 'guest';
   final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
   return CategoryRepository(storage, userId, businessId);
 });

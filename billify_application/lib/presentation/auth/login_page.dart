@@ -81,7 +81,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 'Simplify your business management',
                 style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
-              const SizedBox(height: 120),
+              const SizedBox(height: 100),
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -138,7 +138,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 48),
+                        const SizedBox(height: 25),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [

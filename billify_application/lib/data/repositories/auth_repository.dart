@@ -14,6 +14,10 @@ class AuthRepository {
     return await _datasource.login(email, password);
   }
 
+  Future<void> setAsLoggedInUser(UserModel user) async {
+    await _datasource.setAsLoggedInUser(user);
+  }
+
   Future<void> logout() async {
     await _datasource.logout();
   }

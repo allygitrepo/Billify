@@ -44,7 +44,11 @@ class ThermalInvoiceDialog extends ConsumerWidget {
               // Header
               Text(
                 business.name.toUpperCase(),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.black,
+                ),
                 textAlign: TextAlign.center,
               ),
               if (business.address != null)
@@ -61,97 +65,234 @@ class ThermalInvoiceDialog extends ConsumerWidget {
               if (business.gstNumber != null && business.gstNumber!.isNotEmpty)
                 Text(
                   'GSTIN: ${business.gstNumber}',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
                   textAlign: TextAlign.center,
                 ),
-              
+
               const SizedBox(height: 8),
               Text(
                 'INVOICE NO: $invoiceId',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
                 textAlign: TextAlign.center,
               ),
-              const Text('------------------------------------------', style: TextStyle(color: Colors.black38)),
-              
+              const Text(
+                '------------------------------------------',
+                style: TextStyle(color: Colors.black38),
+              ),
+
               // Date & Time
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Date: ${dateFormat.format(now)}', style: const TextStyle(fontSize: 11, color: Colors.black87)),
-                  Text('Time: ${timeFormat.format(now)}', style: const TextStyle(fontSize: 11, color: Colors.black87)),
+                  Text(
+                    'Date: ${dateFormat.format(now)}',
+                    style: const TextStyle(fontSize: 11, color: Colors.black87),
+                  ),
+                  Text(
+                    'Time: ${timeFormat.format(now)}',
+                    style: const TextStyle(fontSize: 11, color: Colors.black87),
+                  ),
                 ],
               ),
-              
-              const Text('------------------------------------------', style: TextStyle(color: Colors.black38)),
-              
+
+              const Text(
+                '------------------------------------------',
+                style: TextStyle(color: Colors.black38),
+              ),
+
               // Items Table Header
               const Row(
                 children: [
-                  Expanded(flex: 3, child: Text('ITEM', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black))),
-                  Expanded(flex: 1, child: Text('QTY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black), textAlign: TextAlign.center)),
-                  Expanded(flex: 2, child: Text('PRICE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black), textAlign: TextAlign.right)),
-                  Expanded(flex: 2, child: Text('TOTAL', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black), textAlign: TextAlign.right)),
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      'ITEM',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      'QTY',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        color: Colors.black,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'PRICE',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        color: Colors.black,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'TOTAL',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        color: Colors.black,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
-              const Text('------------------------------------------', style: TextStyle(color: Colors.black38)),
-              
+              const Text(
+                '------------------------------------------',
+                style: TextStyle(color: Colors.black38),
+              ),
+
               // Items List
-              ...items.map((item) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  children: [
-                    Expanded(flex: 3, child: Text(item.name, style: const TextStyle(fontSize: 11, color: Colors.black))),
-                    Expanded(flex: 1, child: Text('${item.quantity}', style: const TextStyle(fontSize: 11, color: Colors.black), textAlign: TextAlign.center)),
-                    Expanded(flex: 2, child: Text(item.price.toStringAsFixed(2), style: const TextStyle(fontSize: 11, color: Colors.black), textAlign: TextAlign.right)),
-                    Expanded(flex: 2, child: Text(item.subtotal.toStringAsFixed(2), style: const TextStyle(fontSize: 11, color: Colors.black), textAlign: TextAlign.right)),
-                  ],
+              ...items.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          item.name,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 1,
+                        child: Text(
+                          '${item.quantity}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.black,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          item.price.toStringAsFixed(2),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.black,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          item.subtotal.toStringAsFixed(2),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.black,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              )),
-              
-              const Text('------------------------------------------', style: TextStyle(color: Colors.black38)),
-              
+              ),
+
+              const Text(
+                '------------------------------------------',
+                style: TextStyle(color: Colors.black38),
+              ),
+
               // Totals
               _PriceRow(label: 'SUBTOTAL', value: subtotal),
               if (business.tax > 0)
                 _PriceRow(label: 'TAX (${business.tax}%)', value: taxAmount),
               if (business.gst > 0)
                 _PriceRow(label: 'GST (${business.gst}%)', value: gstAmount),
-              const Text('------------------------------------------', style: TextStyle(color: Colors.black38)),
-              _PriceRow(label: 'GRAND TOTAL', value: total, isBold: true, fontSize: 14),
-              const Text('------------------------------------------', style: TextStyle(color: Colors.black38)),
-              
+              const Text(
+                '------------------------------------------',
+                style: TextStyle(color: Colors.black38),
+              ),
+              _PriceRow(
+                label: 'GRAND TOTAL',
+                value: total,
+                isBold: true,
+                fontSize: 14,
+              ),
+              const Text(
+                '------------------------------------------',
+                style: TextStyle(color: Colors.black38),
+              ),
+
               const SizedBox(height: 12),
               const Text(
                 'THANK YOU FOR YOUR BUSINESS!',
-                style: TextStyle(fontStyle: FontStyle.italic, fontSize: 11, color: Colors.black),
+                style: TextStyle(
+                  fontStyle: FontStyle.italic,
+                  fontSize: 11,
+                  color: Colors.black,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-              
+
               // Action Buttons
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('CANCEL'),
+                      child: const Text(
+                        'CANCEL',
+                        // style: TextStyle(fontSize: 12),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 5),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () async {
-                        await ref.read(billingProvider.notifier).confirmInvoice(business);
+                        await ref
+                            .read(billingProvider.notifier)
+                            .confirmInvoice(business);
                         if (context.mounted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Invoice confirmed and saved')),
+                            const SnackBar(
+                              content: Text('Invoice confirmed and saved'),
+                            ),
                           );
                         }
                       },
-                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryTeal),
-                      child: const Text('CONFIRM & PRINT', style: TextStyle(color: Colors.white, fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryTeal,
+                      ),
+                      child: const Text(
+                        'CONFIRM & PRINT',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
                     ),
                   ),
                 ],
@@ -184,8 +325,22 @@ class _PriceRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize, color: Colors.black)),
-          Text('₹${value.toStringAsFixed(2)}', style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize, color: Colors.black)),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontSize: fontSize,
+              color: Colors.black,
+            ),
+          ),
+          Text(
+            '₹${value.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontSize: fontSize,
+              color: Colors.black,
+            ),
+          ),
         ],
       ),
     );

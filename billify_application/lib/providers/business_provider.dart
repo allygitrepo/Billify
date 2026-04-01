@@ -8,7 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final businessRepositoryProvider = Provider<BusinessRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
-  final userId = ref.watch(authProvider).user?.email ?? 'guest';
+  final user = ref.watch(authProvider).user;
+  final userId = user?.businessOwnerId ?? user?.email ?? 'guest';
   final datasource = LocalBusinessDatasource(storage, userId);
   return BusinessRepository(datasource);
 });

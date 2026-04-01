@@ -19,6 +19,8 @@ class AppConstants {
   static const String keyStockHistory = 'stock_history';
   static const String keyCategoryData = 'category_data';
   static const String keyUomData = 'uom_data';
+  static const String keyRoleData = 'role_data';
+  static const String keyUsersList = 'users_list';
   
   // Validation Regex
   static final RegExp emailRegex = RegExp(

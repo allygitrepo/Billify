@@ -351,9 +351,9 @@ class _StockAlertTile extends StatelessWidget {
                     fontSize: 15,
                   ),
                 ),
-                if (product.uomId.isNotEmpty)
+                if (product.uom.isNotEmpty)
                   Text(
-                    product.uomId,
+                    product.uom,
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
               ],

@@ -4,11 +4,11 @@ class ProductModel {
   final String id;
   final String barcode;
   final String name;
-  final double price;
+  final double basePrice;
   final int stock;
-  final String? categoryId;
-  final String uomId;
-  final String? imageUrl;
+  final String? category_id;
+  final String uom;
+  final String? photo;
   final bool hasVariants;
   final List<ProductVariantModel> variants;
   final String? selectedVariantId;
@@ -17,11 +17,11 @@ class ProductModel {
     required this.id,
     required this.barcode,
     required this.name,
-    required this.price,
+    required this.basePrice,
     required this.stock,
-    this.categoryId,
-    required this.uomId,
-    this.imageUrl,
+    this.category_id,
+    required this.uom,
+    this.photo,
     this.hasVariants = false,
     this.variants = const [],
     this.selectedVariantId,
@@ -29,20 +29,20 @@ class ProductModel {
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     return ProductModel(
-      id: json['id'],
-      barcode: json['barcode'] ?? '',
+      id: json['id'].toString(),
+      barcode: json['barcode'] ?? json['sku'] ?? '',
       name: json['name'],
-      price: (json['price'] as num).toDouble(),
-      stock: (json['stock'] as num).toInt(),
-      categoryId: json['categoryId'],
-      uomId: json['uomId'] ?? 'pcs',
-      imageUrl: json['imageUrl'] as String?,
+      basePrice: (json['basePrice'] as num?)?.toDouble() ?? (json['price'] as num?)?.toDouble() ?? 0.0,
+      stock: (json['stock'] as num?)?.toInt() ?? 0,
+      category_id: json['category_id']?.toString() ?? json['categoryId']?.toString(),
+      uom: json['uom'] ?? json['uomId'] ?? 'pcs',
+      photo: json['photo'] ?? json['imageUrl'],
       hasVariants: json['hasVariants'] ?? false,
       variants: (json['variants'] as List<dynamic>?)
               ?.map((v) => ProductVariantModel.fromJson(v))
               .toList() ??
           [],
-      selectedVariantId: json['selectedVariantId'] as String?,
+      selectedVariantId: json['selectedVariantId']?.toString(),
     );
   }
 
@@ -51,11 +51,11 @@ class ProductModel {
       'id': id,
       'barcode': barcode,
       'name': name,
-      'price': price,
+      'basePrice': basePrice,
       'stock': stock,
-      'categoryId': categoryId,
-      'uomId': uomId,
-      'imageUrl': imageUrl,
+      'category_id': category_id,
+      'uom': uom,
+      'photo': photo,
       'hasVariants': hasVariants,
       'variants': variants.map((v) => v.toJson()).toList(),
       'selectedVariantId': selectedVariantId,
@@ -66,11 +66,11 @@ class ProductModel {
     String? id,
     String? barcode,
     String? name,
-    double? price,
+    double? basePrice,
     int? stock,
-    String? categoryId,
-    String? uomId,
-    String? imageUrl,
+    String? category_id,
+    String? uom,
+    String? photo,
     bool? hasVariants,
     List<ProductVariantModel>? variants,
     String? selectedVariantId,
@@ -79,11 +79,11 @@ class ProductModel {
       id: id ?? this.id,
       barcode: barcode ?? this.barcode,
       name: name ?? this.name,
-      price: price ?? this.price,
+      basePrice: basePrice ?? this.basePrice,
       stock: stock ?? this.stock,
-      categoryId: categoryId ?? this.categoryId,
-      uomId: uomId ?? this.uomId,
-      imageUrl: imageUrl ?? this.imageUrl,
+      category_id: category_id ?? this.category_id,
+      uom: uom ?? this.uom,
+      photo: photo ?? this.photo,
       hasVariants: hasVariants ?? this.hasVariants,
       variants: variants ?? this.variants,
       selectedVariantId: selectedVariantId ?? this.selectedVariantId,
@@ -95,5 +95,6 @@ class ProductModel {
     return variants.fold(0, (sum, v) => sum + v.stock);
   }
 }
+
 
 

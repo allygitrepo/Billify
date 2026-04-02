@@ -107,8 +107,8 @@ class AuthNotifier extends Notifier<AuthState> {
         for (final business in businesses) {
           final users = await userMgmtRepo.getUsers(business.id);
           final found = users.firstWhere(
-            (u) => u.email == email && u.password == password && u.isActive,
-            orElse: () => UserModel(fullName: '', email: '', phone: '', password: ''),
+            (u) => u.email == email && u.password == password && u.status,
+            orElse: () => UserModel(name: '', email: '', mobile: '', password: ''),
           );
           if (found.email.isNotEmpty) {
             staffUser = found;

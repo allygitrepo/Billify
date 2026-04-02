@@ -6,22 +6,22 @@ class InvoiceModel {
   final DateTime date;
   final BusinessModel business;
   final List<CartItemModel> items;
-  final double subtotal;
-  final double taxAmount;
-  final double gstAmount;
-  final double total;
-  final String staffName;
+  final double total_amount;
+  final double tax_amount;
+  final double gst_amount;
+  final double final_amount;
+  final String staff_name;
 
   InvoiceModel({
     required this.id,
     required this.date,
     required this.business,
     required this.items,
-    required this.subtotal,
-    required this.taxAmount,
-    required this.gstAmount,
-    required this.total,
-    required this.staffName,
+    required this.total_amount,
+    required this.tax_amount,
+    required this.gst_amount,
+    required this.final_amount,
+    required this.staff_name,
   });
 
   factory InvoiceModel.fromJson(Map<String, dynamic> json) {
@@ -30,11 +30,11 @@ class InvoiceModel {
       date: DateTime.parse(json['date']),
       business: BusinessModel.fromJson(json['business']),
       items: (json['items'] as List).map((e) => CartItemModel.fromJson(e)).toList(),
-      subtotal: (json['subtotal'] as num).toDouble(),
-      taxAmount: (json['taxAmount'] as num).toDouble(),
-      gstAmount: (json['gstAmount'] as num?)?.toDouble() ?? 0.0,
-      total: (json['total'] as num).toDouble(),
-      staffName: json['staffName'] ?? 'Owner',
+      total_amount: (json['total_amount'] as num?)?.toDouble() ?? (json['subtotal'] as num?)?.toDouble() ?? 0.0,
+      tax_amount: (json['tax_amount'] as num?)?.toDouble() ?? (json['taxAmount'] as num?)?.toDouble() ?? 0.0,
+      gst_amount: (json['gst_amount'] as num?)?.toDouble() ?? (json['gstAmount'] as num?)?.toDouble() ?? 0.0,
+      final_amount: (json['final_amount'] as num?)?.toDouble() ?? (json['total'] as num?)?.toDouble() ?? 0.0,
+      staff_name: json['staff_name'] ?? json['staffName'] ?? 'Owner',
     );
   }
 
@@ -44,11 +44,12 @@ class InvoiceModel {
       'date': date.toIso8601String(),
       'business': business.toJson(),
       'items': items.map((e) => e.toJson()).toList(),
-      'subtotal': subtotal,
-      'taxAmount': taxAmount,
-      'gstAmount': gstAmount,
-      'total': total,
-      'staffName': staffName,
+      'total_amount': total_amount,
+      'tax_amount': tax_amount,
+      'gst_amount': gst_amount,
+      'final_amount': final_amount,
+      'staff_name': staff_name,
     };
   }
 }
+

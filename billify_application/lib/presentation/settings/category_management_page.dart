@@ -39,7 +39,7 @@ class CategoryManagementPage extends ConsumerWidget {
               itemCount: categories.length,
               itemBuilder: (context, index) {
                 final category = categories[index];
-                final productCount = ref.watch(productProvider).where((p) => p.categoryId == category.id).length;
+                final productCount = ref.watch(productProvider).where((p) => p.category_id == category.id).length;
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(

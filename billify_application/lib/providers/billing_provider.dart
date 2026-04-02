@@ -58,20 +58,20 @@ class BillingNotifier extends Notifier<BillingState> {
     if (state.items.isEmpty) return;
 
     // Generate sequential ID
-    final invoiceId = '${business.invoicePrefix}${business.nextInvoiceNumber}';
+    final invoiceId = '${business.invoice_prefix}${business.starting_invoice_number}';
     final currentUser = ref.read(authProvider).user;
-    final staffName = currentUser?.fullName ?? 'Owner';
+    final staffName = currentUser?.name ?? 'Owner';
 
     final invoice = InvoiceModel(
       id: invoiceId,
       date: DateTime.now(),
       business: business,
       items: state.items,
-      subtotal: state.subtotal,
-      taxAmount: state.calculateTax(business.tax),
-      gstAmount: state.calculateTax(business.gst),
-      total: state.getTotal(business.tax, business.gst),
-      staffName: staffName,
+      total_amount: state.subtotal,
+      tax_amount: state.calculateTax(business.tax_percentage),
+      gst_amount: state.calculateTax(business.gst_percentage),
+      final_amount: state.getTotal(business.tax_percentage, business.gst_percentage),
+      staff_name: staffName,
     );
 
     // Save to history
@@ -79,8 +79,9 @@ class BillingNotifier extends Notifier<BillingState> {
     
     // Increment business sequence
     await ref.read(businessProvider.notifier).updateBusiness(
-      business.copyWith(nextInvoiceNumber: business.nextInvoiceNumber + 1),
+      business.copyWith(starting_invoice_number: business.starting_invoice_number + 1),
     );
+
     
     // Deduct Stock
     final Map<String, int> stockDeltas = {};

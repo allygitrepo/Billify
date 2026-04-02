@@ -3,28 +3,28 @@ import 'package:uuid/uuid.dart';
 class ProductVariantModel {
   final String id;
   final String name;
-  final String barcode;
+  final String sku;
   final double price;
   final int stock;
-  final String uomId;
+  final String uom;
 
   ProductVariantModel({
     required this.id,
     required this.name,
-    required this.barcode,
+    required this.sku,
     required this.price,
     required this.stock,
-    required this.uomId,
+    required this.uom,
   });
 
   factory ProductVariantModel.fromJson(Map<String, dynamic> json) {
     return ProductVariantModel(
-      id: json['id'],
+      id: json['id'].toString(),
       name: json['name'],
-      barcode: json['barcode'] ?? '',
-      price: (json['price'] as num).toDouble(),
-      stock: (json['stock'] as num).toInt(),
-      uomId: json['uomId'] ?? 'pcs',
+      sku: json['sku'] ?? json['barcode'] ?? '',
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      stock: (json['stock'] as num?)?.toInt() ?? 0,
+      uom: json['uom'] ?? json['uomId'] ?? 'pcs',
     );
   }
 
@@ -32,28 +32,28 @@ class ProductVariantModel {
     return {
       'id': id,
       'name': name,
-      'barcode': barcode,
+      'sku': sku,
       'price': price,
       'stock': stock,
-      'uomId': uomId,
+      'uom': uom,
     };
   }
 
   ProductVariantModel copyWith({
     String? id,
     String? name,
-    String? barcode,
+    String? sku,
     double? price,
     int? stock,
-    String? uomId,
+    String? uom,
   }) {
     return ProductVariantModel(
       id: id ?? this.id,
       name: name ?? this.name,
-      barcode: barcode ?? this.barcode,
+      sku: sku ?? this.sku,
       price: price ?? this.price,
       stock: stock ?? this.stock,
-      uomId: uomId ?? this.uomId,
+      uom: uom ?? this.uom,
     );
   }
 
@@ -61,10 +61,11 @@ class ProductVariantModel {
     return ProductVariantModel(
       id: const Uuid().v4(),
       name: '',
-      barcode: '',
+      sku: '',
       price: 0.0,
       stock: 0,
-      uomId: 'pcs',
+      uom: 'pcs',
     );
   }
 }
+

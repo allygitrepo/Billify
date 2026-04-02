@@ -43,7 +43,7 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
     final now = DateTime.now();
     return state
         .where((e) => e.date.year == now.year && e.date.month == now.month && e.date.day == now.day)
-        .fold(0, (sum, e) => sum + e.total);
+        .fold(0, (sum, e) => sum + e.final_amount);
   }
 
   int getTodayInvoiceCount() {
@@ -53,7 +53,7 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
 
   double getMonthlyRevenue() {
     final now = DateTime.now();
-    return state.where((e) => e.date.year == now.year && e.date.month == now.month).fold(0, (sum, e) => sum + e.total);
+    return state.where((e) => e.date.year == now.year && e.date.month == now.month).fold(0, (sum, e) => sum + e.final_amount);
   }
 
   Map<String, double> getTopSellingProducts(int count) {
@@ -76,7 +76,7 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
         final date = now.subtract(Duration(days: 6 - i));
         dailyTotals[i] = state
             .where((e) => e.date.year == date.year && e.date.month == date.month && e.date.day == date.day)
-            .fold(0.0, (sum, e) => sum + e.total);
+            .fold(0.0, (sum, e) => sum + e.final_amount);
     }
     return dailyTotals;
   }
@@ -100,7 +100,7 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
     for (int i = 0; i < 12; i++) {
         monthlyTotals[i] = state
             .where((e) => e.date.year == now.year && e.date.month == (i + 1))
-            .fold(0.0, (sum, e) => sum + e.total);
+            .fold(0.0, (sum, e) => sum + e.final_amount);
     }
     return monthlyTotals;
   }

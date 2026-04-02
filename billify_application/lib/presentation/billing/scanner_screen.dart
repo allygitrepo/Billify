@@ -124,9 +124,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       return;
     }
 
-    final taxPercent = currentBusiness.tax;
-    final gstPercent = currentBusiness.gst;
-    final invoiceNo = '${currentBusiness.invoicePrefix}${currentBusiness.nextInvoiceNumber}';
+    final taxPercent = currentBusiness.tax_percentage;
+    final gstPercent = currentBusiness.gst_percentage;
+    final invoiceNo = '${currentBusiness.invoice_prefix}${currentBusiness.starting_invoice_number}';
 
     showDialog(
       context: context,
@@ -163,8 +163,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     final billingState = ref.watch(billingProvider);
     final businessState = ref.watch(businessProvider);
     final business = businessState.currentBusiness;
-    final taxPercent = business?.tax ?? 0.0;
-    final gstPercent = business?.gst ?? 0.0;
+    final taxPercent = business?.tax_percentage ?? 0.0;
+    final gstPercent = business?.gst_percentage ?? 0.0;
 
     if (!_hasPermission) {
       return Scaffold(
@@ -419,7 +419,7 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
         if (p.hasVariants) {
           return p.variants.any((v) => 
             v.name.toLowerCase().contains(lowerQuery) || 
-            v.barcode.toLowerCase().contains(lowerQuery)
+            v.sku.toLowerCase().contains(lowerQuery)
           );
         }
         return false;
@@ -515,11 +515,11 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
                           ...p.variants.map((v) {
                             final variantProduct = p.copyWith(
                               name: v.name.isNotEmpty ? '${p.name} (${v.name})' : p.name,
-                              price: v.price,
+                              basePrice: v.price,
                               stock: v.stock,
-                              barcode: v.barcode,
+                              barcode: v.sku,
                               selectedVariantId: v.id,
-                              uomId: v.uomId,
+                              uom: v.uom,
                             );
                             return _ProductListTile(
                               product: variantProduct,
@@ -592,7 +592,7 @@ class _ProductListTile extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '₹${product.price.toStringAsFixed(2)}',
+                  '₹${product.basePrice.toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: AppTheme.primaryTeal,
@@ -691,9 +691,9 @@ class _PanelItemTile extends ConsumerWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             clipBehavior: Clip.antiAlias,
-            child: item.product.imageUrl != null && item.product.imageUrl!.isNotEmpty
+            child: item.product.photo != null && item.product.photo!.isNotEmpty
                 ? Image.memory(
-                    base64Decode(item.product.imageUrl!.split(',').last),
+                    base64Decode(item.product.photo!.split(',').last),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => 
                       const Icon(Icons.image_not_supported_outlined, size: 20),
@@ -715,7 +715,7 @@ class _PanelItemTile extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  '₹${item.price.toStringAsFixed(2)}${item.product.uomId.isNotEmpty ? ' / ${item.product.uomId}' : ''}',
+                  '₹${item.price.toStringAsFixed(2)}${item.product.uom.isNotEmpty ? ' / ${item.product.uom}' : ''}',
                   style: TextStyle(
                     color: Theme.of(context).textTheme.bodySmall?.color,
                     fontSize: 12,

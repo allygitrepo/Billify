@@ -100,10 +100,10 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             leading: CircleAvatar(
               backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
-              backgroundImage: user.profileImage != null ? FileImage(File(user.profileImage!)) : null,
-              child: user.profileImage == null ? const Icon(Icons.person, color: AppTheme.primaryTeal) : null,
+              backgroundImage: user.photo != null ? FileImage(File(user.photo!)) : null,
+              child: user.photo == null ? const Icon(Icons.person, color: AppTheme.primaryTeal) : null,
             ),
-            title: Text(user.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Text(user.name, style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -127,10 +127,10 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                   onPressed: () => _showUserDialog(user),
                 ),
                 Switch(
-                  value: user.isActive,
+                  value: user.status,
                   activeColor: AppTheme.primaryTeal,
                   onChanged: (val) {
-                    ref.read(userManagementProvider.notifier).updateUser(user.copyWith(isActive: val));
+                    ref.read(userManagementProvider.notifier).updateUser(user.copyWith(status: val));
                   },
                 ),
               ],
@@ -199,11 +199,11 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
 
   void _showUserDialog(UserModel? user) {
     final isEditing = user != null;
-    final nameController = TextEditingController(text: user?.fullName);
+    final nameController = TextEditingController(text: user?.name);
     final emailController = TextEditingController(text: user?.email);
-    final phoneController = TextEditingController(text: user?.phone);
+    final phoneController = TextEditingController(text: user?.mobile);
     final passwordController = TextEditingController(text: user?.password);
-    String? selectedImagePath = user?.profileImage;
+    String? selectedImagePath = user?.photo;
     RoleModel? userRole = user != null 
         ? ref.read(userManagementProvider).roles.firstWhere((r) => r.id == user.roleId, orElse: () => ref.read(userManagementProvider).roles.first)
         : null;
@@ -259,14 +259,14 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
               onPressed: () {
                 if (userRole == null) return;
                 final updatedUser = UserModel(
-                  fullName: nameController.text,
+                  name: nameController.text,
                   email: emailController.text,
-                  phone: phoneController.text,
+                  mobile: phoneController.text,
                   password: passwordController.text,
                   roleId: userRole!.id,
-                  profileImage: selectedImagePath,
+                  photo: selectedImagePath,
                   businessOwnerId: ref.read(authProvider).user?.businessOwnerId ?? ref.read(authProvider).user?.email,
-                  isActive: user?.isActive ?? true,
+                  status: user?.status ?? true,
                 );
                 
                 if (isEditing) {

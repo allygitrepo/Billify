@@ -110,7 +110,7 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                                   ),
                                   const Spacer(),
                                   Text(
-                                    'By: ${invoice.staffName}',
+                                    'By: ${invoice.staff_name}',
                                     style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -125,7 +125,7 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                '₹${invoice.total.toStringAsFixed(2)}',
+                                '₹${invoice.final_amount.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -256,10 +256,10 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
       builder: (context) => ThermalInvoiceDialog(
         items: invoice.items,
         business: invoice.business,
-        subtotal: invoice.subtotal,
-        taxAmount: invoice.taxAmount,
-        gstAmount: invoice.gstAmount,
-        total: invoice.total,
+        subtotal: invoice.total_amount,
+        taxAmount: invoice.tax_amount,
+        gstAmount: invoice.gst_amount,
+        total: invoice.final_amount,
         invoiceId: invoice.id,
       ),
     );

@@ -27,11 +27,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   void initState() {
     super.initState();
     final user = ref.read(authProvider).user;
-    _nameController = TextEditingController(text: user?.fullName);
-    _phoneController = TextEditingController(text: user?.phone);
+    _nameController = TextEditingController(text: user?.name);
+    _phoneController = TextEditingController(text: user?.mobile);
     _passwordController = TextEditingController(text: user?.password);
     _roleController = TextEditingController(text: ref.read(authProvider).currentRole?.name ?? 'Admin / Owner');
-    _selectedImagePath = user?.profileImage;
+    _selectedImagePath = user?.photo;
   }
 
 
@@ -60,10 +60,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     if (currentUser == null) return;
 
     final updatedUser = currentUser.copyWith(
-      fullName: _nameController.text,
-      phone: _phoneController.text,
+      name: _nameController.text,
+      mobile: _phoneController.text,
       password: _passwordController.text,
-      profileImage: _selectedImagePath,
+      photo: _selectedImagePath,
     );
 
     try {

@@ -2,33 +2,33 @@ import 'package:billify_application/core/enums/stock_mode.dart';
 
 class StockHistoryModel {
   final String id;
-  final String productId;
-  final String productName;
-  final int quantity;
-  final StockMode type;
-  final DateTime timestamp;
+  final String product_id;
+  final String variant_name;
+  final int quantity_change;
+  final StockMode change_type;
+  final DateTime createdAt;
   final String reason;
   final String source; // 'manual', 'invoice', etc.
 
   StockHistoryModel({
     required this.id,
-    required this.productId,
-    required this.productName,
-    required this.quantity,
-    required this.type,
-    required this.timestamp,
+    required this.product_id,
+    required this.variant_name,
+    required this.quantity_change,
+    required this.change_type,
+    required this.createdAt,
     required this.reason,
     this.source = 'manual',
   });
 
   factory StockHistoryModel.fromJson(Map<String, dynamic> json) {
     return StockHistoryModel(
-      id: json['id'],
-      productId: json['productId'],
-      productName: json['productName'],
-      quantity: json['quantity'],
-      type: json['type'] == 'inMode' ? StockMode.inMode : StockMode.outMode,
-      timestamp: DateTime.parse(json['timestamp']),
+      id: json['id'].toString(),
+      product_id: json['product_id']?.toString() ?? json['productId']?.toString() ?? '',
+      variant_name: json['variant_name'] ?? json['productName'] ?? '',
+      quantity_change: (json['quantity_change'] as num?)?.toInt() ?? (json['quantity'] as num?)?.toInt() ?? 0,
+      change_type: (json['change_type'] ?? json['type']) == 'inMode' ? StockMode.inMode : StockMode.outMode,
+      createdAt: DateTime.parse(json['createdAt'] ?? json['timestamp'] ?? DateTime.now().toIso8601String()),
       reason: json['reason'] ?? 'Manual Adjustment',
       source: json['source'] ?? 'manual',
     );
@@ -37,13 +37,14 @@ class StockHistoryModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'productId': productId,
-      'productName': productName,
-      'quantity': quantity,
-      'type': type == StockMode.inMode ? 'inMode' : 'outMode',
-      'timestamp': timestamp.toIso8601String(),
+      'product_id': product_id,
+      'variant_name': variant_name,
+      'quantity_change': quantity_change,
+      'change_type': change_type == StockMode.inMode ? 'inMode' : 'outMode',
+      'createdAt': createdAt.toIso8601String(),
       'reason': reason,
       'source': source,
     };
   }
 }
+

@@ -48,17 +48,15 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
         _activeBusinessId = business.id;
         _nameController.text = business.name;
         _phoneController.text = business.phone;
-        _gstNumberController.text = business.gstNumber ?? '';
+        _gstNumberController.text = business.gstin ?? '';
         _addressController.text = business.address ?? '';
-        _taxController.text = business.tax.toString();
-        _gstPercentController.text = business.gst.toString();
+        _taxController.text = business.tax_percentage.toString();
+        _gstPercentController.text = business.gst_percentage.toString();
         
-        // Defensive assignment for migration to handle cases where 
-        // older models might lack these properties at runtime
-        _invoicePrefixController.text = (business.invoicePrefix as dynamic) ?? 'INV-';
-        _nextInvoiceNumberController.text = ((business.nextInvoiceNumber as dynamic) ?? 1).toString();
+        _invoicePrefixController.text = business.invoice_prefix;
+        _nextInvoiceNumberController.text = business.starting_invoice_number.toString();
         
-        _logoBase64 = business.logoBase64;
+        _logoBase64 = business.business_logo;
       });
     }
   }
@@ -82,14 +80,14 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
       final business = BusinessModel(
         id: _activeBusinessId ?? DateTime.now().millisecondsSinceEpoch.toString(),
         name: _nameController.text,
-        gstNumber: _gstNumberController.text,
+        gstin: _gstNumberController.text,
         phone: _phoneController.text,
         address: _addressController.text,
-        tax: double.tryParse(_taxController.text) ?? 0.0,
-        gst: double.tryParse(_gstPercentController.text) ?? 0.0,
-        invoicePrefix: _invoicePrefixController.text.isEmpty ? 'INV-' : _invoicePrefixController.text,
-        nextInvoiceNumber: int.tryParse(_nextInvoiceNumberController.text) ?? 1,
-        logoBase64: _logoBase64,
+        tax_percentage: double.tryParse(_taxController.text) ?? 0.0,
+        gst_percentage: double.tryParse(_gstPercentController.text) ?? 0.0,
+        invoice_prefix: _invoicePrefixController.text.isEmpty ? 'INV-' : _invoicePrefixController.text,
+        starting_invoice_number: int.tryParse(_nextInvoiceNumberController.text) ?? 1,
+        business_logo: _logoBase64,
       );
 
       final isFirstBusiness = ref.read(businessProvider).businesses.isEmpty;
@@ -112,13 +110,13 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
       _activeBusinessId = business.id;
       _nameController.text = business.name;
       _phoneController.text = business.phone;
-      _gstNumberController.text = business.gstNumber ?? '';
+      _gstNumberController.text = business.gstin ?? '';
       _addressController.text = business.address ?? '';
-      _taxController.text = business.tax.toString();
-      _gstPercentController.text = business.gst.toString();
-      _invoicePrefixController.text = business.invoicePrefix;
-      _nextInvoiceNumberController.text = business.nextInvoiceNumber.toString();
-      _logoBase64 = business.logoBase64;
+      _taxController.text = business.tax_percentage.toString();
+      _gstPercentController.text = business.gst_percentage.toString();
+      _invoicePrefixController.text = business.invoice_prefix;
+      _nextInvoiceNumberController.text = business.starting_invoice_number.toString();
+      _logoBase64 = business.business_logo;
     });
   }
 
@@ -224,14 +222,14 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
                 decoration: BoxDecoration(
                   color: AppTheme.softGrey,
                   borderRadius: BorderRadius.circular(12),
-                  image: business.logoBase64 != null
+                  image: business.business_logo != null
                       ? DecorationImage(
-                          image: MemoryImage(base64Decode(business.logoBase64!)),
+                          image: MemoryImage(base64Decode(business.business_logo!)),
                           fit: BoxFit.cover,
                         )
                       : null,
                 ),
-                child: business.logoBase64 == null
+                child: business.business_logo == null
                     ? const Icon(Icons.business, size: 30, color: AppTheme.primaryTeal)
                     : null,
               ),
@@ -267,8 +265,8 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
                 children: [
                   const SizedBox(height: 4),
                   Text(business.phone),
-                  if (business.gstNumber != null && business.gstNumber!.isNotEmpty)
-                    Text('GST: ${business.gstNumber}'),
+                  if (business.gstin != null && business.gstin!.isNotEmpty)
+                    Text('GST: ${business.gstin}'),
                 ],
               ),
               trailing: IconButton(

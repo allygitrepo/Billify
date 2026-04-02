@@ -347,11 +347,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                         color: AppTheme.primaryTeal.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: b.logoBase64 != null
+                      child: b.business_logo != null
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: Image.memory(
-                                base64Decode(b.logoBase64!),
+                                base64Decode(b.business_logo!),
                                 fit: BoxFit.cover,
                               ),
                             )
@@ -648,7 +648,7 @@ class _HomeHeader extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => FullScreenImageViewer(
-                    imagePath: user?.profileImage,
+                    imagePath: user?.photo,
                     tag: 'profile_photo_dashboard',
                   ),
                 ),
@@ -670,12 +670,12 @@ class _HomeHeader extends StatelessWidget {
                   radius: 25,
                   backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
                   backgroundImage:
-                      user?.profileImage != null &&
-                          user!.profileImage!.isNotEmpty
-                      ? FileImage(File(user!.profileImage!))
+                      user?.photo != null &&
+                          user!.photo!.isNotEmpty
+                      ? FileImage(File(user!.photo!))
                       : null,
                   child:
-                      user?.profileImage == null || user!.profileImage!.isEmpty
+                      user?.photo == null || user!.photo!.isEmpty
                       ? const Icon(
                           Icons.person,
                           color: AppTheme.primaryTeal,
@@ -697,7 +697,7 @@ class _HomeHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hello, ${user?.fullName ?? 'User'}',
+                      'Hello, ${user?.name ?? 'User'}',
                       style: const TextStyle(color: Colors.grey, fontSize: 16),
                     ),
                     const SizedBox(height: 4),
@@ -737,11 +737,11 @@ class _HomeHeader extends StatelessWidget {
                 color: AppTheme.primaryTeal.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(15),
               ),
-              child: business?.logoBase64 != null
+              child: business?.business_logo != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(15),
                       child: Image.memory(
-                        base64Decode(business!.logoBase64!),
+                        base64Decode(business!.business_logo!),
                         fit: BoxFit.cover,
                       ),
                     )

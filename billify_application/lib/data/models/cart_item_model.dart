@@ -31,7 +31,7 @@ class CartItemModel {
     };
   }
 
-  double get price => customPrice ?? product.price;
+  double get price => customPrice ?? product.basePrice;
   String get name => customName ?? product.name;
   double get subtotal => price * quantity;
 

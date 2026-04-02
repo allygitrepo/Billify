@@ -525,7 +525,7 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                     final matchesBarcode = p.barcode.toLowerCase().contains(_searchQuery);
                     final matchesVariant = p.variants.any((v) => 
                       v.name.toLowerCase().contains(_searchQuery) || 
-                      v.barcode.toLowerCase().contains(_searchQuery));
+                      v.sku.toLowerCase().contains(_searchQuery));
                     
                     if (!matchesName && !matchesBarcode && !matchesVariant) {
                       return const SizedBox.shrink();
@@ -621,7 +621,7 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
   Widget _buildHistoryList(List<StockHistoryModel> history) {
     // Filter history
     final filteredHistory = history.where((item) {
-      final matchesSearch = item.productName.toLowerCase().contains(_ledgerSearchQuery) ||
+      final matchesSearch = item.variant_name.toLowerCase().contains(_ledgerSearchQuery) ||
           item.reason.toLowerCase().contains(_ledgerSearchQuery);
       
       bool matchesFilter = true;
@@ -643,7 +643,7 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
     final dateFormat = DateFormat('MMM dd, yyyy');
 
     for (var item in filteredHistory) {
-      final dateKey = dateFormat.format(item.timestamp);
+      final dateKey = dateFormat.format(item.createdAt);
       if (!grouped.containsKey(dateKey)) {
         grouped[dateKey] = [];
       }
@@ -729,12 +729,12 @@ class _HistoryItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final timeFormat = DateFormat('hh:mm a');
-    final isStockIn = history.type == StockMode.inMode;
+    final isStockIn = history.change_type == StockMode.inMode;
     final isInvoice = history.source == 'invoice';
     
     // Find product to get image
     final product = ref.watch(productProvider).cast<ProductModel?>().firstWhere(
-      (p) => p?.id == history.productId, 
+      (p) => p?.id == history.product_id, 
       orElse: () => null
     );
 
@@ -757,9 +757,9 @@ class _HistoryItem extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               clipBehavior: Clip.antiAlias,
-              child: product?.imageUrl != null && product!.imageUrl!.isNotEmpty
+              child: product?.photo != null && product!.photo!.isNotEmpty
                   ? Image.memory(
-                      base64Decode(product.imageUrl!.split(',').last),
+                      base64Decode(product.photo!.split(',').last),
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => 
                         const Icon(Icons.image_not_supported_outlined, size: 20),
@@ -796,7 +796,7 @@ class _HistoryItem extends ConsumerWidget {
           children: [
             Expanded(
               child: Text(
-                history.productName,
+                history.variant_name,
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
             ),
@@ -825,7 +825,7 @@ class _HistoryItem extends ConsumerWidget {
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryTeal),
             ),
             Text(
-              timeFormat.format(history.timestamp),
+              timeFormat.format(history.createdAt),
               style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color),
             ),
           ],
@@ -837,7 +837,7 @@ class _HistoryItem extends ConsumerWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
-            '${isStockIn ? '+' : '-'}${history.quantity}',
+            '${isStockIn ? '+' : '-'}${history.quantity_change}',
             style: TextStyle(
               color: isStockIn ? Colors.green : Colors.orange,
               fontWeight: FontWeight.bold,
@@ -924,7 +924,7 @@ class _StockItemTile extends StatelessWidget {
     if (variantId != null) {
       final variant = product.variants.firstWhere((v) => v.id == variantId);
       name = '${product.name} (${variant.name})';
-      barcode = variant.barcode;
+      barcode = variant.sku;
       currentStock = variant.stock;
     }
 
@@ -946,9 +946,9 @@ class _StockItemTile extends StatelessWidget {
                     color: AppTheme.primaryTeal.withOpacity(0.1),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                  child: product.photo != null && product.photo!.isNotEmpty
                       ? Image.memory(
-                          base64Decode(product.imageUrl!.split(',').last),
+                          base64Decode(product.photo!.split(',').last),
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) => 
                             const Icon(Icons.image_not_supported_outlined, size: 18),
@@ -971,7 +971,7 @@ class _StockItemTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        'Stock: $currentStock ${product.uomId.isNotEmpty ? product.uomId : ''} | Barcode: $barcode',
+                        'Stock: $currentStock ${product.uom.isNotEmpty ? product.uom : ''} | Barcode: $barcode',
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context).textTheme.bodySmall?.color,
@@ -1122,9 +1122,9 @@ class _InventoryProductTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           clipBehavior: Clip.antiAlias,
-          child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+          child: product.photo != null && product.photo!.isNotEmpty
               ? Image.memory(
-                  base64Decode(product.imageUrl!.split(',').last),
+                  base64Decode(product.photo!.split(',').last),
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => 
                     const Icon(Icons.image_not_supported_outlined, size: 20),
@@ -1137,7 +1137,7 @@ class _InventoryProductTile extends StatelessWidget {
         ),
         subtitle: product.hasVariants 
           ? Text('${product.variants.length} Variants', style: const TextStyle(color: Colors.grey, fontSize: 13))
-          : Text('Qty: ${product.stock} ${product.uomId.isNotEmpty ? product.uomId : ''} | Barcode: ${product.barcode}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          : Text('Qty: ${product.stock} ${product.uom.isNotEmpty ? product.uom : ''} | Barcode: ${product.barcode}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
         trailing: !product.hasVariants 
           ? Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1155,7 +1155,7 @@ class _InventoryProductTile extends StatelessWidget {
             )
           : null,
         children: product.hasVariants 
-          ? product.variants.map((v) => _InventoryVariantTile(variant: v, uom: product.uomId)).toList()
+          ? product.variants.map((v) => _InventoryVariantTile(variant: v, uom: product.uom)).toList()
           : [],
       ),
     );
@@ -1188,7 +1188,7 @@ class _InventoryVariantTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(variant.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                Text('Barcode: ${variant.barcode}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                Text('Barcode: ${variant.sku}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
               ],
             ),
           ),

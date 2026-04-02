@@ -33,9 +33,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   Future<void> _handleRegister() async {
     if (_formKey.currentState!.validate()) {
       final user = UserModel(
-        fullName: _nameController.text,
+        name: _nameController.text,
         email: _emailController.text,
-        phone: _phoneController.text,
+        mobile: _phoneController.text,
         password: _passwordController.text,
       );
 

@@ -62,7 +62,7 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
           product.barcode.toLowerCase().contains(_searchController.text.toLowerCase());
       
       final matchesCategory = _selectedCategoryId == null || 
-          product.categoryId == _selectedCategoryId;
+          product.category_id == _selectedCategoryId;
 
       return matchesSearch && matchesCategory;
     }).toList();
@@ -168,12 +168,12 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
     final formKey = GlobalKey<FormState>();
     final barcodeController = TextEditingController(text: product?.barcode ?? barcode ?? '');
     final nameController = TextEditingController(text: product?.name ?? '');
-    final priceController = TextEditingController(text: product?.price.toString() ?? '');
+    final priceController = TextEditingController(text: product?.basePrice.toString() ?? '');
     final stockController = TextEditingController(text: product?.stock.toString() ?? '1');
     
-    String? selectedCategoryId = product?.categoryId;
-    String selectedUomId = product?.uomId ?? 'pcs';
-    String? base64Image = product?.imageUrl;
+    String? selectedCategoryId = product?.category_id;
+    String selectedUomId = product?.uom ?? 'pcs';
+    String? base64Image = product?.photo;
     bool hasVariants = product?.hasVariants ?? false;
     List<ProductVariantModel> variants = product?.variants != null ? List.from(product!.variants) : [];
     bool isSaving = false;
@@ -359,19 +359,19 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
                                   children: [
                                     Expanded(
                                       child: CustomTextField(
-                                        key: ValueKey('barcode_${variant.id}_${variant.barcode}'),
+                                        key: ValueKey('barcode_${variant.id}_${variant.sku}'),
                                         label: 'Barcode',
-                                        initialValue: variant.barcode,
+                                        initialValue: variant.sku,
                                         suffixIcon: IconButton(
                                           icon: const Icon(Icons.qr_code_scanner, size: 18, color: AppTheme.primaryTeal),
                                           onPressed: () async {
                                             final result = await _showScannerBottomSheet();
                                             if (result != null) {
-                                              setSheetState(() => variants[idx] = variants[idx].copyWith(barcode: result));
+                                              setSheetState(() => variants[idx] = variants[idx].copyWith(sku: result));
                                             }
                                           },
                                         ),
-                                        onChanged: (v) => variants[idx] = variants[idx].copyWith(barcode: v),
+                                        onChanged: (v) => variants[idx] = variants[idx].copyWith(sku: v),
                                         validator: (v) => Validators.validateRequired(v, 'Barcode'),
                                       ),
                                     ),
@@ -419,11 +419,11 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
                               id: product?.id ?? const Uuid().v4(),
                               barcode: hasVariants ? '' : barcodeController.text,
                               name: nameController.text,
-                              price: hasVariants ? 0.0 : (double.tryParse(priceController.text) ?? 0.0),
+                              basePrice: hasVariants ? 0.0 : (double.tryParse(priceController.text) ?? 0.0),
                               stock: hasVariants ? 0 : (int.tryParse(stockController.text) ?? 0),
-                              categoryId: selectedCategoryId,
-                              uomId: selectedUomId,
-                              imageUrl: base64Image,
+                              category_id: selectedCategoryId,
+                              uom: selectedUomId,
+                              photo: base64Image,
                               hasVariants: hasVariants,
                               variants: hasVariants ? variants : [],
                             );
@@ -599,14 +599,14 @@ class _ProductListTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppTheme.primaryTeal.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
-            image: product.imageUrl != null 
+            image: product.photo != null 
               ? DecorationImage(
-                  image: MemoryImage(base64Decode(product.imageUrl!)),
+                  image: MemoryImage(base64Decode(product.photo!)),
                   fit: BoxFit.cover,
                 )
               : null,
           ),
-          child: product.imageUrl == null 
+          child: product.photo == null 
             ? const Icon(Icons.shopping_bag_outlined, color: AppTheme.primaryTeal) 
             : null,
         ),
@@ -621,10 +621,10 @@ class _ProductListTile extends StatelessWidget {
                 builder: (context, ref, child) {
                   final uoms = ref.watch(uomProvider);
                   final uom = uoms.firstWhere(
-                    (u) => u.id == product.uomId, 
-                    orElse: () => UomModel(id: product.uomId, name: product.uomId)
+                    (u) => u.id == product.uom, 
+                    orElse: () => UomModel(id: product.uom, name: product.uom)
                   );
-                  return Text('Price: ₹${product.price} | Stock: ${product.stock} ${uom.name}');
+                  return Text('Price: ₹${product.basePrice} | Stock: ${product.stock} ${uom.name}');
                 },
               ),
             if (!product.hasVariants && product.barcode.isNotEmpty)

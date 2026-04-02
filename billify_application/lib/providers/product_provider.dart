@@ -38,14 +38,14 @@ class ProductNotifier extends Notifier<List<ProductModel>> {
       // 1. Try finding a variant match first
       if (product.hasVariants) {
         for (final variant in product.variants) {
-          if (variant.barcode == barcode) {
+          if (variant.sku == barcode) {
             return product.copyWith(
               name: variant.name.isNotEmpty ? '${product.name} (${variant.name})' : product.name,
-              price: variant.price,
-              barcode: variant.barcode,
+              basePrice: variant.price,
+              barcode: variant.sku,
               stock: variant.stock,
               selectedVariantId: variant.id,
-              uomId: variant.uomId, // Ensure UOM is also from variant
+              uom: variant.uom, // Ensure UOM is also from variant
             );
           }
         }
@@ -106,11 +106,11 @@ class ProductNotifier extends Notifier<List<ProductModel>> {
         await historyRepo.saveHistory(
           StockHistoryModel(
             id: const Uuid().v4(),
-            productId: productId,
-            productName: historyProductName,
-            quantity: delta.abs(),
-            type: delta > 0 ? StockMode.inMode : StockMode.outMode,
-            timestamp: DateTime.now(),
+            product_id: productId,
+            variant_name: historyProductName,
+            quantity_change: delta.abs(),
+            change_type: delta > 0 ? StockMode.inMode : StockMode.outMode,
+            createdAt: DateTime.now(),
             reason: reason,
             source: source,
           ),

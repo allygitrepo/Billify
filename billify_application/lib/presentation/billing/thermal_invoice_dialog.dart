@@ -62,9 +62,9 @@ class ThermalInvoiceDialog extends ConsumerWidget {
                 style: const TextStyle(fontSize: 12, color: Colors.black87),
                 textAlign: TextAlign.center,
               ),
-              if (business.gstNumber != null && business.gstNumber!.isNotEmpty)
+              if (business.gstin != null && business.gstin!.isNotEmpty)
                 Text(
-                  'GSTIN: ${business.gstNumber}',
+                  'GSTIN: ${business.gstin}',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -227,10 +227,10 @@ class ThermalInvoiceDialog extends ConsumerWidget {
 
               // Totals
               _PriceRow(label: 'SUBTOTAL', value: subtotal),
-              if (business.tax > 0)
-                _PriceRow(label: 'TAX (${business.tax}%)', value: taxAmount),
-              if (business.gst > 0)
-                _PriceRow(label: 'GST (${business.gst}%)', value: gstAmount),
+              if (business.tax_percentage > 0)
+                _PriceRow(label: 'TAX (${business.tax_percentage}%)', value: taxAmount),
+              if (business.gst_percentage > 0)
+                _PriceRow(label: 'GST (${business.gst_percentage}%)', value: gstAmount),
               const Text(
                 '------------------------------------------',
                 style: TextStyle(color: Colors.black38),

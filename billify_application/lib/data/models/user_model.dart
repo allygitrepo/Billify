@@ -1,69 +1,69 @@
 class UserModel {
-  final String fullName;
+  final String name;
   final String email;
-  final String phone;
+  final String mobile;
   final String password;
   final String? roleId;
-  final String? profileImage;
+  final String? photo;
   final String? businessOwnerId;
-  final bool isActive;
+  final bool status;
 
   UserModel({
-    required this.fullName,
+    required this.name,
     required this.email,
-    required this.phone,
+    required this.mobile,
     required this.password,
     this.roleId,
-    this.profileImage,
+    this.photo,
     this.businessOwnerId,
-    this.isActive = true,
+    this.status = true,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      fullName: json['fullName'] ?? '',
+      name: json['name'] ?? json['fullName'] ?? '',
       email: json['email'] ?? '',
-      phone: json['phone'] ?? '',
+      mobile: json['mobile'] ?? json['phone'] ?? '',
       password: json['password'] ?? '',
       roleId: json['roleId'],
-      profileImage: json['profileImage'],
+      photo: json['photo'] ?? json['profileImage'],
       businessOwnerId: json['businessOwnerId'],
-      isActive: json['isActive'] ?? true,
+      status: json['status'] ?? json['isActive'] ?? true,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'fullName': fullName,
+      'name': name,
       'email': email,
-      'phone': phone,
+      'mobile': mobile,
       'password': password,
       'roleId': roleId,
-      'profileImage': profileImage,
+      'photo': photo,
       'businessOwnerId': businessOwnerId,
-      'isActive': isActive,
+      'status': status,
     };
   }
 
   UserModel copyWith({
-    String? fullName,
+    String? name,
     String? email,
-    String? phone,
+    String? mobile,
     String? password,
     String? roleId,
-    String? profileImage,
+    String? photo,
     String? businessOwnerId,
-    bool? isActive,
+    bool? status,
   }) {
     return UserModel(
-      fullName: fullName ?? this.fullName,
+      name: name ?? this.name,
       email: email ?? this.email,
-      phone: phone ?? this.phone,
+      mobile: mobile ?? this.mobile,
       password: password ?? this.password,
       roleId: roleId ?? this.roleId,
-      profileImage: profileImage ?? this.profileImage,
+      photo: photo ?? this.photo,
       businessOwnerId: businessOwnerId ?? this.businessOwnerId,
-      isActive: isActive ?? this.isActive,
+      status: status ?? this.status,
     );
   }
   @override
@@ -74,3 +74,4 @@ class UserModel {
   @override
   int get hashCode => email.hashCode;
 }
+

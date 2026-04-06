@@ -13,17 +13,8 @@ const getNextSequenceNumber = async (business_id) => {
 
     // Count existing invoices
     const invoiceCount = await Invoice.count({ where: { business_id } });
-    
-    // Count existing inventory 'OUT' logs with 'Sale' reason
-    const inventorySaleCount = await InventoryLog.count({ 
-        where: { 
-            business_id, 
-            change_type: 'OUT',
-            reason: 'Sale'
-        } 
-    });
 
-    const nextNumber = startingNumber + invoiceCount + inventorySaleCount;
+    const nextNumber = startingNumber + invoiceCount;
     const paddedNumber = String(nextNumber).padStart(3, '0');
     return `${prefix}-${paddedNumber}`;
 };

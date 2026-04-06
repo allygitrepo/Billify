@@ -10,10 +10,10 @@ class BusinessState {
   });
 
   BusinessModel? get currentBusiness {
-    if (currentBusinessId == null) return null;
+    if (currentBusinessId == null || businesses.isEmpty) return null;
     return businesses.firstWhere(
       (b) => b.id == currentBusinessId,
-      orElse: () => businesses.isNotEmpty ? businesses.first : throw Exception('Business not found'),
+      orElse: () => businesses.first,
     );
   }
 

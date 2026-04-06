@@ -1,3 +1,4 @@
+import 'package:billify_application/data/datasources/remote_uom_datasource.dart';
 import 'package:billify_application/data/models/uom_model.dart';
 import 'package:billify_application/data/repositories/uom_repository.dart';
 import 'package:billify_application/providers/auth_provider.dart';
@@ -7,17 +8,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final uomRepositoryProvider = Provider<UomRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
+  final remote = ref.watch(remoteUomDatasourceProvider);
   final user = ref.watch(authProvider).user;
-  final userId = user?.businessOwnerId ?? user?.email ?? 'guest';
+  final userId = user?.id?.toString() ?? 'guest';
   final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
-  return UomRepository(storage, userId, businessId);
+  return UomRepository(storage, remote, userId, businessId);
 });
 
 class UomNotifier extends Notifier<List<UomModel>> {
   @override
   List<UomModel> build() {
     final repo = ref.watch(uomRepositoryProvider);
+    // Trigger async sync when building
+    Future.microtask(() => fetchAndSyncUoms());
     return repo.getUoms();
+  }
+
+  Future<void> fetchAndSyncUoms() async {
+    final repo = ref.read(uomRepositoryProvider);
+    await repo.fetchAndSyncUoms();
+    state = repo.getUoms();
   }
 
   Future<void> saveUom(UomModel uom) async {

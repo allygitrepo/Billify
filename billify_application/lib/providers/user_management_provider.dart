@@ -1,3 +1,4 @@
+import 'package:billify_application/data/datasources/remote_user_management_datasource.dart';
 import 'package:billify_application/data/models/role_model.dart';
 import 'package:billify_application/data/models/user_model.dart';
 import 'package:billify_application/data/models/user_permission.dart';
@@ -8,7 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final userManagementRepositoryProvider = Provider<UserManagementRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
-  return UserManagementRepository(storage);
+  final remote = ref.watch(remoteUserManagementDatasourceProvider);
+  return UserManagementRepository(storage, remote);
 });
 
 class UserManagementState {
@@ -48,10 +50,20 @@ class UserManagementNotifier extends StateNotifier<UserManagementState> {
   Future<void> loadData() async {
     if (_businessId == null) return;
     state = state.copyWith(isLoading: true);
+    
+    // Load local first for speed
+    final localRoles = await _repo.getRoles(_businessId);
+    final localUsers = await _repo.getUsers(_businessId);
+    state = state.copyWith(roles: localRoles, users: localUsers, isLoading: localRoles.isEmpty);
+
+    // Sync from remote in background
+    await _repo.syncAll(_businessId);
+    
     final roles = await _repo.getRoles(_businessId);
     final users = await _repo.getUsers(_businessId);
     
-    // If no roles exist, create default Admin role
+    // If no roles exist after sync, create default Admin role locallay (fallback)
+    // but in a production app, the backend should provide default roles.
     if (roles.isEmpty) {
       final adminRole = RoleModel(
         id: 'admin',
@@ -61,7 +73,6 @@ class UserManagementNotifier extends StateNotifier<UserManagementState> {
             module: [PermissionAction.all]
         },
       );
-      await _repo.saveRoles(_businessId, [adminRole]);
       state = state.copyWith(roles: [adminRole], users: users, isLoading: false);
     } else {
       state = state.copyWith(roles: roles, users: users, isLoading: false);
@@ -70,30 +81,60 @@ class UserManagementNotifier extends StateNotifier<UserManagementState> {
 
   Future<void> addRole(RoleModel role) async {
     if (_businessId == null) return;
-    final newRoles = [...state.roles, role];
-    await _repo.saveRoles(_businessId, newRoles);
-    state = state.copyWith(roles: newRoles);
+    state = state.copyWith(isLoading: true);
+    final newRole = await _repo.addRole(_businessId, role);
+    if (newRole != null) {
+      state = state.copyWith(roles: [...state.roles, newRole], isLoading: false);
+    } else {
+      state = state.copyWith(isLoading: false);
+    }
   }
 
   Future<void> updateRole(RoleModel role) async {
     if (_businessId == null) return;
-    final newRoles = state.roles.map((e) => e.id == role.id ? role : e).toList();
-    await _repo.saveRoles(_businessId, newRoles);
-    state = state.copyWith(roles: newRoles);
+    state = state.copyWith(isLoading: true);
+    final success = await _repo.updateRole(_businessId, role);
+    if (success) {
+      final newRoles = state.roles.map((e) => e.id == role.id ? role : e).toList();
+      state = state.copyWith(roles: newRoles, isLoading: false);
+    } else {
+      state = state.copyWith(isLoading: false);
+    }
   }
 
   Future<void> addUser(UserModel user) async {
     if (_businessId == null) return;
-    final newUsers = [...state.users, user];
-    await _repo.saveUsers(_businessId, newUsers);
-    state = state.copyWith(users: newUsers);
+    state = state.copyWith(isLoading: true);
+    final newUser = await _repo.addUser(_businessId, user);
+    if (newUser != null) {
+      state = state.copyWith(users: [...state.users, newUser], isLoading: false);
+    } else {
+      state = state.copyWith(isLoading: false);
+    }
   }
 
   Future<void> updateUser(UserModel user) async {
+    if (_businessId == null || user.id == null) return;
+    state = state.copyWith(isLoading: true);
+    final success = await _repo.updateUser(_businessId, user);
+    if (success) {
+      final newUsers = state.users.map((e) => e.id == user.id ? user : e).toList();
+      state = state.copyWith(users: newUsers, isLoading: false);
+    } else {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  Future<void> deleteUser(String userId) async {
     if (_businessId == null) return;
-    final newUsers = state.users.map((e) => e.email == user.email ? user : e).toList();
-    await _repo.saveUsers(_businessId, newUsers);
-    state = state.copyWith(users: newUsers);
+    state = state.copyWith(isLoading: true);
+    final success = await _repo.deleteUser(_businessId, userId);
+    if (success) {
+      final newUsers = state.users.where((u) => u.id != userId).toList();
+      state = state.copyWith(users: newUsers, isLoading: false);
+    } else {
+      state = state.copyWith(isLoading: false);
+    }
   }
 }
 

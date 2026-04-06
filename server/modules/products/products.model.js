@@ -13,7 +13,8 @@ const Product = sequelize.define("Product", {
     hsnCode: { type: DataTypes.STRING, allowNull: true },
     uom: { type: DataTypes.STRING, defaultValue: 'Pcs' },
     status: { type: DataTypes.STRING, defaultValue: 'active' }, // 'active' or 'inactive'
-    photo: { type: DataTypes.TEXT, allowNull: true } // Base64 string
+    photo: { type: DataTypes.TEXT, allowNull: true }, // Base64 string
+    barcode: { type: DataTypes.STRING, allowNull: true }
 }, {
     tableName: "products",
     timestamps: true,
@@ -23,6 +24,19 @@ const Product = sequelize.define("Product", {
             fields: ['business_id', 'hsnCode'],
             where: {
                 hsnCode: {
+                    [require('sequelize').Op.ne]: null
+                }
+            }
+        },
+        {
+            unique: true,
+            fields: ['business_id', 'name']
+        },
+        {
+            unique: true,
+            fields: ['business_id', 'barcode'],
+            where: {
+                barcode: {
                     [require('sequelize').Op.ne]: null
                 }
             }

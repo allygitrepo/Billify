@@ -1,4 +1,5 @@
 import 'package:billify_application/data/models/invoice_model.dart';
+import 'package:billify_application/data/datasources/remote_invoice_datasource.dart';
 import 'package:billify_application/data/repositories/invoice_repository.dart';
 import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
@@ -7,10 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final invoiceRepositoryProvider = Provider<InvoiceRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
+  final remoteDatasource = ref.watch(remoteInvoiceDatasourceProvider);
   final user = ref.watch(authProvider).user;
-  final userId = user?.businessOwnerId ?? user?.email ?? 'guest';
+  final userId = user?.id; // Allow null for user_id to prevent Postgres INTEGER cast errors
   final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
-  return InvoiceRepository(storage, userId, businessId);
+  return InvoiceRepository(storage, remoteDatasource, userId, businessId);
 });
 
 final invoiceProvider = StateNotifierProvider<InvoiceNotifier, List<InvoiceModel>>((ref) {
@@ -20,18 +22,36 @@ final invoiceProvider = StateNotifierProvider<InvoiceNotifier, List<InvoiceModel
 
 class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
   final InvoiceRepository _repo;
+  bool _isDisposed = false;
 
   InvoiceNotifier(this._repo) : super([]) {
     loadInvoices();
   }
 
-  Future<void> loadInvoices() async {
-    state = await _repo.getInvoices();
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 
-  Future<void> addInvoice(InvoiceModel invoice) async {
-    await _repo.saveInvoice(invoice);
-    state = [invoice, ...state];
+  Future<void> loadInvoices() async {
+    try {
+      // Sync sequentially then set state
+      await _repo.fetchAndSyncInvoices();
+      final invoices = await _repo.getInvoices();
+      if (!_isDisposed) {
+        state = invoices;
+      }
+    } catch (e) {
+      print("Error loading invoices: $e");
+    }
+  }
+
+  // Changed to return Future<InvoiceModel> so billing caller can get the updated one
+  Future<InvoiceModel> addInvoice(InvoiceModel invoice) async {
+    final serverInvoice = await _repo.saveInvoice(invoice);
+    state = [serverInvoice, ...state];
+    return serverInvoice;
   }
 
   Future<void> deleteInvoice(String id) async {

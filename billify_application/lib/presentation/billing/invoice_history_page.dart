@@ -32,16 +32,26 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
     // Filter invoices by date
     final filteredInvoices = invoices.where((invoice) {
       if (_startDate != null) {
-        final start = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+        final start = DateTime(
+          _startDate!.year,
+          _startDate!.month,
+          _startDate!.day,
+        );
         if (invoice.date.isBefore(start)) return false;
       }
       if (_endDate != null) {
-        final end = DateTime(_endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59);
+        final end = DateTime(
+          _endDate!.year,
+          _endDate!.month,
+          _endDate!.day,
+          23,
+          59,
+          59,
+        );
         if (invoice.date.isAfter(end)) return false;
       }
       return true;
     }).toList();
-
 
     return Scaffold(
       appBar: AppBar(title: const Text('Invoice History')),
@@ -85,7 +95,9 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                             vertical: 8,
                           ),
                           leading: CircleAvatar(
-                            backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
+                            backgroundColor: AppTheme.primaryTeal.withOpacity(
+                              0.1,
+                            ),
                             child: const Icon(
                               Icons.receipt_long,
                               color: AppTheme.primaryTeal,
@@ -112,7 +124,7 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                                   Text(
                                     'By: ${invoice.staff_name}',
                                     style: const TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w600,
                                       color: AppTheme.primaryTeal,
                                     ),
@@ -170,7 +182,9 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                   lastDate: DateTime(2100),
                   builder: (context, child) => Theme(
                     data: Theme.of(context).copyWith(
-                      colorScheme: const ColorScheme.light(primary: AppTheme.primaryTeal),
+                      colorScheme: const ColorScheme.light(
+                        primary: AppTheme.primaryTeal,
+                      ),
                     ),
                     child: child!,
                   ),
@@ -178,18 +192,30 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                 if (picked != null) setState(() => _startDate = picked);
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 12,
+                ),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.withOpacity(0.3)),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today, size: 16, color: AppTheme.primaryTeal),
+                    const Icon(
+                      Icons.calendar_today,
+                      size: 16,
+                      color: AppTheme.primaryTeal,
+                    ),
                     const SizedBox(width: 8),
                     Text(
-                      _startDate == null ? 'From' : dateFormat.format(_startDate!),
-                      style: TextStyle(fontSize: 12, color: _startDate == null ? Colors.grey : null),
+                      _startDate == null
+                          ? 'From'
+                          : dateFormat.format(_startDate!),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _startDate == null ? Colors.grey : null,
+                      ),
                     ),
                   ],
                 ),
@@ -210,7 +236,9 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                   lastDate: DateTime(2100),
                   builder: (context, child) => Theme(
                     data: Theme.of(context).copyWith(
-                      colorScheme: const ColorScheme.light(primary: AppTheme.primaryTeal),
+                      colorScheme: const ColorScheme.light(
+                        primary: AppTheme.primaryTeal,
+                      ),
                     ),
                     child: child!,
                   ),
@@ -218,18 +246,28 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                 if (picked != null) setState(() => _endDate = picked);
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 12,
+                ),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.withOpacity(0.3)),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today, size: 16, color: AppTheme.primaryTeal),
+                    const Icon(
+                      Icons.calendar_today,
+                      size: 16,
+                      color: AppTheme.primaryTeal,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       _endDate == null ? 'To' : dateFormat.format(_endDate!),
-                      style: TextStyle(fontSize: 12, color: _endDate == null ? Colors.grey : null),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _endDate == null ? Colors.grey : null,
+                      ),
                     ),
                   ],
                 ),
@@ -248,7 +286,6 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
       ),
     );
   }
-
 
   void _viewInvoice(BuildContext context, InvoiceModel invoice) {
     showDialog(

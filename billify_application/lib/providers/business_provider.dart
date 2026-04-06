@@ -1,6 +1,7 @@
 import 'package:billify_application/data/datasources/business_datasource.dart';
 import 'package:billify_application/data/models/business_model.dart';
 import 'package:billify_application/data/repositories/business_repository.dart';
+import 'package:billify_application/data/datasources/remote_business_datasource.dart';
 import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/storage_provider.dart';
 import 'package:billify_application/providers/state/business_state.dart';
@@ -11,7 +12,8 @@ final businessRepositoryProvider = Provider<BusinessRepository>((ref) {
   final user = ref.watch(authProvider).user;
   final userId = user?.businessOwnerId ?? user?.email ?? 'guest';
   final datasource = LocalBusinessDatasource(storage, userId);
-  return BusinessRepository(datasource);
+  final remoteDatasource = ref.watch(remoteBusinessDatasourceProvider);
+  return BusinessRepository(datasource, remoteDatasource);
 });
 
 class BusinessNotifier extends Notifier<BusinessState> {
@@ -71,6 +73,19 @@ class BusinessNotifier extends Notifier<BusinessState> {
     
     final businesses = repo.getBusinesses();
     state = state.copyWith(businesses: businesses);
+  }
+
+  Future<void> sync() async {
+    final repo = ref.read(businessRepositoryProvider);
+    await repo.syncBusinesses();
+    
+    final businesses = repo.getBusinesses();
+    final currentId = repo.getCurrentBusinessId();
+    
+    state = state.copyWith(
+      businesses: businesses,
+      currentBusinessId: currentId ?? (businesses.isNotEmpty ? businesses.first.id : null),
+    );
   }
 
   Future<void> clearAll() async {

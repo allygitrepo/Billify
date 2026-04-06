@@ -34,6 +34,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
       final authState = ref.read(authProvider);
       if (authState.isLoggedIn && mounted) {
+        ref.invalidate(businessProvider);
         final businessState = ref.read(businessProvider);
         if (businessState.currentBusiness == null) {
           Navigator.pushReplacementNamed(context, '/business-setup');

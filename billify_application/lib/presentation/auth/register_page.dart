@@ -1,9 +1,9 @@
 import 'package:billify_application/core/theme/app_theme.dart';
 import 'package:billify_application/core/utils/validators.dart';
-import 'package:billify_application/data/models/user_model.dart';
 import 'package:billify_application/presentation/widgets/custom_button.dart';
 import 'package:billify_application/presentation/widgets/custom_text_field.dart';
 import 'package:billify_application/providers/auth_provider.dart';
+import 'package:billify_application/providers/registration_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,6 +20,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _businessNameController = TextEditingController();
+  final _addressController = TextEditingController();
 
   @override
   void dispose() {
@@ -27,30 +29,22 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
+    _businessNameController.dispose();
+    _addressController.dispose();
     super.dispose();
   }
 
   Future<void> _handleRegister() async {
     if (_formKey.currentState!.validate()) {
-      final user = UserModel(
+      await ref.read(registrationProvider.notifier).updateUserStep(
         name: _nameController.text,
         email: _emailController.text,
-        mobile: _phoneController.text,
         password: _passwordController.text,
+        phone: _phoneController.text,
       );
 
-      await ref.read(authProvider.notifier).register(user);
-
-      final authState = ref.read(authProvider);
-      if (authState.error == null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful! Please login.')),
-        );
-        Navigator.pop(context);
-      } else if (authState.error != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(authState.error!)),
-        );
+      if (mounted) {
+        Navigator.pushNamed(context, '/business-setup', arguments: {'isRegistration': true});
       }
     }
   }
@@ -159,7 +153,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               ),
                               const SizedBox(height: 32),
                               CustomButton(
-                                text: 'REGISTER',
+                                text: 'NEXT: BUSINESS DETAILS',
                                 onPressed: _handleRegister,
                                 isLoading: authState.isLoading,
                               ),

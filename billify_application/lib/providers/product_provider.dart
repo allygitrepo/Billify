@@ -1,28 +1,36 @@
 import 'package:billify_application/core/enums/stock_mode.dart';
-import 'package:billify_application/data/models/stock_history_model.dart';
-import 'package:billify_application/data/models/product_variant_model.dart';
+import 'package:billify_application/data/datasources/remote_product_datasource.dart';
 import 'package:billify_application/data/repositories/product_repository.dart';
 import 'package:billify_application/data/models/product_model.dart';
 import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
 import 'package:billify_application/providers/stock_history_provider.dart';
 import 'package:billify_application/providers/storage_provider.dart';
+import 'package:billify_application/data/datasources/remote_inventory_datasource.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
 
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
+  final remoteProductDatasource = ref.watch(remoteProductDatasourceProvider);
   final user = ref.watch(authProvider).user;
   final userId = user?.businessOwnerId ?? user?.email ?? 'guest';
   final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
-  return ProductRepository(storage, userId, businessId);
+  return ProductRepository(storage, remoteProductDatasource, userId, businessId);
 });
 
 class ProductNotifier extends Notifier<List<ProductModel>> {
   @override
   List<ProductModel> build() {
     final repo = ref.watch(productRepositoryProvider);
+    // Trigger async sync when building
+    Future.microtask(() => fetchAndSyncProducts());
     return repo.getProducts();
+  }
+
+  Future<void> fetchAndSyncProducts() async {
+    final repo = ref.read(productRepositoryProvider);
+    await repo.fetchAndSyncProducts();
+    state = repo.getProducts();
   }
 
   Future<void> saveProduct(ProductModel product) async {
@@ -64,64 +72,55 @@ class ProductNotifier extends Notifier<List<ProductModel>> {
   }
 
   Future<void> updateStockBulk(Map<String, int> deltas, {StockMode mode = StockMode.inMode, required String reason, String source = 'manual'}) async {
-    final repo = ref.read(productRepositoryProvider);
-    final historyRepo = ref.read(stockHistoryRepositoryProvider);
+    final historyNotifier = ref.read(stockHistoryProvider.notifier);
+    final businessProviderState = ref.read(businessProvider);
+    final authState = ref.read(authProvider);
+    
+    final List<Map<String, dynamic>> items = [];
     final currentProducts = state;
-    final List<ProductModel> updatedProducts = [];
 
     for (var entry in deltas.entries) {
       final compositeId = entry.key;
-      final delta = entry.value;
+      final delta = entry.value; // total delta (not signed if mode is separate, but we pass final delta)
       
       final parts = compositeId.split(':');
-      final productId = parts[0];
+      final productIdString = parts[0];
       final variantId = parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null;
       
-      final index = currentProducts.indexWhere((p) => p.id == productId);
-      if (index >= 0) {
-        final product = currentProducts[index];
-        ProductModel updatedProduct;
-        String historyProductName = product.name;
-
-        if (variantId != null && product.hasVariants) {
-          final variantIndex = product.variants.indexWhere((v) => v.id == variantId);
-          if (variantIndex >= 0) {
-            final variant = product.variants[variantIndex];
-            final newVariantStock = (variant.stock + delta).clamp(0, 999999);
-            final updatedVariants = List<ProductVariantModel>.from(product.variants);
-            updatedVariants[variantIndex] = variant.copyWith(stock: newVariantStock);
-            updatedProduct = product.copyWith(variants: updatedVariants);
-            historyProductName = '${product.name} (${variant.name})';
-          } else {
-            updatedProduct = product; // Should not happen
-          }
-        } else {
-          final newStock = (product.stock + delta).clamp(0, 999999);
-          updatedProduct = product.copyWith(stock: newStock);
-        }
-        
-        updatedProducts.add(updatedProduct);
-
-        // Record history
-        await historyRepo.saveHistory(
-          StockHistoryModel(
-            id: const Uuid().v4(),
-            product_id: productId,
-            variant_name: historyProductName,
-            quantity_change: delta.abs(),
-            change_type: delta > 0 ? StockMode.inMode : StockMode.outMode,
-            createdAt: DateTime.now(),
-            reason: reason,
-            source: source,
-          ),
-        );
+      final product = currentProducts.firstWhere((p) => p.id == productIdString);
+      
+      String variantName = '';
+      if (variantId != null && product.hasVariants) {
+        final variant = product.variants.firstWhere((v) => v.id == variantId);
+        variantName = variant.name;
       }
+
+      items.add({
+        'product_id': int.tryParse(productIdString),
+        'variant_name': variantName,
+        'quantity_change': delta, // This is already signed from UI (+qty for IN, -qty for OUT)
+        'unit_price': product.basePrice,
+        'total_amount': product.basePrice * delta.abs(),
+      });
     }
 
-    if (updatedProducts.isNotEmpty) {
-      await repo.saveProducts(updatedProducts);
-      state = repo.getProducts();
-      ref.invalidate(stockHistoryProvider);
+    if (items.isNotEmpty) {
+      final remoteInventory = ref.read(remoteInventoryDatasourceProvider);
+      final success = await remoteInventory.updateStockBulk(
+        businessId: businessProviderState.currentBusinessId!,
+        userId: authState.user?.id?.toString(),
+        type: mode == StockMode.inMode ? 'IN' : 'OUT',
+        reason: reason,
+        items: items,
+      );
+
+      if (success) {
+        // Force refresh everything
+        await fetchAndSyncProducts();
+        await historyNotifier.fetchAndSyncHistory();
+      } else {
+        throw Exception("Failed to update stock items on server");
+      }
     }
   }
 }

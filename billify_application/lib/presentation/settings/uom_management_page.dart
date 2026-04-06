@@ -2,6 +2,8 @@ import 'package:billify_application/core/theme/app_theme.dart';
 import 'package:billify_application/data/models/uom_model.dart';
 import 'package:billify_application/presentation/widgets/custom_text_field.dart';
 import 'package:billify_application/providers/uom_provider.dart';
+import 'package:billify_application/data/models/user_permission.dart';
+import 'package:billify_application/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -41,30 +43,36 @@ class UomManagementPage extends ConsumerWidget {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 20),
-                          onPressed: () => _showAddEditBottomSheet(context, ref, uom),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                          onPressed: () => _showDeleteDialog(context, ref, uom),
-                        ),
+                        if (ref.watch(authProvider).hasPermission(PermissionModule.uom, PermissionAction.update))
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, size: 20),
+                            onPressed: () => _showAddEditBottomSheet(context, ref, uom),
+                          ),
+                        if (ref.watch(authProvider).hasPermission(PermissionModule.uom, PermissionAction.delete))
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                            onPressed: () => _showDeleteDialog(context, ref, uom),
+                          ),
                       ],
                     ),
                   ),
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddEditBottomSheet(context, ref),
-        backgroundColor: AppTheme.primaryTeal,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: ref.watch(authProvider).hasPermission(PermissionModule.uom, PermissionAction.add)
+          ? FloatingActionButton(
+              onPressed: () => _showAddEditBottomSheet(context, ref),
+              backgroundColor: AppTheme.primaryTeal,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
     );
   }
 
   void _showAddEditBottomSheet(BuildContext context, WidgetRef ref, [UomModel? uom]) {
-    final controller = TextEditingController(text: uom?.name);
+    final nameController = TextEditingController(text: uom?.name);
+    final shortCodeController = TextEditingController(text: uom?.shortCode);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -101,10 +109,16 @@ class UomManagementPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 CustomTextField(
-                  controller: controller,
+                  controller: nameController,
                   label: 'UOM Name',
-                  hint: 'e.g. KG',
+                  hint: 'e.g. Kilogram',
                   autofocus: true,
+                ),
+                const SizedBox(height: 16),
+                CustomTextField(
+                  controller: shortCodeController,
+                  label: 'Short Code',
+                  hint: 'e.g. KG',
                 ),
                 const SizedBox(height: 32),
                 Row(
@@ -119,10 +133,11 @@ class UomManagementPage extends ConsumerWidget {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          if (controller.text.isNotEmpty) {
+                          if (nameController.text.isNotEmpty && shortCodeController.text.isNotEmpty) {
                             final newUom = UomModel(
                               id: uom?.id ?? const Uuid().v4(),
-                              name: controller.text.trim(),
+                              name: nameController.text.trim(),
+                              shortCode: shortCodeController.text.trim().toLowerCase(),
                             );
                             ref.read(uomProvider.notifier).saveUom(newUom);
                             Navigator.pop(context);

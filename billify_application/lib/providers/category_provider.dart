@@ -1,4 +1,5 @@
 import 'package:billify_application/data/models/category_model.dart';
+import 'package:billify_application/data/datasources/remote_category_datasource.dart';
 import 'package:billify_application/data/repositories/category_repository.dart';
 import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
@@ -7,16 +8,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
+  final remoteDatasource = ref.watch(remoteCategoryDatasourceProvider);
   final user = ref.watch(authProvider).user;
   final userId = user?.businessOwnerId ?? user?.email ?? 'guest';
   final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
-  return CategoryRepository(storage, userId, businessId);
+  return CategoryRepository(storage, remoteDatasource, userId, businessId);
 });
 
 class CategoryNotifier extends Notifier<List<CategoryModel>> {
   @override
   List<CategoryModel> build() {
     final repo = ref.watch(categoryRepositoryProvider);
+    // Trigger async sync when building
+    Future.microtask(() async {
+      await repo.fetchAndSyncCategories();
+      state = repo.getCategories();
+    });
     return repo.getCategories();
   }
 

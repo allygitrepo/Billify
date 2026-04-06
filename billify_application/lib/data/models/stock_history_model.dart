@@ -22,13 +22,14 @@ class StockHistoryModel {
   });
 
   factory StockHistoryModel.fromJson(Map<String, dynamic> json) {
+    final typeString = (json['change_type'] ?? json['type'])?.toString().toUpperCase();
     return StockHistoryModel(
       id: json['id'].toString(),
       product_id: json['product_id']?.toString() ?? json['productId']?.toString() ?? '',
-      variant_name: json['variant_name'] ?? json['productName'] ?? '',
+      variant_name: json['variant_name'] ?? json['product']?['name'] ?? '',
       quantity_change: (json['quantity_change'] as num?)?.toInt() ?? (json['quantity'] as num?)?.toInt() ?? 0,
-      change_type: (json['change_type'] ?? json['type']) == 'inMode' ? StockMode.inMode : StockMode.outMode,
-      createdAt: DateTime.parse(json['createdAt'] ?? json['timestamp'] ?? DateTime.now().toIso8601String()),
+      change_type: typeString == 'IN' ? StockMode.inMode : StockMode.outMode,
+      createdAt: DateTime.tryParse(json['createdAt'] ?? json['timestamp'] ?? '') ?? DateTime.now(),
       reason: json['reason'] ?? 'Manual Adjustment',
       source: json['source'] ?? 'manual',
     );
@@ -40,7 +41,7 @@ class StockHistoryModel {
       'product_id': product_id,
       'variant_name': variant_name,
       'quantity_change': quantity_change,
-      'change_type': change_type == StockMode.inMode ? 'inMode' : 'outMode',
+      'change_type': change_type == StockMode.inMode ? 'IN' : 'OUT',
       'createdAt': createdAt.toIso8601String(),
       'reason': reason,
       'source': source,

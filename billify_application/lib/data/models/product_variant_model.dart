@@ -22,9 +22,9 @@ class ProductVariantModel {
       id: json['id'].toString(),
       name: json['name'],
       sku: json['sku'] ?? json['barcode'] ?? '',
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      stock: (json['stock'] as num?)?.toInt() ?? 0,
-      uom: json['uom'] ?? json['uomId'] ?? 'pcs',
+      price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
+      stock: int.tryParse(json['stock']?.toString() ?? '') ?? 0,
+      uom: json['uom']?.toString() ?? json['uomId']?.toString() ?? 'pcs',
     );
   }
 

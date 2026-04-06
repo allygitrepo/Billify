@@ -8,6 +8,8 @@ import 'package:billify_application/presentation/widgets/custom_text_field.dart'
 import 'package:billify_application/presentation/widgets/image_picker_widget.dart';
 import 'package:billify_application/presentation/widgets/section_card.dart';
 import 'package:billify_application/providers/business_provider.dart';
+import 'package:billify_application/providers/registration_provider.dart';
+import 'package:billify_application/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -52,10 +54,11 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
         _addressController.text = business.address ?? '';
         _taxController.text = business.tax_percentage.toString();
         _gstPercentController.text = business.gst_percentage.toString();
-        
+
         _invoicePrefixController.text = business.invoice_prefix;
-        _nextInvoiceNumberController.text = business.starting_invoice_number.toString();
-        
+        _nextInvoiceNumberController.text = business.starting_invoice_number
+            .toString();
+
         _logoBase64 = business.business_logo;
       });
     }
@@ -74,33 +77,91 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
     super.dispose();
   }
 
+  bool get _isRegistrationMode {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map && args.containsKey('isRegistration')) {
+      return args['isRegistration'] as bool;
+    }
+    return false;
+  }
+
   Future<void> _handleSave() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      final business = BusinessModel(
-        id: _activeBusinessId ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text,
-        gstin: _gstNumberController.text,
-        phone: _phoneController.text,
-        address: _addressController.text,
-        tax_percentage: double.tryParse(_taxController.text) ?? 0.0,
-        gst_percentage: double.tryParse(_gstPercentController.text) ?? 0.0,
-        invoice_prefix: _invoicePrefixController.text.isEmpty ? 'INV-' : _invoicePrefixController.text,
-        starting_invoice_number: int.tryParse(_nextInvoiceNumberController.text) ?? 1,
-        business_logo: _logoBase64,
-      );
 
-      final isFirstBusiness = ref.read(businessProvider).businesses.isEmpty;
-      await ref.read(businessProvider.notifier).saveBusiness(business);
-      setState(() => _isLoading = false);
+      if (_isRegistrationMode) {
+        // Step 2 of Registration
+        await ref
+            .read(registrationProvider.notifier)
+            .updateBusinessStep(
+              businessName: _nameController.text,
+              businessPhone: _phoneController.text,
+              gstin: _gstNumberController.text,
+              address: _addressController.text,
+              logo: _logoBase64,
+              taxPercentage: double.tryParse(_taxController.text),
+              gstPercentage: double.tryParse(_gstPercentController.text),
+              invoicePrefix: _invoicePrefixController.text,
+              startingNumber: int.tryParse(_nextInvoiceNumberController.text),
+            );
 
-      if (mounted) {
-        if (isFirstBusiness) {
-          Navigator.pushReplacementNamed(context, '/home');
-        } else {
-          setState(() => _isFormView = false);
+        final registrationData = ref.read(registrationProvider);
+        if (registrationData != null) {
+          await ref
+              .read(authProvider.notifier)
+              .register(registrationData.toJson());
+
+          final authState = ref.read(authProvider);
+          if (authState.error == null && mounted) {
+            await ref.read(registrationProvider.notifier).clear();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Registration successful! Please login.'),
+              ),
+            );
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/login',
+              (route) => false,
+            );
+          } else if (authState.error != null && mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(authState.error!)));
+          }
+        }
+      } else {
+        // Normal Business Update/Create
+        final business = BusinessModel(
+          id:
+              _activeBusinessId ??
+              DateTime.now().millisecondsSinceEpoch.toString(),
+          name: _nameController.text,
+          gstin: _gstNumberController.text,
+          phone: _phoneController.text,
+          address: _addressController.text,
+          tax_percentage: double.tryParse(_taxController.text) ?? 0.0,
+          gst_percentage: double.tryParse(_gstPercentController.text) ?? 0.0,
+          invoice_prefix: _invoicePrefixController.text.isEmpty
+              ? 'INV-'
+              : _invoicePrefixController.text,
+          starting_invoice_number:
+              int.tryParse(_nextInvoiceNumberController.text) ?? 1,
+          business_logo: _logoBase64,
+        );
+
+        final isFirstBusiness = ref.read(businessProvider).businesses.isEmpty;
+        await ref.read(businessProvider.notifier).saveBusiness(business);
+
+        if (mounted) {
+          if (isFirstBusiness) {
+            Navigator.pushReplacementNamed(context, '/home');
+          } else {
+            setState(() => _isFormView = false);
+          }
         }
       }
+      setState(() => _isLoading = false);
     }
   }
 
@@ -115,7 +176,8 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
       _taxController.text = business.tax_percentage.toString();
       _gstPercentController.text = business.gst_percentage.toString();
       _invoicePrefixController.text = business.invoice_prefix;
-      _nextInvoiceNumberController.text = business.starting_invoice_number.toString();
+      _nextInvoiceNumberController.text = business.starting_invoice_number
+          .toString();
       _logoBase64 = business.business_logo;
     });
   }
@@ -136,25 +198,41 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
     });
   }
 
-  void _showSwitchConfirmation(BuildContext context, BusinessModel targetBusiness) {
+  void _showSwitchConfirmation(
+    BuildContext context,
+    BusinessModel targetBusiness,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Switch Business?'),
-        content: Text('Do you want to switch to "${targetBusiness.name}"? Dashboard data will refresh.'),
+        content: Text(
+          'Do you want to switch to "${targetBusiness.name}"? Dashboard data will refresh.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await ref.read(businessProvider.notifier).switchBusiness(targetBusiness.id);
+              await ref
+                  .read(businessProvider.notifier)
+                  .switchBusiness(targetBusiness.id);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Switched to ${targetBusiness.name}')),
                 );
               }
             },
-            child: const Text('SWITCH', style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'SWITCH',
+              style: TextStyle(
+                color: AppTheme.primaryTeal,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -167,9 +245,15 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isFormView
-            ? (_activeBusinessId == null ? 'New Business' : 'Edit Business')
-            : 'My Businesses'),
+        title: Text(
+          _isRegistrationMode
+              ? 'Business Setup (Step 2/2)'
+              : (_isFormView
+                    ? (_activeBusinessId == null
+                          ? 'New Business'
+                          : 'Edit Business')
+                    : 'My Businesses'),
+        ),
         leading: _isFormView && businessState.businesses.isNotEmpty
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -180,7 +264,10 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
       body: SafeArea(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
-          child: _isFormView || businessState.businesses.isEmpty
+          child:
+              _isRegistrationMode ||
+                  _isFormView ||
+                  businessState.businesses.isEmpty
               ? _buildForm(context)
               : _buildBusinessList(context, businessState),
         ),
@@ -224,13 +311,19 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
                   borderRadius: BorderRadius.circular(12),
                   image: business.business_logo != null
                       ? DecorationImage(
-                          image: MemoryImage(base64Decode(business.business_logo!)),
+                          image: MemoryImage(
+                            base64Decode(business.business_logo!),
+                          ),
                           fit: BoxFit.cover,
                         )
                       : null,
                 ),
                 child: business.business_logo == null
-                    ? const Icon(Icons.business, size: 30, color: AppTheme.primaryTeal)
+                    ? const Icon(
+                        Icons.business,
+                        size: 30,
+                        color: AppTheme.primaryTeal,
+                      )
                     : null,
               ),
               title: Row(
@@ -238,12 +331,18 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
                   Expanded(
                     child: Text(
                       business.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
                   ),
                   if (isCurrent)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.primaryTeal.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -273,7 +372,9 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
                 icon: const Icon(Icons.edit_note, color: Colors.grey),
                 onPressed: () => _editBusiness(business),
               ),
-              onTap: isCurrent ? null : () => _showSwitchConfirmation(context, business),
+              onTap: isCurrent
+                  ? null
+                  : () => _showSwitchConfirmation(context, business),
             ),
           ),
         );
@@ -294,7 +395,8 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
                   ImagePickerWidget(
                     label: 'Business Logo',
                     initialBase64: _logoBase64,
-                    onImageSelected: (base64) => setState(() => _logoBase64 = base64),
+                    onImageSelected: (base64) =>
+                        setState(() => _logoBase64 = base64),
                   ),
                   const SizedBox(height: 24),
                   CustomTextField(
@@ -302,14 +404,15 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
                     label: 'Business Name',
                     hint: 'e.g. Allysoft Solutions',
                     prefixIcon: Icons.business,
-                    validator: (v) => Validators.validateRequired(v, 'Business Name'),
+                    validator: (v) =>
+                        Validators.validateRequired(v, 'Business Name'),
                   ),
                   const SizedBox(height: 20),
                   CustomTextField(
                     controller: _phoneController,
                     label: 'Business Phone',
                     prefixIcon: Icons.phone,
-                    validator: Validators.validatePhone,
+                    // validator: Validators.validatePhone,
                     keyboardType: TextInputType.phone,
                   ),
                   const SizedBox(height: 20),
@@ -381,7 +484,11 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
             ),
             const SizedBox(height: 32),
             CustomButton(
-              text: _activeBusinessId == null ? 'SAVE BUSINESS PROFILE' : 'UPDATE BUSINESS PROFILE',
+              text: _isRegistrationMode
+                  ? 'COMPLETE REGISTRATION'
+                  : (_activeBusinessId == null
+                        ? 'SAVE BUSINESS PROFILE'
+                        : 'UPDATE BUSINESS PROFILE'),
               onPressed: _handleSave,
               isLoading: _isLoading,
             ),
@@ -389,11 +496,16 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
               const SizedBox(height: 16),
               TextButton.icon(
                 onPressed: () {
-                  ref.read(businessProvider.notifier).deleteBusiness(_activeBusinessId!);
+                  ref
+                      .read(businessProvider.notifier)
+                      .deleteBusiness(_activeBusinessId!);
                   setState(() => _isFormView = false);
                 },
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
-                label: const Text('DELETE BUSINESS', style: TextStyle(color: Colors.red)),
+                label: const Text(
+                  'DELETE BUSINESS',
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
             ],
           ],

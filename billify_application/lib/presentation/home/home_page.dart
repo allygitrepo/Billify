@@ -670,12 +670,10 @@ class _HomeHeader extends StatelessWidget {
                   radius: 25,
                   backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
                   backgroundImage:
-                      user?.photo != null &&
-                          user!.photo!.isNotEmpty
+                      user?.photo != null && user!.photo!.isNotEmpty
                       ? FileImage(File(user!.photo!))
                       : null,
-                  child:
-                      user?.photo == null || user!.photo!.isEmpty
+                  child: user?.photo == null || user!.photo!.isEmpty
                       ? const Icon(
                           Icons.person,
                           color: AppTheme.primaryTeal,

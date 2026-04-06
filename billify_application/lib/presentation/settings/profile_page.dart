@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:convert';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -27,9 +28,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   void initState() {
     super.initState();
     final user = ref.read(authProvider).user;
-    _nameController = TextEditingController(text: user?.name);
-    _phoneController = TextEditingController(text: user?.mobile);
-    _passwordController = TextEditingController(text: user?.password);
+    debugPrint('Initializing ProfilePage with user: ${user?.name}, mobile: ${user?.mobile}');
+    _nameController = TextEditingController(text: user?.name ?? '');
+    _phoneController = TextEditingController(text: user?.mobile ?? '');
+    _passwordController = TextEditingController(text: ''); // Leave empty for change
     _roleController = TextEditingController(text: ref.read(authProvider).currentRole?.name ?? 'Admin / Owner');
     _selectedImagePath = user?.photo;
   }
@@ -62,12 +64,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final updatedUser = currentUser.copyWith(
       name: _nameController.text,
       mobile: _phoneController.text,
-      password: _passwordController.text,
       photo: _selectedImagePath,
     );
 
     try {
-      await ref.read(authProvider.notifier).updateProfile(updatedUser);
+      String? oldPassword;
+      String? newPassword;
+
+      if (_passwordController.text.isNotEmpty) {
+        // Simple password change flow
+        final result = await _showPasswordConfirmDialog();
+        if (result == null) return;
+        oldPassword = result;
+        newPassword = _passwordController.text;
+      }
+
+      await ref.read(authProvider.notifier).updateProfile(
+        updatedUser, 
+        oldPassword: oldPassword, 
+        newPassword: newPassword
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile updated successfully!')),
@@ -81,6 +98,35 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         );
       }
     }
+  }
+
+  Future<String?> _showPasswordConfirmDialog() async {
+    final controller = TextEditingController();
+    return await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Password Change'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Please enter your CURRENT password to confirm changes.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Current Password'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('CONFIRM'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -136,7 +182,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 radius: 60,
                                 backgroundColor: Theme.of(context).cardColor,
                                 backgroundImage: _selectedImagePath != null && _selectedImagePath!.isNotEmpty
-                                    ? FileImage(File(_selectedImagePath!))
+                                    ? (_selectedImagePath!.startsWith('data:image') || _selectedImagePath!.length > 100 
+                                        ? MemoryImage(base64Decode(_selectedImagePath!.split(',').last)) 
+                                        : FileImage(File(_selectedImagePath!)) as ImageProvider)
                                     : null,
                                 child: _selectedImagePath == null || _selectedImagePath!.isEmpty
                                     ? Icon(Icons.person, size: 60, color: Colors.grey[400])
@@ -227,7 +275,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       controller: _passwordController,
                       obscureText: _isObscured,
                       decoration: InputDecoration(
-                        labelText: 'Password',
+                        labelText: 'New Password',
+                        hintText: 'Leave blank to keep current',
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(_isObscured ? Icons.visibility_off : Icons.visibility),
@@ -235,7 +284,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      validator: (val) => val == null || val.isEmpty ? 'Please enter a password' : null,
                     ),
                     const SizedBox(height: 40),
                     SizedBox(

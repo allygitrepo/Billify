@@ -17,7 +17,8 @@ const InvoiceItem = sequelize.define("InvoiceItem", {
 });
 
 // Associations
-// Associations defined in invoice.model.js to avoid circular dependencies and duplicate aliases
+const Product = require("../products/products.model");
 InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoice_id', as: 'invoice' });
+InvoiceItem.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
 module.exports = InvoiceItem;

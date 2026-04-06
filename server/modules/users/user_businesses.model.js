@@ -3,6 +3,7 @@ const sequelize = require("../../config/db");
 const User = require("../users/users.model");
 const Business = require("../businesses/businesses.model");
 const Role = require("../roles/roles.model");
+const Settings = require("../settings/settings.model");
 
 const UserBusiness = sequelize.define("UserBusinesses",
     {
@@ -27,5 +28,9 @@ UserBusiness.belongsTo(Business, { foreignKey: 'business_id', as: 'business' });
 
 Role.hasMany(UserBusiness, { foreignKey: 'role_id', as: 'userRoles' });
 UserBusiness.belongsTo(Role, { foreignKey: 'role_id', as: 'role' });
+
+// Business <-> Settings
+Business.hasOne(Settings, { foreignKey: 'business_id', as: 'settings' });
+Settings.belongsTo(Business, { foreignKey: 'business_id', as: 'business' });
 
 module.exports = UserBusiness;

@@ -14,11 +14,26 @@ class CartItemModel {
   });
 
   factory CartItemModel.fromJson(Map<String, dynamic> json) {
+    ProductModel? product;
+    if (json['product'] != null) {
+      product = ProductModel.fromJson(json['product']);
+    } else {
+      // Synthesize product from flat fields (common in synced invoice items)
+      product = ProductModel(
+        id: (json['product_id'] ?? json['productId'] ?? '0').toString(),
+        name: json['product_name'] ?? json['productName'] ?? 'Deleted Product',
+        barcode: '',
+        basePrice: (json['price'] as num?)?.toDouble() ?? 0.0,
+        stock: 0,
+        uom: 'pcs',
+      );
+    }
+
     return CartItemModel(
-      product: ProductModel.fromJson(json['product']),
-      quantity: json['quantity'] ?? 1,
-      customPrice: (json['customPrice'] as num?)?.toDouble(),
-      customName: json['customName'],
+      product: product,
+      quantity: int.tryParse(json['quantity']?.toString() ?? '') ?? 1,
+      customPrice: double.tryParse(json['customPrice']?.toString() ?? json['price']?.toString() ?? '') ?? 0.0,
+      customName: (json['customName'] ?? json['product_name'] ?? json['productName'] ?? 'Unknown').toString(),
     );
   }
 

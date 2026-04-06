@@ -64,7 +64,7 @@ class StatCard extends StatelessWidget {
   }
 }
 
-class PremiumRevenueGraph extends StatelessWidget {
+class PremiumRevenueGraph extends StatefulWidget {
   final List<double> data;
   final List<String> labels;
   final String title;
@@ -75,6 +75,13 @@ class PremiumRevenueGraph extends StatelessWidget {
     required this.labels,
     required this.title,
   });
+
+  @override
+  State<PremiumRevenueGraph> createState() => _PremiumRevenueGraphState();
+}
+
+class _PremiumRevenueGraphState extends State<PremiumRevenueGraph> {
+  int? _tappedIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -96,18 +103,35 @@ class PremiumRevenueGraph extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title,
+            widget.title,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 30), // extra padding for labels
           AspectRatio(
             aspectRatio: 1.7,
-            child: CustomPaint(painter: _BarChartPainter(data)),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return GestureDetector(
+                  onTapUp: (details) {
+                     if (widget.data.isEmpty) return;
+                     final slotWidth = constraints.maxWidth / widget.data.length;
+                     int index = (details.localPosition.dx / slotWidth).floor();
+                     if (index >= 0 && index < widget.data.length) {
+                       setState(() => _tappedIndex = index);
+                     }
+                  },
+                  child: CustomPaint(
+                    size: Size(constraints.maxWidth, constraints.maxHeight),
+                    painter: _BarChartPainter(widget.data, _tappedIndex),
+                  ),
+                );
+              }
+            ),
           ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: labels
+            children: widget.labels
                 .map(
                   (l) => Expanded(
                     child: Text(
@@ -127,8 +151,9 @@ class PremiumRevenueGraph extends StatelessWidget {
 
 class _BarChartPainter extends CustomPainter {
   final List<double> data;
+  final int? tappedIndex;
 
-  _BarChartPainter(this.data);
+  _BarChartPainter(this.data, this.tappedIndex);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -137,26 +162,59 @@ class _BarChartPainter extends CustomPainter {
     final maxVal = data.reduce((a, b) => a > b ? a : b);
     final normalized = data.map((e) => maxVal == 0 ? 0.0 : e / maxVal).toList();
 
-    final barWidth = (size.width / normalized.length) * 0.6;
-    final spacing = (size.width / normalized.length) * 0.4;
-
-    final paint = Paint()
-      ..shader = LinearGradient(
-        colors: [AppTheme.primaryTeal.withOpacity(0.4), AppTheme.primaryTeal],
-        begin: Alignment.bottomCenter,
-        end: Alignment.topCenter,
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
-      ..style = PaintingStyle.fill;
+    final slotWidth = size.width / normalized.length;
+    final barWidth = slotWidth * 0.6;
+    final spacing = slotWidth * 0.4;
 
     for (var i = 0; i < normalized.length; i++) {
-      final left = (i * (barWidth + spacing)) + (spacing / 2);
-      final top = size.height - (normalized[i] * size.height);
+      final isTapped = tappedIndex == i;
+      final paint = Paint()
+        ..shader = LinearGradient(
+          colors: isTapped 
+              ? [AppTheme.primaryTeal, AppTheme.primaryTeal.withOpacity(0.8)]
+              : [AppTheme.primaryTeal.withOpacity(0.4), AppTheme.primaryTeal],
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+        ..style = PaintingStyle.fill;
+
+      final left = (i * slotWidth) + (spacing / 2);
+      final barHeight = normalized[i] * size.height;
+      // Prevent completely flat bars if value is tiny but > 0
+      final displayHeight = (data[i] > 0 && barHeight < 4) ? 4.0 : barHeight;
+      final top = size.height - displayHeight;
+
       final rect = RRect.fromRectAndCorners(
-        Rect.fromLTWH(left, top, barWidth, normalized[i] * size.height),
+        Rect.fromLTWH(left, top, barWidth, displayHeight),
         topLeft: const Radius.circular(6),
         topRight: const Radius.circular(6),
       );
       canvas.drawRRect(rect, paint);
+
+      // Always draw the number, but make it bold/larger if tapped
+      final valFormatted = data[i] >= 1000 
+          ? '${(data[i]/1000).toStringAsFixed(1)}k' 
+          : data[i].toStringAsFixed(0);
+          
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: valFormatted,
+          style: TextStyle(
+            color: isTapped ? AppTheme.primaryTeal : Colors.grey, 
+            fontSize: isTapped ? 12 : 9,
+            fontWeight: isTapped ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      textPainter.paint(
+        canvas,
+        Offset(
+          left + (barWidth / 2) - (textPainter.width / 2),
+          top - textPainter.height - 4, // draw just above bar
+        ),
+      );
     }
   }
 

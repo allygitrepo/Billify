@@ -103,7 +103,11 @@ const invoiceController = {
             const invoices = await Invoice.findAll({ 
                 where: { business_id },
                 include: [
-                    { model: InvoiceItem, as: 'items' },
+                    { 
+                        model: InvoiceItem, 
+                        as: 'items',
+                        include: [{ model: Product, as: 'product' }]
+                    },
                     { model: User, as: 'user' }
                 ],
                 order: [['createdAt', 'DESC']]

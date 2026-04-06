@@ -1,18 +1,20 @@
 class UserModel {
+  final String? id;
   final String name;
   final String email;
   final String mobile;
-  final String password;
+  final String? password; // Nullable if not being sent
   final String? roleId;
   final String? photo;
   final String? businessOwnerId;
   final bool status;
 
   UserModel({
+    this.id,
     required this.name,
     required this.email,
     required this.mobile,
-    required this.password,
+    this.password,
     this.roleId,
     this.photo,
     this.businessOwnerId,
@@ -21,31 +23,33 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      name: json['name'] ?? json['fullName'] ?? '',
-      email: json['email'] ?? '',
-      mobile: json['mobile'] ?? json['phone'] ?? '',
-      password: json['password'] ?? '',
-      roleId: json['roleId'],
-      photo: json['photo'] ?? json['profileImage'],
-      businessOwnerId: json['businessOwnerId'],
-      status: json['status'] ?? json['isActive'] ?? true,
+      id: json['id']?.toString(),
+      name: json['name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      mobile: json['mobile']?.toString() ?? '',
+      password: null, // Password never returned by server
+      roleId: (json['role_id'] ?? json['roleId'])?.toString(),
+      photo: json['photo']?.toString(),
+      businessOwnerId: (json['business_owner_id'] ?? json['businessOwnerId'])?.toString(),
+      status: json['status'] == true || json['status'] == 'active' || json['status'] == 1,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'name': name,
       'email': email,
       'mobile': mobile,
-      'password': password,
-      'roleId': roleId,
+      if (password != null) 'password': password,
+      'role_id': roleId != null ? int.tryParse(roleId!) : null,
       'photo': photo,
-      'businessOwnerId': businessOwnerId,
       'status': status,
     };
   }
 
   UserModel copyWith({
+    String? id,
     String? name,
     String? email,
     String? mobile,
@@ -56,6 +60,7 @@ class UserModel {
     bool? status,
   }) {
     return UserModel(
+      id: id ?? this.id,
       name: name ?? this.name,
       email: email ?? this.email,
       mobile: mobile ?? this.mobile,
@@ -66,6 +71,7 @@ class UserModel {
       status: status ?? this.status,
     );
   }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -74,4 +80,3 @@ class UserModel {
   @override
   int get hashCode => email.hashCode;
 }
-

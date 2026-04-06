@@ -3,6 +3,8 @@ import 'package:billify_application/data/models/category_model.dart';
 import 'package:billify_application/presentation/widgets/custom_text_field.dart';
 import 'package:billify_application/providers/category_provider.dart';
 import 'package:billify_application/providers/product_provider.dart';
+import 'package:billify_application/data/models/user_permission.dart';
+import 'package:billify_application/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -54,33 +56,35 @@ class CategoryManagementPage extends ConsumerWidget {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 20),
-                          onPressed: () =>
-                              _showAddEditBottomSheet(context, ref, category),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            size: 20,
-                            color: Colors.red,
+                        if (ref.watch(authProvider).hasPermission(PermissionModule.categories, PermissionAction.update))
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, size: 20),
+                            onPressed: () =>
+                                _showAddEditBottomSheet(context, ref, category),
                           ),
-                          onPressed: () =>
-                              _showDeleteDialog(context, ref, category),
-                        ),
+                        if (ref.watch(authProvider).hasPermission(PermissionModule.categories, PermissionAction.delete))
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 20,
+                              color: Colors.red,
+                            ),
+                            onPressed: () =>
+                                _showDeleteDialog(context, ref, category),
+                          ),
                       ],
                     ),
                   ),
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddEditBottomSheet(context, ref),
-
-        backgroundColor: AppTheme.primaryTeal,
-
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: ref.watch(authProvider).hasPermission(PermissionModule.categories, PermissionAction.add)
+          ? FloatingActionButton(
+              onPressed: () => _showAddEditBottomSheet(context, ref),
+              backgroundColor: AppTheme.primaryTeal,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
     );
   }
 

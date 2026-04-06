@@ -32,6 +32,9 @@ const categoriesController = {
             });
         } catch (error) {
             console.error("Create Category Error:", error);
+            if (error.name === 'SequelizeUniqueConstraintError') {
+                return res.status(409).json({ message: `A category with this name already exists.` });
+            }
             return res.status(500).json({ message: "Internal server error" });
         }
     },
@@ -73,6 +76,9 @@ const categoriesController = {
             });
         } catch (error) {
             console.error("Update Category Error:", error);
+            if (error.name === 'SequelizeUniqueConstraintError') {
+                return res.status(409).json({ message: `A category with this name already exists.` });
+            }
             return res.status(500).json({ message: "Internal server error" });
         }
     },

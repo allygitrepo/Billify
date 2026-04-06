@@ -58,6 +58,16 @@ const authorize = (module_name, action) => {
 
             const hasPermission = await checkPermission(user_id, business_id, module_name, action);
 
+            // 3. Fast-pass for Admin role
+            const mapping = await UserBusiness.findOne({
+                where: { user_id, business_id, status: true },
+                include: [{ model: require("../modules/roles/roles.model"), as: 'role' }]
+            });
+
+            if (mapping && mapping.role && mapping.role.name === 'Admin') {
+                return next();
+            }
+
             if (!hasPermission) {
                 return res.status(403).json({ message: `Access denied. You do not have '${action}' permission for '${module_name}'.` });
             }

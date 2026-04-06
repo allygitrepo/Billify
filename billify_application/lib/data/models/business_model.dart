@@ -25,17 +25,35 @@ class BusinessModel {
 
   factory BusinessModel.fromJson(Map<String, dynamic> json) {
     return BusinessModel(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      gstin: json['gstin'] ?? json['gstNumber'],
-      phone: json['phone'] ?? '',
-      address: json['address'],
-      tax_percentage: (json['tax_percentage'] as num?)?.toDouble() ?? (json['tax'] as num?)?.toDouble() ?? 0.0,
-      gst_percentage: (json['gst_percentage'] as num?)?.toDouble() ?? (json['gst'] as num?)?.toDouble() ?? 0.0,
-      business_logo: json['business_logo'] ?? json['logoBase64'],
-      invoice_prefix: (json['invoice_prefix'] as String?) ?? (json['invoicePrefix'] as String?) ?? 'INV-',
-      starting_invoice_number: (json['starting_invoice_number'] as num?)?.toInt() ?? (json['nextInvoiceNumber'] as num?)?.toInt() ?? 1,
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      gstin: json['gstin']?.toString() ?? 
+             json['gstNumber']?.toString() ?? 
+             json['gst_number']?.toString(),
+      phone: json['phone']?.toString() ?? '',
+      address: json['address']?.toString() ?? json['business_address']?.toString(),
+      tax_percentage: _toDouble(json['tax_percentage']) ?? 
+                      _toDouble(json['taxPercentage']) ?? 
+                      _toDouble(json['tax']) ?? 0.0,
+      gst_percentage: _toDouble(json['gst_percentage']) ?? 
+                      _toDouble(json['gstPercentage']) ?? 0.0,
+      business_logo: json['business_logo']?.toString() ?? 
+                     json['logoBase64']?.toString() ?? 
+                     json['photo']?.toString() ?? 
+                     json['businessPhoto']?.toString(),
+      invoice_prefix: json['invoice_prefix']?.toString() ?? 
+                      json['invoicePrefix']?.toString() ?? 'INV-',
+      starting_invoice_number: (json['starting_invoice_number'] as num?)?.toInt() ?? 
+                               (json['startingNumber'] as num?)?.toInt() ?? 
+                               (json['nextInvoiceNumber'] as num?)?.toInt() ?? 1,
     );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 
   Map<String, dynamic> toJson() {

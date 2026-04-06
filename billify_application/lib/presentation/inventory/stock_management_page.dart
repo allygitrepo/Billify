@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:intl/intl.dart';
+import 'package:billify_application/data/models/user_permission.dart';
+import 'package:billify_application/providers/auth_provider.dart';
 
 class StockManagementPage extends ConsumerStatefulWidget {
   const StockManagementPage({super.key});
@@ -33,9 +35,20 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
   String _searchQuery = '';
   String _ledgerSearchQuery = '';
   String _selectedLedgerFilter = 'All'; // 'All', 'Sale', 'Manual'
+  String _pickerSearchQuery = '';
 
-  final List<String> _inReasons = ['Bulk Purchase', 'Stock Return', 'Manual Adjustment', 'Other'];
-  final List<String> _outReasons = ['Damage Correction', 'Return', 'Manual Adjustment', 'Other'];
+  final List<String> _inReasons = [
+    'Bulk Purchase',
+    'Stock Return',
+    'Manual Adjustment',
+    'Other',
+  ];
+  final List<String> _outReasons = [
+    'Damage Correction',
+    'Return',
+    'Manual Adjustment',
+    'Other',
+  ];
 
   @override
   void initState() {
@@ -45,15 +58,17 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
       setState(() => _searchQuery = _searchController.text.toLowerCase());
     });
     _ledgerSearchController.addListener(() {
-      setState(() => _ledgerSearchQuery = _ledgerSearchController.text.toLowerCase());
+      setState(
+        () => _ledgerSearchQuery = _ledgerSearchController.text.toLowerCase(),
+      );
     });
   }
 
   void _addItem(ProductModel product) {
     setState(() {
-      final key = product.selectedVariantId != null 
-        ? '${product.id}:${product.selectedVariantId}' 
-        : product.id;
+      final key = product.selectedVariantId != null
+          ? '${product.id}:${product.selectedVariantId}'
+          : product.id;
       _transactionItems[key] = (_transactionItems[key] ?? 0) + 1;
     });
   }
@@ -82,16 +97,20 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
         deltas[key] = _mode == StockMode.inMode ? qty : -qty;
       });
 
-      final finalReason = _selectedReason == 'Other' 
-        ? (_otherReasonController.text.isEmpty ? 'Other' : _otherReasonController.text)
-        : (_selectedReason ?? 'Manual Adjustment');
+      final finalReason = _selectedReason == 'Other'
+          ? (_otherReasonController.text.isEmpty
+                ? 'Other'
+                : _otherReasonController.text)
+          : (_selectedReason ?? 'Manual Adjustment');
 
-      await ref.read(productProvider.notifier).updateStockBulk(
-        deltas, 
-        mode: _mode,
-        reason: finalReason,
-        source: 'manual',
-      );
+      await ref
+          .read(productProvider.notifier)
+          .updateStockBulk(
+            deltas,
+            mode: _mode,
+            reason: finalReason,
+            source: 'manual',
+          );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -171,26 +190,35 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
       if (product != null) {
         _addItem(product);
       } else {
+        final canAdd = ref
+            .read(authProvider)
+            .hasPermission(PermissionModule.products, PermissionAction.add);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Product with barcode $result not found'),
-              action: SnackBarAction(
-                label: 'ADD NEW',
-                onPressed: () async {
-                  final newProduct = await Navigator.pushNamed(
-                    context,
-                    '/products',
-                    arguments: result,
-                  );
-                  if (newProduct != null && newProduct is ProductModel) {
-                    _addItem(newProduct);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    }
-                  }
-                },
+              content: Text(
+                canAdd
+                    ? 'Product with barcode $result not found'
+                    : 'Product not available',
               ),
+              action: canAdd
+                  ? SnackBarAction(
+                      label: 'ADD NEW',
+                      onPressed: () async {
+                        final newProduct = await Navigator.pushNamed(
+                          context,
+                          '/products',
+                          arguments: result,
+                        );
+                        if (newProduct != null && newProduct is ProductModel) {
+                          _addItem(newProduct);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          }
+                        }
+                      },
+                    )
+                  : null,
             ),
           );
         }
@@ -203,41 +231,110 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.8,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const Text(
-              'Select Product',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                itemCount: allProducts.length,
-                itemBuilder: (context, index) {
-                  final p = allProducts[index];
-                  return ListTile(
-                    title: Text(p.name),
-                    subtitle: Text('Stock: ${p.stock} | Barcode: ${p.barcode}'),
-                    trailing: const Icon(
-                      Icons.add_circle_outline,
-                      color: AppTheme.primaryTeal,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setPickerState) {
+          final filteredProducts = allProducts.where((p) {
+            final query = _pickerSearchQuery.toLowerCase();
+            return p.name.toLowerCase().contains(query) ||
+                p.barcode.toLowerCase().contains(query) ||
+                p.variants.any(
+                  (v) =>
+                      v.name.toLowerCase().contains(query) ||
+                      v.sku.toLowerCase().contains(query),
+                );
+          }).toList();
+
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.8,
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                const Text(
+                  'Select Product',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  onChanged: (val) =>
+                      setPickerState(() => _pickerSearchQuery = val),
+                  decoration: InputDecoration(
+                    hintText: 'Search product or variant...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    onTap: () {
-                      _addItem(p);
-                      Navigator.pop(context);
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: filteredProducts.length,
+                    itemBuilder: (context, index) {
+                      final p = filteredProducts[index];
+
+                      if (p.hasVariants && p.variants.isNotEmpty) {
+                        return ExpansionTile(
+                          leading: const Icon(
+                            Icons.inventory_2_outlined,
+                            color: AppTheme.primaryTeal,
+                          ),
+                          title: Text(
+                            p.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text('${p.variants.length} Variants'),
+                          children: p.variants
+                              .map(
+                                (v) => ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 32,
+                                  ),
+                                  title: Text(v.name),
+                                  subtitle: Text(
+                                    'Stock: ${v.stock} | SKU: ${v.sku}',
+                                  ),
+                                  trailing: const Icon(
+                                    Icons.add_circle_outline,
+                                    color: AppTheme.primaryTeal,
+                                    size: 20,
+                                  ),
+                                  onTap: () {
+                                    _addItem(
+                                      p.copyWith(selectedVariantId: v.id),
+                                    );
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              )
+                              .toList(),
+                        );
+                      }
+
+                      return ListTile(
+                        leading: const Icon(
+                          Icons.inventory_2_outlined,
+                          color: AppTheme.primaryTeal,
+                        ),
+                        title: Text(p.name),
+                        subtitle: Text(
+                          'Stock: ${p.stock} | Barcode: ${p.barcode}',
+                        ),
+                        trailing: const Icon(
+                          Icons.add_circle_outline,
+                          color: AppTheme.primaryTeal,
+                        ),
+                        onTap: () {
+                          _addItem(p);
+                          Navigator.pop(context);
+                        },
+                      );
                     },
-                  );
-                },
-              ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -282,8 +379,8 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                   // ... (Rest of Transaction implementation remains similar)
-                   // Header - Mode Swtich
+                  // ... (Rest of Transaction implementation remains similar)
+                  // Header - Mode Swtich
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: SectionCard(
@@ -321,52 +418,63 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                   ),
 
                   // Actions
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.all(12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                  if (ref
+                      .watch(authProvider)
+                      .hasPermission(
+                        PermissionModule.inventory,
+                        PermissionAction.update,
+                      ))
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.all(12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
+                              onPressed: _showScannerDialog,
+                              icon: const Icon(Icons.qr_code_scanner),
+                              label: const Text('SCAN BARCODE'),
                             ),
-                            onPressed: _showScannerDialog,
-                            icon: const Icon(Icons.qr_code_scanner),
-                            label: const Text('SCAN BARCODE'),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.all(12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.all(12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
+                              onPressed: _showProductPicker,
+                              icon: const Icon(Icons.search),
+                              label: const Text('SEARCH MANUAL'),
                             ),
-                            onPressed: _showProductPicker,
-                            icon: const Icon(Icons.search),
-                            label: const Text('SEARCH MANUAL'),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
 
                   const SizedBox(height: 16),
                   const Divider(),
 
                   // List Header
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          _mode == StockMode.inMode ? 'TO BE ADDED' : 'TO BE REMOVED',
+                          _mode == StockMode.inMode
+                              ? 'TO BE ADDED'
+                              : 'TO BE REMOVED',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.grey,
@@ -408,20 +516,25 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _transactionItems.length,
                       itemBuilder: (context, index) {
-                        final compositeId = _transactionItems.keys.elementAt(index);
+                        final compositeId = _transactionItems.keys.elementAt(
+                          index,
+                        );
                         final qty = _transactionItems[compositeId]!;
-                        
+
                         final parts = compositeId.split(':');
                         final productId = parts[0];
                         final variantId = parts.length > 1 ? parts[1] : null;
-                        
-                        final p = allProducts.firstWhere((p) => p.id == productId);
-                        
+
+                        final p = allProducts.firstWhere(
+                          (p) => p.id == productId,
+                        );
+
                         return _StockItemTile(
                           product: p,
                           variantId: variantId,
                           quantity: qty,
-                          onUpdateQty: (newQty) => _updateQuantity(compositeId, newQty),
+                          onUpdateQty: (newQty) =>
+                              _updateQuantity(compositeId, newQty),
                           isStockOut: _mode == StockMode.outMode,
                         );
                       },
@@ -430,15 +543,25 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                   // Reason Selector
                   if (_transactionItems.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: SectionCard(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
                               'Transaction Reason',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
@@ -449,10 +572,24 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                                 border: InputBorder.none,
                                 prefixIcon: Icon(Icons.info_outline, size: 18),
                               ),
-                              items: (_mode == StockMode.inMode ? _inReasons : _outReasons)
-                                  .map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontSize: 14))))
-                                  .toList(),
-                              onChanged: (val) => setState(() => _selectedReason = val),
+                              items:
+                                  (_mode == StockMode.inMode
+                                          ? _inReasons
+                                          : _outReasons)
+                                      .map(
+                                        (r) => DropdownMenuItem(
+                                          value: r,
+                                          child: Text(
+                                            r,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                              onChanged: (val) =>
+                                  setState(() => _selectedReason = val),
                             ),
                             if (_selectedReason == 'Other') ...[
                               const SizedBox(height: 12),
@@ -462,8 +599,13 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                                   hintText: 'Enter specific reason',
                                   hintStyle: const TextStyle(fontSize: 14),
                                   filled: true,
-                                  fillColor: Theme.of(context).colorScheme.surface,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  fillColor: Theme.of(
+                                    context,
+                                  ).colorScheme.surface,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide.none,
@@ -480,16 +622,27 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                   const SizedBox(height: 8),
 
                   // Commit Button
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: CustomButton(
-                      text: 'COMMIT STOCK ${_mode == StockMode.inMode ? 'IN' : 'OUT'}',
-                      onPressed: _transactionItems.isEmpty ? null : _handleCommit,
-                      isLoading: _isProcessing,
-                      color: _mode == StockMode.inMode ? Colors.green : Colors.orange,
-                      isGradient: false,
+                  if (ref
+                      .watch(authProvider)
+                      .hasPermission(
+                        PermissionModule.inventory,
+                        PermissionAction.update,
+                      ))
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: CustomButton(
+                        text:
+                            'COMMIT STOCK ${_mode == StockMode.inMode ? 'IN' : 'OUT'}',
+                        onPressed: _transactionItems.isEmpty
+                            ? null
+                            : _handleCommit,
+                        isLoading: _isProcessing,
+                        color: _mode == StockMode.inMode
+                            ? Colors.green
+                            : Colors.orange,
+                        isGradient: false,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -501,10 +654,16 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'Search products or barcodes...',
-                  prefixIcon: const Icon(Icons.search, color: AppTheme.primaryTeal),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: AppTheme.primaryTeal,
+                  ),
                   filled: true,
                   fillColor: AppTheme.softGrey.withOpacity(0.5),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -518,15 +677,21 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                 itemCount: allProducts.length,
                 itemBuilder: (context, index) {
                   final p = allProducts[index];
-                  
+
                   // Filter logic
                   if (_searchQuery.isNotEmpty) {
-                    final matchesName = p.name.toLowerCase().contains(_searchQuery);
-                    final matchesBarcode = p.barcode.toLowerCase().contains(_searchQuery);
-                    final matchesVariant = p.variants.any((v) => 
-                      v.name.toLowerCase().contains(_searchQuery) || 
-                      v.sku.toLowerCase().contains(_searchQuery));
-                    
+                    final matchesName = p.name.toLowerCase().contains(
+                      _searchQuery,
+                    );
+                    final matchesBarcode = p.barcode.toLowerCase().contains(
+                      _searchQuery,
+                    );
+                    final matchesVariant = p.variants.any(
+                      (v) =>
+                          v.name.toLowerCase().contains(_searchQuery) ||
+                          v.sku.toLowerCase().contains(_searchQuery),
+                    );
+
                     if (!matchesName && !matchesBarcode && !matchesVariant) {
                       return const SizedBox.shrink();
                     }
@@ -546,10 +711,16 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                     controller: _ledgerSearchController,
                     decoration: InputDecoration(
                       hintText: 'Search ledger (product, reason)...',
-                      prefixIcon: const Icon(Icons.search, color: AppTheme.primaryTeal),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: AppTheme.primaryTeal,
+                      ),
                       filled: true,
                       fillColor: AppTheme.softGrey.withOpacity(0.5),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -568,12 +739,19 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                             label: Text(filter),
                             selected: isSelected,
                             onSelected: (val) {
-                              if (val) setState(() => _selectedLedgerFilter = filter);
+                              if (val)
+                                setState(() => _selectedLedgerFilter = filter);
                             },
-                            selectedColor: AppTheme.primaryTeal.withOpacity(0.2),
+                            selectedColor: AppTheme.primaryTeal.withOpacity(
+                              0.2,
+                            ),
                             labelStyle: TextStyle(
-                              color: isSelected ? AppTheme.primaryTeal : Colors.grey,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected
+                                  ? AppTheme.primaryTeal
+                                  : Colors.grey,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                         );
@@ -597,7 +775,11 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                           const SizedBox(height: 16),
                           Text(
                             'No stock history found',
-                            style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.color,
+                            ),
                           ),
                         ],
                       ),
@@ -621,21 +803,27 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
   Widget _buildHistoryList(List<StockHistoryModel> history) {
     // Filter history
     final filteredHistory = history.where((item) {
-      final matchesSearch = item.variant_name.toLowerCase().contains(_ledgerSearchQuery) ||
+      final matchesSearch =
+          item.variant_name.toLowerCase().contains(_ledgerSearchQuery) ||
           item.reason.toLowerCase().contains(_ledgerSearchQuery);
-      
+
       bool matchesFilter = true;
       if (_selectedLedgerFilter == 'Sale') {
         matchesFilter = item.source == 'invoice';
       } else if (_selectedLedgerFilter == 'Manual') {
         matchesFilter = item.source == 'manual';
       }
-      
+
       return matchesSearch && matchesFilter;
     }).toList();
 
     if (filteredHistory.isEmpty) {
-      return const Center(child: Text('No results match your filters', style: TextStyle(color: Colors.grey)));
+      return const Center(
+        child: Text(
+          'No results match your filters',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
     }
 
     // Group history by date
@@ -700,17 +888,23 @@ class _TabButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primaryTeal.withOpacity(0.1) : Colors.transparent,
+            color: isSelected
+                ? AppTheme.primaryTeal.withOpacity(0.1)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected ? AppTheme.primaryTeal : Theme.of(context).dividerColor,
+              color: isSelected
+                  ? AppTheme.primaryTeal
+                  : Theme.of(context).dividerColor,
             ),
           ),
           child: Center(
             child: Text(
               label,
               style: TextStyle(
-                color: isSelected ? AppTheme.primaryTeal : Theme.of(context).textTheme.bodySmall?.color,
+                color: isSelected
+                    ? AppTheme.primaryTeal
+                    : Theme.of(context).textTheme.bodySmall?.color,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -731,19 +925,21 @@ class _HistoryItem extends ConsumerWidget {
     final timeFormat = DateFormat('hh:mm a');
     final isStockIn = history.change_type == StockMode.inMode;
     final isInvoice = history.source == 'invoice';
-    
+
     // Find product to get image
-    final product = ref.watch(productProvider).cast<ProductModel?>().firstWhere(
-      (p) => p?.id == history.product_id, 
-      orElse: () => null
-    );
+    final product = ref
+        .watch(productProvider)
+        .cast<ProductModel?>()
+        .firstWhere((p) => p?.id == history.product_id, orElse: () => null);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.05)),
+        side: BorderSide(
+          color: Theme.of(context).dividerColor.withOpacity(0.05),
+        ),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -753,7 +949,11 @@ class _HistoryItem extends ConsumerWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: (isInvoice ? AppTheme.primaryTeal : (isStockIn ? Colors.green : Colors.orange)).withOpacity(0.1),
+                color:
+                    (isInvoice
+                            ? AppTheme.primaryTeal
+                            : (isStockIn ? Colors.green : Colors.orange))
+                        .withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               clipBehavior: Clip.antiAlias,
@@ -761,14 +961,20 @@ class _HistoryItem extends ConsumerWidget {
                   ? Image.memory(
                       base64Decode(product.photo!.split(',').last),
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => 
-                        const Icon(Icons.image_not_supported_outlined, size: 20),
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 20,
+                      ),
                     )
                   : Icon(
-                      isInvoice 
-                        ? Icons.receipt_long_outlined 
-                        : (isStockIn ? Icons.add_circle_outline : Icons.remove_circle_outline),
-                      color: isInvoice ? AppTheme.primaryTeal : (isStockIn ? Colors.green : Colors.orange),
+                      isInvoice
+                          ? Icons.receipt_long_outlined
+                          : (isStockIn
+                                ? Icons.add_circle_outline
+                                : Icons.remove_circle_outline),
+                      color: isInvoice
+                          ? AppTheme.primaryTeal
+                          : (isStockIn ? Colors.green : Colors.orange),
                       size: 20,
                     ),
             ),
@@ -779,12 +985,16 @@ class _HistoryItem extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
-                  color: isInvoice ? AppTheme.primaryTeal : (isStockIn ? Colors.green : Colors.orange),
+                  color: isInvoice
+                      ? AppTheme.primaryTeal
+                      : (isStockIn ? Colors.green : Colors.orange),
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 1.5),
                 ),
                 child: Icon(
-                  isInvoice ? Icons.receipt : (isStockIn ? Icons.add : Icons.remove),
+                  isInvoice
+                      ? Icons.receipt
+                      : (isStockIn ? Icons.add : Icons.remove),
                   size: 8,
                   color: Colors.white,
                 ),
@@ -797,7 +1007,10 @@ class _HistoryItem extends ConsumerWidget {
             Expanded(
               child: Text(
                 history.variant_name,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
             ),
             Container(
@@ -809,8 +1022,8 @@ class _HistoryItem extends ConsumerWidget {
               child: Text(
                 history.source.toUpperCase(),
                 style: TextStyle(
-                  fontSize: 9, 
-                  fontWeight: FontWeight.bold, 
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
                   color: isInvoice ? Colors.blue : Colors.grey,
                 ),
               ),
@@ -822,11 +1035,18 @@ class _HistoryItem extends ConsumerWidget {
           children: [
             Text(
               'Reason: ${history.reason}',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryTeal),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryTeal,
+              ),
             ),
             Text(
               timeFormat.format(history.createdAt),
-              style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color),
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).textTheme.bodySmall?.color,
+              ),
             ),
           ],
         ),
@@ -837,7 +1057,7 @@ class _HistoryItem extends ConsumerWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
-            '${isStockIn ? '+' : '-'}${history.quantity_change}',
+            '${isStockIn ? '+' : ''}${history.quantity_change}',
             style: TextStyle(
               color: isStockIn ? Colors.green : Colors.orange,
               fontWeight: FontWeight.bold,
@@ -874,7 +1094,9 @@ class _ModeButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? color : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isSelected ? color : Theme.of(context).dividerColor),
+          border: Border.all(
+            color: isSelected ? color : Theme.of(context).dividerColor,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -885,7 +1107,9 @@ class _ModeButton extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Theme.of(context).textTheme.bodyMedium?.color,
+                  color: isSelected
+                      ? Colors.white
+                      : Theme.of(context).textTheme.bodyMedium?.color,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
@@ -950,8 +1174,11 @@ class _StockItemTile extends StatelessWidget {
                       ? Image.memory(
                           base64Decode(product.photo!.split(',').last),
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => 
-                            const Icon(Icons.image_not_supported_outlined, size: 18),
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(
+                                Icons.image_not_supported_outlined,
+                                size: 18,
+                              ),
                         )
                       : const Icon(
                           Icons.shopping_bag_outlined,
@@ -999,7 +1226,9 @@ class _StockItemTile extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Theme.of(context).dividerColor),
+                          border: Border.all(
+                            color: Theme.of(context).dividerColor,
+                          ),
                         ),
                         child: Text(
                           '$quantity',
@@ -1058,9 +1287,9 @@ class _StockItemTile extends StatelessWidget {
           controller: controller,
           keyboardType: TextInputType.number,
           autofocus: true,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: 'Enter number',
-            suffixText: 'units',
+            suffixText: product.uom.isNotEmpty ? product.uom : 'units',
           ),
           onSubmitted: (val) {
             final qty = int.tryParse(val);
@@ -1113,7 +1342,10 @@ class _InventoryProductTile extends StatelessWidget {
       child: ExpansionTile(
         key: PageStorageKey('inventory_${product.id}'),
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        childrenPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 8,
+        ),
         leading: Container(
           width: 44,
           height: 44,
@@ -1126,37 +1358,55 @@ class _InventoryProductTile extends StatelessWidget {
               ? Image.memory(
                   base64Decode(product.photo!.split(',').last),
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => 
-                    const Icon(Icons.image_not_supported_outlined, size: 20),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.image_not_supported_outlined, size: 20),
                 )
-              : const Icon(Icons.inventory_2_outlined, color: AppTheme.primaryTeal, size: 24),
+              : const Icon(
+                  Icons.inventory_2_outlined,
+                  color: AppTheme.primaryTeal,
+                  size: 24,
+                ),
         ),
         title: Text(
           product.name,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
-        subtitle: product.hasVariants 
-          ? Text('${product.variants.length} Variants', style: const TextStyle(color: Colors.grey, fontSize: 13))
-          : Text('Qty: ${product.stock} ${product.uom.isNotEmpty ? product.uom : ''} | Barcode: ${product.barcode}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
-        trailing: !product.hasVariants 
-          ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: (product.stock > 10 ? Colors.green : Colors.orange).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
+        subtitle: product.hasVariants
+            ? Text(
+                '${product.variants.length} Variants',
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
+              )
+            : Text(
+                'Qty: ${product.stock} ${product.uom.isNotEmpty ? product.uom : ''} | Barcode: ${product.barcode}',
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
               ),
-              child: Text(
-                '${product.stock}',
-                style: TextStyle(
-                  color: product.stock > 10 ? Colors.green : Colors.orange,
-                  fontWeight: FontWeight.bold,
+        trailing: !product.hasVariants
+            ? Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
                 ),
-              ),
-            )
-          : null,
-        children: product.hasVariants 
-          ? product.variants.map((v) => _InventoryVariantTile(variant: v, uom: product.uom)).toList()
-          : [],
+                decoration: BoxDecoration(
+                  color: (product.stock > 10 ? Colors.green : Colors.orange)
+                      .withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${product.stock}',
+                  style: TextStyle(
+                    color: product.stock > 10 ? Colors.green : Colors.orange,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
+            : null,
+        children: product.hasVariants
+            ? product.variants
+                  .map(
+                    (v) => _InventoryVariantTile(variant: v, uom: product.uom),
+                  )
+                  .toList()
+            : [],
       ),
     );
   }
@@ -1180,22 +1430,36 @@ class _InventoryVariantTile extends StatelessWidget {
               color: Colors.grey.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.subdirectory_arrow_right, size: 14, color: Colors.grey),
+            child: const Icon(
+              Icons.subdirectory_arrow_right,
+              size: 14,
+              color: Colors.grey,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(variant.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                Text('Barcode: ${variant.sku}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                Text(
+                  variant.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  'Barcode: ${variant.sku}',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: (variant.stock > 5 ? Colors.green : Colors.orange).withOpacity(0.1),
+              color: (variant.stock > 5 ? Colors.green : Colors.orange)
+                  .withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(

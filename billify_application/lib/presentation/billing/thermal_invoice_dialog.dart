@@ -84,7 +84,7 @@ class ThermalInvoiceDialog extends ConsumerWidget {
                 textAlign: TextAlign.center,
               ),
               const Text(
-                '------------------------------------------',
+                '-----------------------------------------',
                 style: TextStyle(color: Colors.black38),
               ),
 
@@ -104,7 +104,7 @@ class ThermalInvoiceDialog extends ConsumerWidget {
               ),
 
               const Text(
-                '------------------------------------------',
+                '-----------------------------------------',
                 style: TextStyle(color: Colors.black38),
               ),
 
@@ -162,7 +162,7 @@ class ThermalInvoiceDialog extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                '------------------------------------------',
+                '-----------------------------------------',
                 style: TextStyle(color: Colors.black38),
               ),
 
@@ -221,18 +221,24 @@ class ThermalInvoiceDialog extends ConsumerWidget {
               ),
 
               const Text(
-                '------------------------------------------',
+                '-----------------------------------------',
                 style: TextStyle(color: Colors.black38),
               ),
 
               // Totals
               _PriceRow(label: 'SUBTOTAL', value: subtotal),
               if (business.tax_percentage > 0)
-                _PriceRow(label: 'TAX (${business.tax_percentage}%)', value: taxAmount),
+                _PriceRow(
+                  label: 'TAX (${business.tax_percentage}%)',
+                  value: taxAmount,
+                ),
               if (business.gst_percentage > 0)
-                _PriceRow(label: 'GST (${business.gst_percentage}%)', value: gstAmount),
+                _PriceRow(
+                  label: 'GST (${business.gst_percentage}%)',
+                  value: gstAmount,
+                ),
               const Text(
-                '------------------------------------------',
+                '-----------------------------------------',
                 style: TextStyle(color: Colors.black38),
               ),
               _PriceRow(
@@ -242,7 +248,7 @@ class ThermalInvoiceDialog extends ConsumerWidget {
                 fontSize: 14,
               ),
               const Text(
-                '------------------------------------------',
+                '-----------------------------------------',
                 style: TextStyle(color: Colors.black38),
               ),
 

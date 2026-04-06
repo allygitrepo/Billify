@@ -58,15 +58,18 @@ const authController = {
             // 2. Hash password
             const hashedPassword = await bcrypt.hash(password, 10);
 
-            // 3. Ensure "Admin" Role exists and get its ID
+            // 3. Ensure "Global Admin" Role exists (business_id is NULL for system roles)
             const [adminRole] = await Role.findOrCreate({
-                where: { name: 'Admin' },
-                defaults: { description: 'System Administrator with full access' },
+                where: { name: 'Admin', business_id: null },
+                defaults: { 
+                    description: 'System Administrator with full access',
+                    business_id: null 
+                },
                 transaction: t
             });
-            console.log("Admin role ID resolved:", adminRole.id);
+            console.log("Global Admin role ID resolved:", adminRole.id);
 
-            // 4. Create User with role_id and photo
+            // 4. Create User assigned to Global Admin role
             const user = await User.create({
                 name,
                 email,
@@ -116,7 +119,7 @@ const authController = {
             ], { transaction: t });
             console.log("Default UOMs created for business:", business.id);
 
-            // 6. Map User to Business as Admin
+            // 8. Map User to Business as Admin
             await UserBusiness.create({
                 user_id: user.id,
                 business_id: business.id,
@@ -124,37 +127,24 @@ const authController = {
                 status: true
             }, { transaction: t });
 
-            // 7. Assign ALL permissions to Admin role if not already assigned
-            for (const module_name of MODULES) {
-                const [perm, created] = await RolePermission.findOrCreate({
-                    where: { role_id: adminRole.id, module_name },
-                    defaults: {
-                        can_add: true,
-                        can_view: true,
-                        can_update: true,
-                        can_delete: true,
-                        can_export: true,
-                        can_bulk_upload: true,
-                        can_download: true,
-                        can_print: true,
-                        status: true
-                    },
-                    transaction: t
-                });
-
-                if (!created) {
-                    await perm.update({
-                        can_add: true,
-                        can_view: true,
-                        can_update: true,
-                        can_delete: true,
-                        can_export: true,
-                        can_bulk_upload: true,
-                        can_download: true,
-                        can_print: true,
-                        status: true
-                    }, { transaction: t });
-                }
+            // 9. Initial Setup: Ensure Global Admin has all permissions (Only runs once in system lifetime)
+            const existingPermissions = await RolePermission.count({ where: { role_id: adminRole.id } });
+            if (existingPermissions === 0) {
+                console.log("Initializing Global Admin permissions...");
+                const adminPerms = MODULES.map(module_name => ({
+                    role_id: adminRole.id,
+                    module_name,
+                    can_add: true,
+                    can_view: true,
+                    can_update: true,
+                    can_delete: true,
+                    can_export: true,
+                    can_bulk_upload: true,
+                    can_download: true,
+                    can_print: true,
+                    status: true
+                }));
+                await RolePermission.bulkCreate(adminPerms, { transaction: t });
             }
 
             await t.commit();
@@ -203,7 +193,12 @@ const authController = {
             const userBusinesses = await UserBusiness.findAll({
                 where: { user_id: user.id, status: true },
                 include: [
-                    { model: Business, as: 'business', where: { status: true } },
+                    { 
+                        model: Business, 
+                        as: 'business', 
+                        where: { status: true },
+                        include: [{ model: Settings, as: 'settings' }]
+                    },
                     { model: Role, as: 'role' }
                 ]
             });
@@ -223,14 +218,24 @@ const authController = {
                     id: user.id, 
                     name: user.name, 
                     email: user.email,
+                    mobile: user.mobile,
                     role_id: user.role_id,
                     photo: user.photo
                 },
-                businesses: userBusinesses.map(ub => ({
-                    ...ub.business.get({ plain: true }),
-                    role: ub.role ? ub.role.name : 'User',
-                    role_id: ub.role_id
-                }))
+                businesses: userBusinesses.map(ub => {
+                    const b = ub.business.get({ plain: true });
+                    const s = b.settings || {};
+                    return {
+                        ...b,
+                        // Override/Fallback from settings table
+                        business_logo: s.business_logo || b.business_logo,
+                        tax: s.tax_percentage || b.tax,
+                        gst_percentage: s.gst_percentage || b.gst_percentage,
+                        invoice_prefix: s.invoice_prefix || b.invoice_prefix,
+                        role: ub.role ? ub.role.name : 'User',
+                        role_id: ub.role_id
+                    };
+                })
             };
 
             console.log("Login successful, sending response context");

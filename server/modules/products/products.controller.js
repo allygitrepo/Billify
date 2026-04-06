@@ -19,6 +19,7 @@ const productsController = {
                 uom, 
                 status, 
                 photo,
+                barcode,
                 variants 
             } = req.body;
 
@@ -62,7 +63,8 @@ const productsController = {
                 hsnCode,
                 uom,
                 status: status || 'active',
-                photo
+                photo,
+                barcode
             }, { transaction: t });
 
             // 2. Create Variants if provided
@@ -79,13 +81,27 @@ const productsController = {
             }
 
             await t.commit();
+
+            const newlyCreatedProduct = await Product.findByPk(product.id, {
+                include: [
+                    { model: Category, as: 'category' },
+                    { model: Variant, as: 'variants' }
+                ]
+            });
+            
+            // Add custom hasVariants flag for flutter app compatibility
+            newlyCreatedProduct.dataValues.hasVariants = newlyCreatedProduct.variants && newlyCreatedProduct.variants.length > 0;
+
             return res.status(201).json({
                 message: "Product created successfully",
-                product
+                product: newlyCreatedProduct
             });
         } catch (error) {
             await t.rollback();
             console.error("Create Product Error:", error);
+            if (error.name === 'SequelizeUniqueConstraintError') {
+                return res.status(409).json({ message: "A product with this name or barcode already exists." });
+            }
             return res.status(500).json({ message: "Internal server error" });
         }
     },
@@ -101,7 +117,14 @@ const productsController = {
                     { model: Variant, as: 'variants' }
                 ]
             });
-            return res.status(200).json({ products });
+            
+            // Add custom hasVariants flag for flutter app compatibility
+            const productsWithFlags = products.map(p => {
+                p.dataValues.hasVariants = p.variants && p.variants.length > 0;
+                return p;
+            });
+
+            return res.status(200).json({ products: productsWithFlags });
         } catch (error) {
             console.error("Get Products Error:", error);
             return res.status(500).json({ message: "Internal server error" });
@@ -122,6 +145,7 @@ const productsController = {
                 uom, 
                 status, 
                 photo,
+                barcode,
                 variants 
             } = req.body;
 
@@ -140,7 +164,8 @@ const productsController = {
                 hsnCode: hsnCode !== undefined ? hsnCode : product.hsnCode,
                 uom: uom || product.uom,
                 status: status || product.status,
-                photo: photo !== undefined ? photo : product.photo
+                photo: photo !== undefined ? photo : product.photo,
+                barcode: barcode !== undefined ? barcode : product.barcode
             }, { transaction: t });
 
             // 2. Update Variants (Simple approach: Delete and recreate if provided)
@@ -158,13 +183,27 @@ const productsController = {
             }
 
             await t.commit();
+
+            const updatedProduct = await Product.findByPk(id, {
+                include: [
+                    { model: Category, as: 'category' },
+                    { model: Variant, as: 'variants' }
+                ]
+            });
+
+            // Add custom hasVariants flag for flutter app compatibility
+            updatedProduct.dataValues.hasVariants = updatedProduct.variants && updatedProduct.variants.length > 0;
+
             return res.status(200).json({
                 message: "Product updated successfully",
-                product
+                product: updatedProduct
             });
         } catch (error) {
             await t.rollback();
             console.error("Update Product Error:", error);
+            if (error.name === 'SequelizeUniqueConstraintError') {
+                return res.status(409).json({ message: "A product with this name or barcode already exists." });
+            }
             return res.status(500).json({ message: "Internal server error" });
         }
     },

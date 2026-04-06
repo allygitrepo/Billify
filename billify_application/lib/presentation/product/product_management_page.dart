@@ -12,6 +12,8 @@ import 'package:billify_application/providers/product_provider.dart';
 import 'package:billify_application/providers/uom_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:billify_application/data/models/user_permission.dart';
+import 'package:billify_application/providers/auth_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:uuid/uuid.dart';
@@ -156,11 +158,13 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
         ],
       ),
 
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showProductBottomSheet(),
-        backgroundColor: AppTheme.primaryTeal,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: ref.watch(authProvider).hasPermission(PermissionModule.products, PermissionAction.add)
+          ? FloatingActionButton(
+              onPressed: () => _showProductBottomSheet(),
+              backgroundColor: AppTheme.primaryTeal,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
     );
   }
 
@@ -526,6 +530,15 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
 
   Widget _buildUomDropdown({required String initialValue, required Function(String?) onChanged}) {
     final uoms = ref.watch(uomProvider);
+    
+    // Safety check: ensure initialValue exists in uoms list to avoid assertion error
+    String? dropdownValue = initialValue;
+    if (uoms.isNotEmpty && !uoms.any((u) => u.id == dropdownValue)) {
+      // Try to find by name or shortCode as fallback, otherwise default to first item or null
+      final fallback = uoms.where((u) => u.shortCode == initialValue || u.name == initialValue).firstOrNull;
+      dropdownValue = fallback?.id ?? (uoms.isNotEmpty ? uoms.first.id : null);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -535,7 +548,7 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: initialValue,
+          value: dropdownValue,
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.straighten),
             filled: true,
@@ -546,7 +559,9 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
             value: u.id,
             child: Text(u.name),
           )).toList(),
-          onChanged: onChanged,
+          onChanged: (val) {
+            onChanged(val);
+          },
           validator: (v) => v == null ? 'Select UOM' : null,
         ),
       ],
@@ -575,7 +590,7 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
   }
 }
 
-class _ProductListTile extends StatelessWidget {
+class _ProductListTile extends ConsumerWidget {
   final ProductModel product;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -587,7 +602,7 @@ class _ProductListTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -622,7 +637,7 @@ class _ProductListTile extends StatelessWidget {
                   final uoms = ref.watch(uomProvider);
                   final uom = uoms.firstWhere(
                     (u) => u.id == product.uom, 
-                    orElse: () => UomModel(id: product.uom, name: product.uom)
+                    orElse: () => UomModel(id: product.uom, name: product.uom, shortCode: product.uom)
                   );
                   return Text('Price: ₹${product.basePrice} | Stock: ${product.stock} ${uom.name}');
                 },
@@ -634,8 +649,10 @@ class _ProductListTile extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(icon: const Icon(Icons.edit_outlined, size: 20), onPressed: onEdit),
-            IconButton(icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red), onPressed: onDelete),
+            if (ref.watch(authProvider).hasPermission(PermissionModule.products, PermissionAction.update))
+              IconButton(icon: const Icon(Icons.edit_outlined, size: 20), onPressed: onEdit),
+            if (ref.watch(authProvider).hasPermission(PermissionModule.products, PermissionAction.delete))
+              IconButton(icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red), onPressed: onDelete),
           ],
         ),
       ),

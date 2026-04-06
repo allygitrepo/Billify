@@ -32,12 +32,12 @@ class ProductModel {
       id: json['id'].toString(),
       barcode: json['barcode'] ?? json['sku'] ?? '',
       name: json['name'],
-      basePrice: (json['basePrice'] as num?)?.toDouble() ?? (json['price'] as num?)?.toDouble() ?? 0.0,
-      stock: (json['stock'] as num?)?.toInt() ?? 0,
+      basePrice: double.tryParse(json['basePrice']?.toString() ?? '') ?? double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
+      stock: int.tryParse(json['stock']?.toString() ?? '') ?? 0,
       category_id: json['category_id']?.toString() ?? json['categoryId']?.toString(),
-      uom: json['uom'] ?? json['uomId'] ?? 'pcs',
+      uom: json['uom']?.toString() ?? json['uomId']?.toString() ?? 'pcs',
       photo: json['photo'] ?? json['imageUrl'],
-      hasVariants: json['hasVariants'] ?? false,
+      hasVariants: json['hasVariants'] ?? ((json['variants'] as List<dynamic>?)?.isNotEmpty ?? false),
       variants: (json['variants'] as List<dynamic>?)
               ?.map((v) => ProductVariantModel.fromJson(v))
               .toList() ??

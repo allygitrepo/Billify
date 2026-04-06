@@ -17,17 +17,31 @@ const businessController = {
             const userBusinesses = await UserBusiness.findAll({
                 where: { user_id: req.user.id, status: true },
                 include: [
-                    { model: Business, as: 'business', where: { status: true } },
+                    { 
+                        model: Business, 
+                        as: 'business', 
+                        where: { status: true },
+                        include: [{ model: Settings, as: 'settings' }]
+                    },
                     { model: Role, as: 'role' }
                 ]
             });
 
             return res.status(200).json({
-                businesses: userBusinesses.map(ub => ({
-                    ...ub.business.get({ plain: true }),
-                    role: ub.role ? ub.role.name : 'User',
-                    role_id: ub.role_id
-                }))
+                businesses: userBusinesses.map(ub => {
+                    const b = ub.business.get({ plain: true });
+                    const s = b.settings || {};
+                    return {
+                        ...b,
+                        // Override/Fallback fields from settings for UI consistency
+                        business_logo: s.business_logo || b.business_logo,
+                        tax: s.tax_percentage || b.tax,
+                        gst_percentage: s.gst_percentage || b.gst_percentage,
+                        invoice_prefix: s.invoice_prefix || b.invoice_prefix,
+                        role: ub.role ? ub.role.name : 'User',
+                        role_id: ub.role_id
+                    };
+                })
             });
         } catch (error) {
             console.error("Get My Businesses Error:", error);
@@ -52,7 +66,11 @@ const businessController = {
                 name: businessName,
                 phone: phone || '',
                 gstin: gstin || '',
-                address: address || ''
+                address: address || '',
+                business_logo: photo || '',
+                tax: String(req.body.taxPercentage || 0),
+                gst_percentage: req.body.gstPercentage || 0,
+                invoice_prefix: req.body.invoicePrefix || 'INV'
             }, { transaction: t });
 
             // 2. Resolve Admin Role
@@ -117,7 +135,7 @@ const businessController = {
     updateBusiness: async (req, res) => {
         try {
             const { id } = req.params;
-            const { name, phone, gstin, address, status } = req.body;
+            const { name, phone, gstin, address, status, photo, tax, gst_percentage, invoice_prefix } = req.body;
 
             const business = await Business.findByPk(id);
             if (!business) {
@@ -129,8 +147,28 @@ const businessController = {
                 phone: phone !== undefined ? phone : business.phone,
                 gstin: gstin !== undefined ? gstin : business.gstin,
                 address: address !== undefined ? address : business.address,
+                business_logo: photo !== undefined ? photo : business.business_logo,
+                tax: tax !== undefined ? String(tax) : business.tax,
+                gst_percentage: gst_percentage !== undefined ? gst_percentage : business.gst_percentage,
+                invoice_prefix: invoice_prefix !== undefined ? invoice_prefix : business.invoice_prefix,
                 status: status !== undefined ? status : business.status
             });
+
+            // Also update settings table if it exists
+            const Settings = require("../settings/settings.model");
+            const settings = await Settings.findOne({ where: { business_id: id } });
+            if (settings) {
+                await settings.update({
+                    business_name: name || settings.business_name,
+                    business_phone: phone || settings.business_phone,
+                    gst_number: gstin || settings.gst_number,
+                    business_address: address || settings.business_address,
+                    business_logo: photo || settings.business_logo,
+                    tax_percentage: tax !== undefined ? tax : settings.tax_percentage,
+                    gst_percentage: gst_percentage !== undefined ? gst_percentage : settings.gst_percentage,
+                    invoice_prefix: invoice_prefix || settings.invoice_prefix
+                });
+            }
 
             return res.status(200).json({
                 message: "Business updated successfully",

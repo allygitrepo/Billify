@@ -1,4 +1,3 @@
-import 'package:billify_application/core/enums/stock_mode.dart';
 import 'package:billify_application/data/models/business_model.dart';
 import 'package:billify_application/data/models/cart_item_model.dart';
 import 'package:billify_application/data/models/invoice_model.dart';
@@ -6,7 +5,6 @@ import 'package:billify_application/data/models/product_model.dart';
 import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/invoice_provider.dart';
 import 'package:billify_application/providers/product_provider.dart';
-import 'package:billify_application/providers/business_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class BillingState {
@@ -57,8 +55,8 @@ class BillingNotifier extends Notifier<BillingState> {
   Future<void> confirmInvoice(BusinessModel business) async {
     if (state.items.isEmpty) return;
 
-    // Generate sequential ID
-    final invoiceId = '${business.invoice_prefix}${business.starting_invoice_number}';
+    // Generate placeholder ID (Server will assign correct sequential Number)
+    final invoiceId = 'pending_${DateTime.now().millisecondsSinceEpoch}';
     final currentUser = ref.read(authProvider).user;
     final staffName = currentUser?.name ?? 'Owner';
 
@@ -74,29 +72,11 @@ class BillingNotifier extends Notifier<BillingState> {
       staff_name: staffName,
     );
 
-    // Save to history
+    // Save to server & history
     await ref.read(invoiceProvider.notifier).addInvoice(invoice);
-    
-    // Increment business sequence
-    await ref.read(businessProvider.notifier).updateBusiness(
-      business.copyWith(starting_invoice_number: business.starting_invoice_number + 1),
-    );
 
-    
-    // Deduct Stock
-    final Map<String, int> stockDeltas = {};
-    for (var item in state.items) {
-      final key = item.product.selectedVariantId != null 
-        ? '${item.product.id}:${item.product.selectedVariantId}' 
-        : item.product.id;
-      stockDeltas[key] = (stockDeltas[key] ?? 0) - item.quantity;
-    }
-    await ref.read(productProvider.notifier).updateStockBulk(
-      stockDeltas,
-      mode: StockMode.outMode,
-      reason: 'Sale: Invoice ${invoice.id}',
-      source: 'invoice',
-    );
+    // Sync products mathematically from the server to reflect deduction accurately without duplicating client-side stock calculation
+    ref.read(productProvider.notifier).fetchAndSyncProducts(); // Async background update
 
     // Clear cart
     clearCart();

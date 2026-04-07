@@ -6,6 +6,7 @@ import 'package:billify_application/presentation/customers/contacts_import_scree
 import 'package:billify_application/presentation/customers/customer_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CustomerListScreen extends ConsumerStatefulWidget {
   final bool showOnlyOutstanding;
@@ -113,28 +114,55 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                               ),
                         title: Text(customer.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(customer.phoneNumber),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              '₹${customer.remainingBalance.abs().toStringAsFixed(2)}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: isSettled
-                                    ? Colors.grey
-                                    : owesMoney
-                                        ? Colors.red
-                                        : Colors.green,
-                              ),
+                            IconButton(
+                              icon: const Icon(Icons.phone, color: Colors.blue),
+                              onPressed: () async {
+                                final Uri launchUri = Uri(
+                                  scheme: 'tel',
+                                  path: customer.phoneNumber,
+                                );
+                                if (await canLaunchUrl(launchUri)) {
+                                  await launchUrl(launchUri);
+                                } else {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Could not launch dialer'),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              tooltip: 'Call Customer',
                             ),
-                            Text(
-                              isSettled
-                                  ? 'Settled'
-                                  : owesMoney
-                                      ? 'You get'
-                                      : 'You give',
-                              style: const TextStyle(fontSize: 10),
+                            const SizedBox(width: 8),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '₹${customer.remainingBalance.abs().toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isSettled
+                                        ? Colors.grey
+                                        : owesMoney
+                                            ? Colors.red
+                                            : Colors.green,
+                                  ),
+                                ),
+                                Text(
+                                  isSettled
+                                      ? 'Settled'
+                                      : owesMoney
+                                          ? 'You get'
+                                          : 'You give',
+                                  style: const TextStyle(fontSize: 10),
+                                ),
+                              ],
                             ),
                           ],
                         ),

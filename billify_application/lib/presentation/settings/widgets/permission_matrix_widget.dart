@@ -65,7 +65,18 @@ class _PermissionMatrixWidgetState extends State<PermissionMatrixWidget> {
           const DataColumn(label: Text('Module')),
           ...actions.map((a) => DataColumn(label: Text(a.label))),
         ],
-        rows: PermissionModule.values.map((module) {
+        rows: [
+          PermissionModule.dashboard,
+          PermissionModule.products,
+          PermissionModule.categories,
+          PermissionModule.billing,
+          PermissionModule.inventory,
+          PermissionModule.businesses,
+          PermissionModule.uom,
+          PermissionModule.userManagement,
+          PermissionModule.customers,
+          PermissionModule.payments,
+        ].map((module) {
           final modulePermissions = _permissions[module] ?? [];
           return DataRow(
             cells: [

@@ -11,7 +11,7 @@ router.get("/dropdown", authenticate, authorize('customers', 'can_view'), custom
 router.post("/bulk-import", authenticate, authorize('customers', 'can_add'), customersController.bulkImportCustomers);
 router.get("/ledger/:id", authenticate, authorize('customers', 'can_view'), customersController.getCustomerLedger);
 router.get("/:id", authenticate, authorize('customers', 'can_view'), customersController.getCustomerById);
-router.put("/:id", authenticate, authorize('customers', 'can_edit'), customersController.updateCustomer);
+router.put("/:id", authenticate, authorize('customers', 'can_update'), customersController.updateCustomer);
 router.delete("/:id", authenticate, authorize('customers', 'can_delete'), customersController.deleteCustomer);
 
 module.exports = router;

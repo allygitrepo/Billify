@@ -2,16 +2,17 @@ enum PermissionModule {
   dashboard('Dashboard'),
   reports('Reports'),
   analytics('Analytics & Reports'),
-  products('Products Master'),
-  categories('Categories Master'),
-  userManagement('User Management'),
-  billing('Billing / POS'),
+  products('Product'),
+  categories('category'),
+  userManagement('staff management'),
+  billing('Billing'),
   transactionLogs('Transaction Logs'),
-  inventory('Inventory Management'),
-  uom('Units of Measurement'),
-  customers('Customer Management'),
-  payments('Payments & Khata'),
-  systemSettings('System Settings');
+  inventory('Inventory'),
+  uom('UOM'),
+  customers('customer management'),
+  payments('Khata management'),
+  systemSettings('System Settings'),
+  businesses('Bussinesses');
 
   final String label;
   const PermissionModule(this.label);

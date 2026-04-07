@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 
 class FullScreenImageViewer extends StatelessWidget {
@@ -28,10 +29,28 @@ class FullScreenImageViewer extends StatelessWidget {
             minScale: 0.5,
             maxScale: 4,
             child: imagePath != null && imagePath!.isNotEmpty
-                ? Image.file(
-                    File(imagePath!),
-                    fit: BoxFit.contain,
-                  )
+                ? (imagePath!.startsWith('data:image') ||
+                        imagePath!.length > 100
+                    ? Image.memory(
+                      base64Decode(imagePath!.split(',').last),
+                      fit: BoxFit.contain,
+                    )
+                    : Image.file(
+                      File(imagePath!),
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        padding: const EdgeInsets.all(40),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[900],
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.person,
+                          size: 200,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ))
                 : Container(
                     padding: const EdgeInsets.all(40),
                     decoration: BoxDecoration(

@@ -9,6 +9,8 @@ enum PermissionModule {
   transactionLogs('Transaction Logs'),
   inventory('Inventory Management'),
   uom('Units of Measurement'),
+  customers('Customer Management'),
+  payments('Payments & Khata'),
   systemSettings('System Settings');
 
   final String label;

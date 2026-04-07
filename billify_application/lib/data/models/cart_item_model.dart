@@ -46,6 +46,17 @@ class CartItemModel {
     };
   }
 
+  Map<String, dynamic> toServerJson() {
+    return {
+      'productId': int.tryParse(product.id),
+      'productName': product.name,
+      'variantName': product.selectedVariantId != null ? product.name.split(' (').last.replaceAll(')', '') : '',
+      'quantity': quantity,
+      'price': price,
+      'subtotal': subtotal,
+    };
+  }
+
   double get price => customPrice ?? product.basePrice;
   String get name => customName ?? product.name;
   double get subtotal => price * quantity;

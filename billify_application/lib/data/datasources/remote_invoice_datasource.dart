@@ -23,18 +23,23 @@ class RemoteInvoiceDatasource {
   }
 
   Future<InvoiceModel?> createInvoice(InvoiceModel invoice, String businessId, String? userId) async {
-    final response = await _apiService.post(
-      ApiEndpoints.createInvoice,
-      data: {
+    final double totalTaxes = (invoice.tax_amount) + (invoice.gst_amount);
+    final String mode = (invoice.paid_amount >= invoice.final_amount) ? 'Cash' : (invoice.paid_amount <= 0 ? 'Khata' : 'Split');
+    final String status = (invoice.paid_amount >= invoice.final_amount) ? 'Paid' : 'Pending';
+
+    final Map<String, dynamic> body = {
         'business_id': businessId,
-        'customer_name': 'Walk-in Customer', // Defaulting for MVP
+        'customer_id': invoice.customer_id,
+        'customer_type': invoice.customer_type,
+        'customer_name': invoice.customer_id != null ? 'Regular Customer' : 'Walk-in Customer', 
         'customer_phone': '',
         'total_amount': invoice.total_amount,
-        'discount': 0, // Currently not used in model directly as top level
-        'tax_amount': invoice.tax_amount + invoice.gst_amount, // Combine taxes
+        'discount': 0, 
+        'tax_amount': totalTaxes, 
         'final_amount': invoice.final_amount,
-        'payment_mode': 'Cash',
-        'status': 'Paid',
+        'paid_amount': invoice.paid_amount,
+        'payment_mode': mode,
+        'status': status,
         'user_id': userId,
         'items': invoice.items.map((item) {
           return {
@@ -46,7 +51,13 @@ class RemoteInvoiceDatasource {
             'subtotal': item.subtotal
           };
         }).toList()
-      },
+    };
+
+    print('DEBUG: Sending CREATE_INVOICE body: $body');
+
+    final response = await _apiService.post(
+      ApiEndpoints.createInvoice,
+      data: body,
     );
     if (response.statusCode == 201) {
       final serverData = response.data['invoice'];
@@ -56,5 +67,18 @@ class RemoteInvoiceDatasource {
       );
     }
     return null;
+  }
+
+  Future<InvoiceModel?> getInvoiceById(String id) async {
+    try {
+      final response = await _apiService.get("${ApiEndpoints.invoicesBase}/$id");
+      if (response.statusCode == 200) {
+        return InvoiceModel.fromJson(response.data['invoice']);
+      }
+      return null;
+    } catch (e) {
+      print("Error fetching invoice by ID ($id): $e");
+      return null;
+    }
   }
 }

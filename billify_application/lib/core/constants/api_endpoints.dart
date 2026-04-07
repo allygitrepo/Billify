@@ -66,4 +66,21 @@ class ApiEndpoints {
   static String getPermissionsByRole(String roleId) =>
       "$rolePermissionsBase/$roleId";
   static const String savePermissions = rolePermissionsBase;
+
+  // Customer Management Endpoints
+  static const String customersBase = "$baseUrl/customers";
+  static const String createCustomer = customersBase;
+  static const String getCustomers = customersBase;
+  static const String customerDropdown = "$customersBase/dropdown";
+  static const String bulkImportCustomers = "$customersBase/bulk-import";
+  static String updateCustomer(String id) => "$customersBase/$id";
+  static String deleteCustomer(String id) => "$customersBase/$id";
+  static String getCustomerLedger(String id) => "$customersBase/ledger/$id";
+
+  // Payment Endpoints
+  static const String paymentsBase = "$baseUrl/payments";
+  static const String receivePayment = "$paymentsBase/receive";
+  static const String givePayment = "$paymentsBase/give";
+  static const String getPayments = paymentsBase;
+  static String deletePayment(String id) => "$paymentsBase/$id";
 }

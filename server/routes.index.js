@@ -47,9 +47,17 @@ router.use("/invoices", authenticate, invoiceRoutes);
 const inventoryRoutes = require("./modules/inventory/inventory.routes");
 router.use("/inventory", authenticate, inventoryRoutes);
 
-// Settings Routes
+// Setting Routes
 const settingsRoutes = require("./modules/settings/settings.routes");
 router.use("/settings", authenticate, settingsRoutes);
+
+// Customer Routes
+const customerRoutes = require("./modules/customers/customers.routes");
+router.use("/customers", authenticate, customerRoutes);
+
+// Payment Routes
+const paymentRoutes = require("./modules/payments/payments.routes");
+router.use("/payments", authenticate, paymentRoutes);
 
 module.exports = router;
 

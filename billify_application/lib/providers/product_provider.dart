@@ -89,7 +89,7 @@ class ProductNotifier extends Notifier<List<ProductModel>> {
       
       final product = currentProducts.firstWhere((p) => p.id == productIdString);
       
-      String variantName = '';
+      String variantName = 'Default';
       if (variantId != null && product.hasVariants) {
         final variant = product.variants.firstWhere((v) => v.id == variantId);
         variantName = variant.name;

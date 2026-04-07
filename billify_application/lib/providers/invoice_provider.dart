@@ -62,18 +62,31 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
   double getTodaySales() {
     final now = DateTime.now();
     return state
-        .where((e) => e.date.year == now.year && e.date.month == now.month && e.date.day == now.day)
+        .where((e) {
+          final localDate = e.date.toLocal();
+          return localDate.year == now.year &&
+                 localDate.month == now.month &&
+                 localDate.day == now.day;
+        })
         .fold(0, (sum, e) => sum + e.final_amount);
   }
 
   int getTodayInvoiceCount() {
     final now = DateTime.now();
-    return state.where((e) => e.date.year == now.year && e.date.month == now.month && e.date.day == now.day).length;
+    return state.where((e) {
+      final localDate = e.date.toLocal();
+      return localDate.year == now.year &&
+             localDate.month == now.month &&
+             localDate.day == now.day;
+    }).length;
   }
 
   double getMonthlyRevenue() {
     final now = DateTime.now();
-    return state.where((e) => e.date.year == now.year && e.date.month == now.month).fold(0, (sum, e) => sum + e.final_amount);
+    return state.where((e) {
+      final localDate = e.date.toLocal();
+      return localDate.year == now.year && localDate.month == now.month;
+    }).fold(0, (sum, e) => sum + e.final_amount);
   }
 
   Map<String, double> getTopSellingProducts(int count) {
@@ -95,7 +108,12 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
     for (int i = 0; i < 7; i++) {
         final date = now.subtract(Duration(days: 6 - i));
         dailyTotals[i] = state
-            .where((e) => e.date.year == date.year && e.date.month == date.month && e.date.day == date.day)
+            .where((e) {
+              final localDate = e.date.toLocal();
+              return localDate.year == date.year &&
+                     localDate.month == date.month &&
+                     localDate.day == date.day;
+            })
             .fold(0.0, (sum, e) => sum + e.final_amount);
     }
     return dailyTotals;
@@ -119,7 +137,10 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
     
     for (int i = 0; i < 12; i++) {
         monthlyTotals[i] = state
-            .where((e) => e.date.year == now.year && e.date.month == (i + 1))
+            .where((e) {
+              final localDate = e.date.toLocal();
+              return localDate.year == now.year && localDate.month == (i + 1);
+            })
             .fold(0.0, (sum, e) => sum + e.final_amount);
     }
     return monthlyTotals;
@@ -127,5 +148,14 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
 
   List<String> getMonthlyLabels() {
     return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  }
+
+  Future<InvoiceModel?> getInvoiceById(String id) async {
+    // 1. Check local state first
+    final local = state.where((e) => e.id == id || e.id.toUpperCase() == id.toUpperCase()).firstOrNull;
+    if (local != null) return local;
+
+    // 2. Fetch from remote
+    return await _repo.getInvoiceById(id);
   }
 }

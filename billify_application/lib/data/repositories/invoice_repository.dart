@@ -62,4 +62,8 @@ class InvoiceRepository {
     final List<String> data = invoices.map((e) => jsonEncode(e.toJson())).toList();
     await _storage.setStringList(_invoiceDataKey, data);
   }
+
+  Future<InvoiceModel?> getInvoiceById(String id) async {
+    return await _remoteDatasource.getInvoiceById(id);
+  }
 }

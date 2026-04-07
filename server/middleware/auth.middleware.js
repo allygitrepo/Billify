@@ -12,6 +12,13 @@ const authenticate = (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         req.user = decoded; // Contains { id, email }
+        
+        // Attach business_id from header if present (for multi-tenant support)
+        const businessId = req.headers['x-business-id'];
+        if (businessId) {
+            req.user.business_id = parseInt(businessId);
+        }
+
         next();
     } catch (error) {
         console.error("Authentication Error:", error);

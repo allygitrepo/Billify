@@ -4,6 +4,7 @@ import 'package:billify_application/presentation/billing/thermal_invoice_dialog.
 import 'package:billify_application/providers/invoice_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:billify_application/providers/customer_provider.dart';
 import 'package:intl/intl.dart';
 
 class InvoiceHistoryPage extends ConsumerStatefulWidget {
@@ -20,12 +21,12 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
   @override
   void initState() {
     super.initState();
-    // Default to last 30 days or similar if desired, but user said "from to", so I'll keep it null for "All"
   }
 
   @override
   Widget build(BuildContext context) {
     final invoices = ref.watch(invoiceProvider);
+    final customers = ref.watch(customerProvider).value ?? [];
     final dateFormat = DateFormat('MMM dd, yyyy - hh:mm a');
     final filterDateFormat = DateFormat('MMM dd, yyyy');
 
@@ -104,37 +105,65 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                             ),
                           ),
                           title: Text(
-                            '#${invoice.id.toUpperCase()}',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            'INV #${invoice.id.toUpperCase()}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(dateFormat.format(invoice.date)),
+                              Text(
+                                dateFormat.format(invoice.date),
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                              const SizedBox(height: 6),
                               Row(
                                 children: [
-                                  Text(
-                                    '${invoice.items.length} items',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    'By: ${invoice.staff_name}',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppTheme.primaryTeal,
-                                    ),
-                                  ),
+                                  (() {
+                                    final customer = customers
+                                        .where((c) => c.id == invoice.customer_id)
+                                        .firstOrNull;
+                                    final isWalkin =
+                                        invoice.customer_type == 'WALKIN' ||
+                                        customer == null;
+                                    return Row(
+                                      children: [
+                                        Icon(
+                                          isWalkin
+                                              ? Icons.person_outline
+                                              : Icons.person,
+                                          size: 14,
+                                          color: isWalkin
+                                              ? Colors.grey
+                                              : AppTheme.primaryTeal,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          isWalkin
+                                              ? 'Walk-in Customer'
+                                              : customer.name,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: isWalkin
+                                                ? Colors.grey
+                                                : Colors.black87,
+                                            fontWeight: isWalkin
+                                                ? FontWeight.normal
+                                                : FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  })(),
                                 ],
                               ),
                             ],
                           ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
                                 '₹${invoice.final_amount.toStringAsFixed(2)}',
@@ -144,14 +173,32 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                                   color: AppTheme.primaryTeal,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.print_outlined,
-                                  size: 20,
-                                  color: Colors.grey,
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
                                 ),
-                                onPressed: () => _viewInvoice(context, invoice),
+                                decoration: BoxDecoration(
+                                  color: (invoice.paid_amount >=
+                                          invoice.final_amount)
+                                      ? Colors.green.withOpacity(0.1)
+                                      : Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  (invoice.paid_amount >= invoice.final_amount)
+                                      ? 'PAID'
+                                      : 'KHATA',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: (invoice.paid_amount >=
+                                            invoice.final_amount)
+                                        ? Colors.green
+                                        : Colors.red,
+                                  ),
+                                ),
                               ),
                             ],
                           ),

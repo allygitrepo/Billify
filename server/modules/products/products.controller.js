@@ -67,17 +67,27 @@ const productsController = {
                 barcode
             }, { transaction: t });
 
-            // 2. Create Variants if provided
-            if (variants && Array.isArray(variants)) {
+            // 2. Create Variants if provided, otherwise create 'Default'
+            if (variants && Array.isArray(variants) && variants.length > 0) {
                 const variantEntries = variants.map(v => ({
                     product_id: product.id,
                     name: v.name,
-                    sku: v.sku,
-                    price: v.price,
-                    stock: v.stock,
+                    sku: v.sku || barcode,
+                    price: v.price || basePrice,
+                    stock: v.stock || 0,
                     status: v.status || 'active'
                 }));
                 await Variant.bulkCreate(variantEntries, { transaction: t });
+            } else {
+                // Create a single default variant to hold the product's basePrice and barcode
+                await Variant.create({
+                    product_id: product.id,
+                    name: 'Default',
+                    sku: barcode,
+                    price: basePrice,
+                    stock: 0,
+                    status: 'active'
+                }, { transaction: t });
             }
 
             await t.commit();
@@ -169,17 +179,28 @@ const productsController = {
             }, { transaction: t });
 
             // 2. Update Variants (Simple approach: Delete and recreate if provided)
-            if (variants && Array.isArray(variants)) {
+            if (variants && Array.isArray(variants) && variants.length > 0) {
                 await Variant.destroy({ where: { product_id: id }, transaction: t });
                 const variantEntries = variants.map(v => ({
                     product_id: id,
                     name: v.name,
-                    sku: v.sku,
-                    price: v.price,
-                    stock: v.stock,
+                    sku: v.sku || barcode,
+                    price: v.price || basePrice,
+                    stock: v.stock || 0,
                     status: v.status || 'active'
                 }));
                 await Variant.bulkCreate(variantEntries, { transaction: t });
+            } else if (variants && Array.isArray(variants) && variants.length === 0) {
+                // If variants was explicitly cleared, ensure we still have a Default
+                await Variant.destroy({ where: { product_id: id }, transaction: t });
+                await Variant.create({
+                    product_id: id,
+                    name: 'Default',
+                    sku: barcode || product.barcode,
+                    price: basePrice || product.basePrice,
+                    stock: 0,
+                    status: 'active'
+                }, { transaction: t });
             }
 
             await t.commit();

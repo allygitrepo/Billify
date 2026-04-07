@@ -6,6 +6,7 @@ const UserBusiness = require("./user_businesses.model");
 const RolePermission = require("../role_permission/role_permission.model");
 const Role = require("../roles/roles.model");
 const UOM = require("../uoms/uoms.model");
+const Settings = require("../settings/settings.model");
 const sequelize = require("../../config/db");
 require("dotenv").config();
 
@@ -91,7 +92,6 @@ const authController = {
             console.log("Business created:", business.id);
 
             // 6. Create Settings for the business
-            const Settings = require("../settings/settings.model");
             await Settings.create({
                 business_id: business.id,
                 business_name: business_name,

@@ -65,6 +65,18 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
   }
 
   void _addItem(ProductModel product) {
+    // Stock Out Validation
+    if (_mode == StockMode.outMode) {
+      if (product.stock <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot remove stock from an out-of-stock item'),
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() {
       final key = product.selectedVariantId != null
           ? '${product.id}:${product.selectedVariantId}'
@@ -292,13 +304,33 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                                   title: Text(v.name),
                                   subtitle: Text(
                                     'Stock: ${v.stock} | SKU: ${v.sku}',
+                                    style: TextStyle(
+                                      color: v.stock <= 0 ? Colors.red : null,
+                                      fontWeight: v.stock <= 0
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
                                   ),
-                                  trailing: const Icon(
+                                  trailing: Icon(
                                     Icons.add_circle_outline,
-                                    color: AppTheme.primaryTeal,
+                                    color: (_mode == StockMode.outMode &&
+                                            v.stock <= 0)
+                                        ? Colors.grey
+                                        : AppTheme.primaryTeal,
                                     size: 20,
                                   ),
                                   onTap: () {
+                                    if (_mode == StockMode.outMode &&
+                                        v.stock <= 0) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content:
+                                              Text('Product out of stock'),
+                                        ),
+                                      );
+                                      return;
+                                    }
                                     _addItem(
                                       p.copyWith(selectedVariantId: v.id),
                                     );
@@ -318,12 +350,28 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                         title: Text(p.name),
                         subtitle: Text(
                           'Stock: ${p.stock} | Barcode: ${p.barcode}',
+                          style: TextStyle(
+                            color: p.stock <= 0 ? Colors.red : null,
+                            fontWeight: p.stock <= 0
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
                         ),
-                        trailing: const Icon(
+                        trailing: Icon(
                           Icons.add_circle_outline,
-                          color: AppTheme.primaryTeal,
+                          color: (_mode == StockMode.outMode && p.stock <= 0)
+                              ? Colors.grey
+                              : AppTheme.primaryTeal,
                         ),
                         onTap: () {
+                          if (_mode == StockMode.outMode && p.stock <= 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Product out of stock'),
+                              ),
+                            );
+                            return;
+                          }
                           _addItem(p);
                           Navigator.pop(context);
                         },
@@ -1387,15 +1435,22 @@ class _InventoryProductTile extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: (product.stock > 10 ? Colors.green : Colors.orange)
+                  color: (product.stock <= 0
+                          ? Colors.red
+                          : (product.stock > 10
+                              ? Colors.green
+                              : Colors.orange))
                       .withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '${product.stock}',
+                  product.stock <= 0 ? 'OUT OF STOCK' : '${product.stock}',
                   style: TextStyle(
-                    color: product.stock > 10 ? Colors.green : Colors.orange,
+                    color: product.stock <= 0
+                        ? Colors.red
+                        : (product.stock > 10 ? Colors.green : Colors.orange),
                     fontWeight: FontWeight.bold,
+                    fontSize: product.stock <= 0 ? 10 : 12,
                   ),
                 ),
               )
@@ -1458,16 +1513,22 @@ class _InventoryVariantTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: (variant.stock > 5 ? Colors.green : Colors.orange)
+              color: (variant.stock <= 0
+                      ? Colors.red
+                      : (variant.stock > 5 ? Colors.green : Colors.orange))
                   .withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '${variant.stock} ${uom.isNotEmpty ? uom : ''}',
+              variant.stock <= 0
+                  ? 'OUT OF STOCK'
+                  : '${variant.stock} ${uom.isNotEmpty ? uom : ''}',
               style: TextStyle(
-                color: variant.stock > 5 ? Colors.green : Colors.orange,
+                color: variant.stock <= 0
+                    ? Colors.red
+                    : (variant.stock > 5 ? Colors.green : Colors.orange),
                 fontWeight: FontWeight.bold,
-                fontSize: 13,
+                fontSize: variant.stock <= 0 ? 10 : 13,
               ),
             ),
           ),

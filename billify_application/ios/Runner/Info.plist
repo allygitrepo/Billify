@@ -47,5 +47,7 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs camera access to scan barcodes for products and billing.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>This app requires contacts access to import customers for faster billing.</string>
 </dict>
 </plist>

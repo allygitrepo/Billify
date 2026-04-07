@@ -11,6 +11,9 @@ class InvoiceModel {
   final double gst_amount;
   final double final_amount;
   final String staff_name;
+  final int? customer_id;
+  final String? customer_type; // 'WALKIN', 'REGULAR'
+  final double paid_amount;
 
   InvoiceModel({
     required this.id,
@@ -22,12 +25,20 @@ class InvoiceModel {
     required this.gst_amount,
     required this.final_amount,
     required this.staff_name,
+    this.customer_id,
+    this.customer_type = 'WALKIN',
+    this.paid_amount = 0.0,
   });
 
   factory InvoiceModel.fromJson(Map<String, dynamic> json) {
     return InvoiceModel(
       id: json['invoice_number']?.toString() ?? json['id']?.toString() ?? '',
-      date: DateTime.tryParse(json['createdAt']?.toString() ?? json['date']?.toString() ?? '') ?? DateTime.now(),
+      date: DateTime.tryParse(
+        json['createdAt']?.toString() ?? 
+        json['created_at']?.toString() ?? 
+        json['date']?.toString() ?? 
+        ''
+      ) ?? DateTime.now(),
       business: json['business'] != null ? BusinessModel.fromJson(json['business']) : BusinessModel(
         id: json['business_id']?.toString() ?? '',
         name: 'Business',
@@ -43,20 +54,27 @@ class InvoiceModel {
       staff_name: (json['user'] != null && json['user']['name'] != null) 
           ? json['user']['name'] 
           : (json['staff_name'] ?? json['staffName'] ?? 'Owner'),
+      customer_id: json['customer_id'],
+      customer_type: json['customer_type'] ?? 'WALKIN',
+      paid_amount: double.tryParse(json['paid_amount']?.toString() ?? '') ?? 0.0,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'business_id': int.tryParse(business.id),
       'date': date.toIso8601String(),
-      'business': business.toJson(),
-      'items': items.map((e) => e.toJson()).toList(),
+      'items': items.map((e) => e.toServerJson()).toList(),
       'total_amount': total_amount,
       'tax_amount': tax_amount,
       'gst_amount': gst_amount,
       'final_amount': final_amount,
       'staff_name': staff_name,
+      'customer_id': customer_id,
+      'customer_type': customer_type,
+      'paid_amount': paid_amount,
+      'status': (final_amount <= paid_amount) ? 'Paid' : 'Pending',
     };
   }
 
@@ -70,6 +88,9 @@ class InvoiceModel {
     double? gst_amount,
     double? final_amount,
     String? staff_name,
+    int? customer_id,
+    String? customer_type,
+    double? paid_amount,
   }) {
     return InvoiceModel(
       id: id ?? this.id,
@@ -81,6 +102,9 @@ class InvoiceModel {
       gst_amount: gst_amount ?? this.gst_amount,
       final_amount: final_amount ?? this.final_amount,
       staff_name: staff_name ?? this.staff_name,
+      customer_id: customer_id ?? this.customer_id,
+      customer_type: customer_type ?? this.customer_type,
+      paid_amount: paid_amount ?? this.paid_amount,
     );
   }
 }

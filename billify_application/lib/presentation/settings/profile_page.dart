@@ -49,9 +49,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50,
+    );
     if (image != null) {
-      setState(() => _selectedImagePath = image.path);
+      final bytes = await image.readAsBytes();
+      final base64String = base64Encode(bytes);
+      setState(() => _selectedImagePath = 'data:image/jpeg;base64,$base64String');
     }
   }
 

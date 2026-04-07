@@ -37,7 +37,8 @@ class AuthState {
   });
 
   bool hasPermission(PermissionModule module, PermissionAction action) {
-    if (isLoggedIn && user?.roleId == null) return true; // Owner has all permissions
+    if (isLoggedIn && user?.roleId == null)
+      return true; // Owner has all permissions
     return currentRole?.hasPermission(module, action) ?? false;
   }
 
@@ -64,70 +65,86 @@ class AuthNotifier extends Notifier<AuthState> {
     final repo = ref.read(authRepositoryProvider);
     final user = repo.getUser();
     final isLoggedIn = repo.isLoggedIn();
-    
+
     if (isLoggedIn && user != null) {
       // Load role async (initial load)
       _loadRoleForUser(user);
     }
-    
+
     return AuthState(user: user, isLoggedIn: isLoggedIn);
   }
 
   Future<void> _loadRoleForUser(UserModel user) async {
     if (user.roleId == null) {
-       print("INFO: User has no roleId (Owner account). Granting all permissions.");
-       return;
-    }
-    
-    final repo = ref.read(userManagementRepositoryProvider);
-    final storage = ref.read(localStorageServiceProvider);
-    
-    // 1. Determine scoped User ID for key lookups
-    final userId = user.businessOwnerId ?? user.email;
-    
-    // 2. Resolve Business ID (Storage -> State -> Sync)
-    String? businessId = storage.getString(AppConstants.userKey(userId, AppConstants.keyCurrentBusinessId));
-    
-    if (businessId == null) {
-       // Fallback to business provider state if storage is empty
-       final businessState = ref.read(businessProvider);
-       businessId = businessState.currentBusinessId;
-    }
-
-    if (businessId == null) {
-       print("WARNING: Could not resolve businessId for role loading. Syncing businesses...");
-       await ref.read(businessProvider.notifier).sync();
-       businessId = ref.read(businessProvider).currentBusinessId;
-    }
-    
-    if (businessId == null) {
-      print("ERROR: Business ID still null after sync. Cannot load permissions for Role ${user.roleId}");
+      print(
+        "INFO: User has no roleId (Owner account). Granting all permissions.",
+      );
       return;
     }
 
-    print("DEBUG: Loading permissions for Role ${user.roleId} in Business $businessId");
+    final repo = ref.read(userManagementRepositoryProvider);
+    final storage = ref.read(localStorageServiceProvider);
+
+    // 1. Determine scoped User ID for key lookups
+    final userId = user.businessOwnerId ?? user.email;
+
+    // 2. Resolve Business ID (Storage -> State -> Sync)
+    String? businessId = storage.getString(
+      AppConstants.userKey(userId, AppConstants.keyCurrentBusinessId),
+    );
+
+    if (businessId == null) {
+      // Fallback to business provider state if storage is empty
+      final businessState = ref.read(businessProvider);
+      businessId = businessState.currentBusinessId;
+    }
+
+    if (businessId == null) {
+      print(
+        "WARNING: Could not resolve businessId for role loading. Syncing businesses...",
+      );
+      await ref.read(businessProvider.notifier).sync();
+      businessId = ref.read(businessProvider).currentBusinessId;
+    }
+
+    if (businessId == null) {
+      print(
+        "ERROR: Business ID still null after sync. Cannot load permissions for Role ${user.roleId}",
+      );
+      return;
+    }
+
+    print(
+      "DEBUG: Loading permissions for Role ${user.roleId} in Business $businessId",
+    );
     final roles = await repo.getRoles(businessId);
-    
+
     try {
       // Comparison using toString() to handle potential int vs String mismatches
-      final role = roles.firstWhere((r) => r.id.toString() == user.roleId.toString());
+      final role = roles.firstWhere(
+        (r) => r.id.toString() == user.roleId.toString(),
+      );
       state = state.copyWith(currentRole: role);
       print("SUCCESS: Permissions loaded for role: ${role.name}");
     } catch (e) {
-      print("WARNING: Specific Role ${user.roleId} not found in business roles table.");
-      print("INFO: Granting full administrative access as fallback for user ${user.name} (Role ID: ${user.roleId})");
-      
+      print(
+        "WARNING: Specific Role ${user.roleId} not found in business roles table.",
+      );
+      print(
+        "INFO: Granting full administrative access as fallback for user ${user.name} (Role ID: ${user.roleId})",
+      );
+
       final fullAccessRole = RoleModel(
         id: user.roleId ?? 'fallback_admin',
-        name: 'System Admin (Auto-granted)',
+        name: 'Admin',
         permissions: {
           for (var module in PermissionModule.values)
-            module: [PermissionAction.all]
+            module: [PermissionAction.all],
         },
       );
       state = state.copyWith(currentRole: fullAccessRole);
     }
-    
+
     // Ensure business details are synced (important for branding etc)
     await ref.read(businessProvider.notifier).sync();
   }
@@ -137,7 +154,7 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final repo = ref.read(authRepositoryProvider);
       final response = await repo.login(email, password);
-      
+
       if (response['token'] != null) {
         final user = repo.getUser();
         state = state.copyWith(user: user, isLoggedIn: true, isLoading: false);
@@ -147,7 +164,10 @@ class AuthNotifier extends Notifier<AuthState> {
           await ref.read(businessProvider.notifier).sync();
         }
       } else {
-        state = state.copyWith(isLoading: false, error: response['message'] ?? 'Login failed');
+        state = state.copyWith(
+          isLoading: false,
+          error: response['message'] ?? 'Login failed',
+        );
       }
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -159,35 +179,52 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final repo = ref.read(authRepositoryProvider);
       final response = await repo.registerWithDetails(registrationData);
-      
+
       if (response['user'] != null) {
         final user = UserModel.fromJson(response['user']);
         state = state.copyWith(user: user, isLoggedIn: false, isLoading: false);
       } else {
-        state = state.copyWith(isLoading: false, error: response['message'] ?? 'Registration failed');
+        state = state.copyWith(
+          isLoading: false,
+          error: response['message'] ?? 'Registration failed',
+        );
       }
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
-  Future<void> updateProfile(UserModel updatedUser, {String? oldPassword, String? newPassword}) async {
+  Future<void> updateProfile(
+    UserModel updatedUser, {
+    String? oldPassword,
+    String? newPassword,
+  }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final userMgmtRepo = ref.read(userManagementRepositoryProvider);
-      
+
       // 1. Update Profile (Name, Mobile, Photo) on server
       final success = await userMgmtRepo.updateProfile(updatedUser);
       if (!success) {
-        state = state.copyWith(isLoading: false, error: 'Failed to update profile on server');
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Failed to update profile on server',
+        );
         return;
       }
 
       // 2. Handle Password Change if requested
       if (oldPassword != null && newPassword != null) {
-        final passSuccess = await userMgmtRepo.changePassword(oldPassword, newPassword);
+        final passSuccess = await userMgmtRepo.changePassword(
+          oldPassword,
+          newPassword,
+        );
         if (!passSuccess) {
-          state = state.copyWith(isLoading: false, error: 'Profile updated, but password change failed. Check your old password.');
+          state = state.copyWith(
+            isLoading: false,
+            error:
+                'Profile updated, but password change failed. Check your old password.',
+          );
           return;
         }
       }
@@ -195,7 +232,7 @@ class AuthNotifier extends Notifier<AuthState> {
       // 3. Update the currently logged in user info in local storage
       final authRepo = ref.read(authRepositoryProvider);
       await authRepo.setAsLoggedInUser(updatedUser);
-      
+
       // 4. Update state
       state = state.copyWith(user: updatedUser, isLoading: false);
     } catch (e) {

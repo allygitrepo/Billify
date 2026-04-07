@@ -12,7 +12,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:billify_application/data/models/user_permission.dart';
+import 'package:billify_application/providers/customer_provider.dart';
 import 'package:billify_application/providers/auth_provider.dart';
+import 'package:billify_application/providers/invoice_provider.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
   const ScannerScreen({super.key});
@@ -66,6 +68,17 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     final product = ref.read(productProvider.notifier).findByBarcode(barcode);
 
     if (product != null) {
+      if (product.stock <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Product ${product.name} is Out of Stock'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        _resumeScanner();
+        return;
+      }
+
       // If product has variants but we scanned the main barcode, show variant picker
       if (product.hasVariants && product.selectedVariantId == null) {
         showModalBottomSheet(
@@ -75,22 +88,32 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           builder: (context) => _ProductPickerSheet(
             products: [product],
             onSelected: (selectedVariant) {
-              billingNotifier.addToCart(selectedVariant);
-              Navigator.pop(context);
+              if (ref.read(billingProvider.notifier).addToCart(selectedVariant)) {
+                Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Limited stock available')),
+                );
+              }
             },
           ),
         ).then((_) => _resumeScanner());
         return;
       }
 
-      billingNotifier.addToCart(product);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${product.name} added to cart'),
-          duration: const Duration(milliseconds: 500),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (ref.read(billingProvider.notifier).addToCart(product)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${product.name} added to cart'),
+            duration: const Duration(milliseconds: 500),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Limited stock available')),
+        );
+      }
       _resumeScanner();
     } else {
       if (ref
@@ -129,6 +152,21 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     });
   }
 
+  void _showCustomerSelector(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _CustomerSelectorSheet(
+        onSelected: (customerId, customerType) {
+          ref.read(billingProvider.notifier).setCustomer(customerId, customerType);
+          Navigator.pop(context);
+          _showInvoice(ref, context);
+        },
+      ),
+    );
+  }
+
   void _showInvoice(WidgetRef ref, BuildContext context) {
     final billingState = ref.read(billingProvider);
     final businessState = ref.read(businessProvider);
@@ -148,6 +186,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => ThermalInvoiceDialog(
         items: billingState.items,
         business: currentBusiness,
@@ -156,6 +195,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
         gstAmount: billingState.calculateTax(gstPercent),
         total: billingState.getTotal(taxPercent, gstPercent),
         invoiceId: invoiceNo,
+        customerId: billingState.selectedCustomerId,
+        customerType: billingState.customerType,
       ),
     );
   }
@@ -231,7 +272,45 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
             height: 250,
             child: Stack(
               children: [
-                MobileScanner(controller: _controller, onDetect: _handleScan),
+                MobileScanner(
+                  controller: _controller,
+                  onDetect: _handleScan,
+                  errorBuilder: (context, error, child) {
+                    return Container(
+                      color: Colors.black,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.red,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Scanner Error: ${error.errorCode}',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Please check permissions',
+                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                _controller.start();
+                                setState(() {});
+                              },
+                              child: const Text('RETRY'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
                 CustomPaint(
                   painter: _ScannerOverlayPainter(),
                   child: Container(),
@@ -323,7 +402,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                       child: ElevatedButton(
                         onPressed: billingState.items.isEmpty
                             ? null
-                            : () => _showInvoice(ref, context),
+                            : () => _showCustomerSelector(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryTeal,
                           minimumSize: const Size(double.infinity, 54),
@@ -351,6 +430,127 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CustomerSelectorSheet extends ConsumerWidget {
+  final Function(int?, String) onSelected;
+
+  const _CustomerSelectorSheet({required this.onSelected});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final customersAsync = ref.watch(customerProvider);
+    final customers = customersAsync.value ?? [];
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(context).dividerColor.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Text(
+                  'Select Customer',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const CircleAvatar(
+              backgroundColor: AppTheme.primaryTeal,
+              child: Icon(Icons.person_outline, color: Colors.white),
+            ),
+            title: const Text('Walk-in Customer'),
+            subtitle: const Text('Default for quick sales'),
+            onTap: () => onSelected(null, 'WALKIN'),
+          ),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search or filter customers...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (val) {
+                // Implement local filter or logic if needed
+              },
+            ),
+          ),
+          Expanded(
+            child: customers.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('No customers found'),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: () {
+                            // Navigate to add customer or import
+                          },
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add New Customer'),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: customers.length,
+                    itemBuilder: (context, index) {
+                      final customer = customers[index];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          child: Text(customer.name[0]),
+                        ),
+                        title: Text(customer.name),
+                        subtitle: Text(customer.phoneNumber),
+                        trailing: Text(
+                          'Bal: ₹${customer.remainingBalance.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            color: customer.remainingBalance >= 0
+                                ? Colors.red
+                                : Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        onTap: () => onSelected(customer.id, 'REGULAR'),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -639,8 +839,11 @@ class _ProductListTile extends ConsumerWidget {
         subtitle: Text(
           'Stock: ${product.stock} | Barcode: ${product.barcode}',
           style: TextStyle(
-            color: Theme.of(context).textTheme.bodySmall?.color,
+            color: product.stock <= 0
+                ? Colors.red
+                : Theme.of(context).textTheme.bodySmall?.color,
             fontSize: 12,
+            fontWeight: product.stock <= 0 ? FontWeight.bold : FontWeight.normal,
           ),
         ),
         trailing: Row(
@@ -671,11 +874,17 @@ class _ProductListTile extends ConsumerWidget {
             const SizedBox(width: 12),
             if (!isInCart)
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.add_circle_outline,
-                  color: AppTheme.primaryTeal,
+                  color: product.stock <= 0 ? Colors.grey : AppTheme.primaryTeal,
                 ),
-                onPressed: () => onSelected(product),
+                onPressed: product.stock <= 0
+                    ? () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Product out of stock')),
+                        );
+                      }
+                    : () => onSelected(product),
               )
             else if (ref
                 .watch(authProvider)
@@ -720,13 +929,20 @@ class _ProductListTile extends ConsumerWidget {
                         minWidth: 32,
                         minHeight: 32,
                       ),
-                      onPressed: () => ref
-                          .read(billingProvider.notifier)
-                          .updateQuantity(
-                            product.id,
-                            quantity + 1,
-                            variantId: product.selectedVariantId,
-                          ),
+                      onPressed: () {
+                        if (!ref
+                            .read(billingProvider.notifier)
+                            .updateQuantity(
+                              product.id,
+                              quantity + 1,
+                              variantId: product.selectedVariantId,
+                            )) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Limited stock available')),
+                          );
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -746,7 +962,13 @@ class _ProductListTile extends ConsumerWidget {
         ),
         onTap: () {
           if (!isInCart) {
-            onSelected(product);
+            if (product.stock > 0) {
+              onSelected(product);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Product out of stock')),
+              );
+            }
           }
         },
       ),
@@ -866,13 +1088,20 @@ class _PanelItemTile extends ConsumerWidget {
                       minWidth: 32,
                       minHeight: 32,
                     ),
-                    onPressed: () => ref
-                        .read(billingProvider.notifier)
-                        .updateQuantity(
-                          item.product.id,
-                          item.quantity + 1,
-                          variantId: item.product.selectedVariantId,
-                        ),
+                    onPressed: () {
+                      if (!ref
+                          .read(billingProvider.notifier)
+                          .updateQuantity(
+                            item.product.id,
+                            item.quantity + 1,
+                            variantId: item.product.selectedVariantId,
+                          )) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Limited stock available')),
+                        );
+                      }
+                    },
                   ),
                 ],
               ),

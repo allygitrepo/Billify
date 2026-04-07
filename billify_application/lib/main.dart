@@ -10,6 +10,8 @@ import 'package:billify_application/presentation/product/product_management_page
 import 'package:billify_application/presentation/splash/splash_page.dart';
 import 'package:billify_application/presentation/settings/user_management_page.dart';
 import 'package:billify_application/presentation/settings/profile_page.dart';
+import 'package:billify_application/presentation/customers/customer_list_screen.dart';
+import 'package:billify_application/presentation/payments/add_payment_screen.dart';
 import 'package:billify_application/providers/storage_provider.dart';
 import 'package:billify_application/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
@@ -63,6 +65,14 @@ class BillifyApp extends ConsumerWidget {
         '/stock-management': (context) => const StockManagementPage(),
         '/user-management': (context) => const UserManagementPage(),
         '/profile': (context) => const ProfilePage(),
+        '/customers': (context) => const CustomerListScreen(),
+        '/add-payment': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          if (args != null && args.containsKey('customerId')) {
+            return AddPaymentScreen(customerId: args['customerId'] as int);
+          }
+          return const Scaffold(body: Center(child: Text('CustomerId required')));
+        },
       },
     );
   }

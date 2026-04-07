@@ -5,6 +5,9 @@ const Variant = require("../variants/variants.model");
 const InventoryLog = require("../inventory/inventory.model");
 const Settings = require("../settings/settings.model");
 const User = require("../users/users.model");
+const Customer = require("../customers/customers.model");
+const Business = require("../businesses/businesses.model");
+const Payment = require("../payments/payments.model");
 const sequelize = require("../../config/db");
 const { getNextSequenceNumber } = require("../../utils/sequence");
 
@@ -15,12 +18,15 @@ const invoiceController = {
         try {
             const { 
                 business_id, 
+                customer_id,
+                customer_type,
                 customer_name, 
                 customer_phone, 
                 total_amount, 
                 discount, 
                 tax_amount, 
                 final_amount, 
+                paid_amount,
                 payment_mode, 
                 status,
                 items,
@@ -34,6 +40,8 @@ const invoiceController = {
             const invoice = await Invoice.create({
                 business_id,
                 user_id, // Link the user who created it
+                customer_id,
+                customer_type: customer_type || 'WALKIN',
                 invoice_number,
                 customer_name,
                 customer_phone,
@@ -41,9 +49,36 @@ const invoiceController = {
                 discount,
                 tax_amount,
                 final_amount,
+                paid_amount: paid_amount || 0,
                 payment_mode,
                 status: status || 'Paid'
             }, { transaction: t });
+
+            // 3. Handle Customer Balance for "Regular" customers
+            if (customer_type === 'REGULAR' && customer_id) {
+                const customer = await Customer.findByPk(customer_id, { transaction: t });
+                if (customer) {
+                    const creditAmount = parseFloat(final_amount) - parseFloat(paid_amount || 0);
+                    
+                    if (creditAmount > 0) {
+                        // Create a "credit" payment entry (customer owes)
+                        await Payment.create({
+                            business_id,
+                            customer_id,
+                            amount: creditAmount,
+                            type: 'credit',
+                            payment_method: payment_mode,
+                            note: `Invoice #${invoice_number}`,
+                            reference_invoice_id: invoice.id,
+                            created_by: user_id
+                        }, { transaction: t });
+
+                        // Update customer remaining balance
+                        const newBalance = parseFloat(customer.remaining_balance) + creditAmount;
+                        await customer.update({ remaining_balance: newBalance }, { transaction: t });
+                    }
+                }
+            }
 
             // 3. Process Items
             for (const item of items) {
@@ -59,10 +94,18 @@ const invoiceController = {
                 }, { transaction: t });
 
                 // b. Update stock for the variant
-                const variant = await Variant.findOne({ 
+                let variant = await Variant.findOne({ 
                     where: { product_id: item.productId, name: item.variantName },
                     transaction: t
                 });
+
+                // Fallback: If specified variant not found, take the first available one for this product
+                if (!variant) {
+                    variant = await Variant.findOne({ 
+                        where: { product_id: item.productId },
+                        transaction: t
+                    });
+                }
 
                 if (variant) {
                     const stockBefore = parseInt(variant.stock) || 0;
@@ -108,13 +151,64 @@ const invoiceController = {
                         as: 'items',
                         include: [{ model: Product, as: 'product' }]
                     },
-                    { model: User, as: 'user' }
+                    { model: User, as: 'user' },
+                    { model: Customer, as: 'customer' }
                 ],
                 order: [['createdAt', 'DESC']]
             });
             return res.status(200).json({ invoices });
         } catch (error) {
             console.error("Get Invoices Error:", error);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    },
+    
+    // ============ Get Invoice by ID ============
+    getInvoiceById: async (req, res) => {
+        try {
+            const { id } = req.params;
+            let invoice;
+
+            // 1. Try finding by Primary Key (ID) if it's numeric
+            if (!isNaN(id)) {
+                invoice = await Invoice.findByPk(id, {
+                    include: [
+                        { 
+                            model: InvoiceItem, 
+                            as: 'items',
+                            include: [{ model: Product, as: 'product' }]
+                        },
+                        { model: User, as: 'user' },
+                        { model: Customer, as: 'customer' },
+                        { model: Business, as: 'business' }
+                    ]
+                });
+            }
+
+            // 2. Try finding by Invoice Number (INV-XXXX) if not found or ID not numeric
+            if (!invoice) {
+                invoice = await Invoice.findOne({
+                    where: { invoice_number: id },
+                    include: [
+                        { 
+                            model: InvoiceItem, 
+                            as: 'items',
+                            include: [{ model: Product, as: 'product' }]
+                        },
+                        { model: User, as: 'user' },
+                        { model: Customer, as: 'customer' },
+                        { model: Business, as: 'business' }
+                    ]
+                });
+            }
+
+            if (!invoice) {
+                return res.status(404).json({ message: "Invoice not found" });
+            }
+
+            return res.status(200).json({ invoice });
+        } catch (error) {
+            console.error("Get Invoice Error:", error);
             return res.status(500).json({ message: "Internal server error" });
         }
     }

@@ -59,13 +59,21 @@ const inventoryController = {
                 // Allow per-item type, fallback to root type
                 const finalType = itemType || type;
 
-                const variant = await Variant.findOne({ 
-                    where: { product_id, name: variant_name },
+                let variant = await Variant.findOne({ 
+                    where: { product_id, name: variant_name || 'Default' },
                     transaction: t
                 });
 
+                // Fallback: If 'Default' or specified name not found, take the first available variant for this product
                 if (!variant) {
-                    throw new Error(`Variant ${variant_name} for product ID ${product_id} not found`);
+                    variant = await Variant.findOne({ 
+                        where: { product_id },
+                        transaction: t
+                    });
+                }
+
+                if (!variant) {
+                    throw new Error(`No variant found for product ID ${product_id}. Stock cannot be updated.`);
                 }
 
                 const currentStock = parseInt(variant.stock) || 0;

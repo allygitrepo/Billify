@@ -7,6 +7,7 @@ import 'package:billify_application/presentation/settings/category_management_pa
 import 'package:billify_application/presentation/settings/settings_page.dart';
 import 'package:billify_application/presentation/settings/uom_management_page.dart';
 import 'package:billify_application/presentation/widgets/full_screen_image_viewer.dart';
+import 'package:billify_application/presentation/khata/khata_dashboard_screen.dart';
 import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
 import 'package:billify_application/providers/feature_settings_provider.dart';
@@ -167,7 +168,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       child: AspectRatio(
                         aspectRatio: 1.0,
                         child: StatCard(
-                          title: 'Sales',
+                          title: 'Today\'s Sales',
                           value: '₹${todaySales.toStringAsFixed(0)}',
                           icon: Icons.currency_rupee,
                           gradient: const [
@@ -559,6 +560,37 @@ class _HomePageState extends ConsumerState<HomePage> {
                         );
                       },
                     ),
+                  if (authState.hasPermission(
+                    PermissionModule.customers,
+                    PermissionAction.view,
+                  ))
+                    _QuickMenuItem(
+                      icon: Icons.people_alt_outlined,
+                      label: 'Customers',
+                      color: Colors.pink,
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.pushNamed(context, '/customers');
+                      },
+                    ),
+                  if (authState.hasPermission(
+                    PermissionModule.payments,
+                    PermissionAction.view,
+                  ))
+                    _QuickMenuItem(
+                      icon: Icons.account_balance_wallet_outlined,
+                      label: 'Khata',
+                      color: Colors.cyan,
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const KhataDashboardScreen(),
+                          ),
+                        );
+                      },
+                    ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -671,7 +703,12 @@ class _HomeHeader extends StatelessWidget {
                   backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
                   backgroundImage:
                       user?.photo != null && user!.photo!.isNotEmpty
-                      ? FileImage(File(user!.photo!))
+                      ? (user!.photo!.startsWith('data:image') ||
+                                user!.photo!.length > 100
+                            ? MemoryImage(
+                                base64Decode(user!.photo!.split(',').last),
+                              )
+                            : FileImage(File(user!.photo!)) as ImageProvider)
                       : null,
                   child: user?.photo == null || user!.photo!.isEmpty
                       ? const Icon(
@@ -680,6 +717,9 @@ class _HomeHeader extends StatelessWidget {
                           size: 30,
                         )
                       : null,
+                  onBackgroundImageError: (exception, stackTrace) {
+                    debugPrint('Error loading profile image: $exception');
+                  },
                 ),
               ),
             ),

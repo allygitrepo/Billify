@@ -83,4 +83,28 @@ class ApiEndpoints {
   static const String givePayment = "$paymentsBase/give";
   static const String getPayments = paymentsBase;
   static String deletePayment(String id) => "$paymentsBase/$id";
+
+  // Analytics Endpoints
+  static const String analyticsBase = "$baseUrl/analytics";
+  static String getSalesSummary(String businessId) => "$analyticsBase/sales/summary/$businessId";
+  static String getSalesTrend(String businessId) => "$analyticsBase/sales/trend/$businessId";
+  static String getTopProducts(String businessId) => "$analyticsBase/sales/top-products/$businessId";
+  static String getCategorySales(String businessId) => "$analyticsBase/sales/category-wise/$businessId";
+  static String getPaymentSummary(String businessId) => "$analyticsBase/sales/payment-summary/$businessId";
+  static String getSalesList(String businessId) => "$analyticsBase/sales/invoices/$businessId";
+
+  // Profit Endpoints
+  static String getProfitSummary(String businessId) => "$analyticsBase/profit/$businessId";
+  static String getProfitByProducts(String businessId) => "$analyticsBase/profit/products/$businessId";
+  static String getProfitByCategories(String businessId) => "$analyticsBase/profit/categories/$businessId";
+
+  // Customer Analytics Endpoints
+  static String getCustomersAnalytics(String businessId) => "$analyticsBase/customers/$businessId";
+
+  // Khata Analytics Endpoints
+  static String getKhataSummary(String businessId) => "$analyticsBase/khata/summary/$businessId";
+  static String getKhataDueReport(String businessId) => "$analyticsBase/khata/due/$businessId";
+  static String getKhataPayments(String businessId) => "$analyticsBase/khata/payments/$businessId";
+  static String getKhataCreditReport(String businessId) => "$analyticsBase/khata/credit/$businessId";
+  static String getKhataCustomersAnalytics(String businessId) => "$analyticsBase/khata/customers/$businessId";
 }

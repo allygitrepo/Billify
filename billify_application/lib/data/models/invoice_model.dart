@@ -13,7 +13,11 @@ class InvoiceModel {
   final String staff_name;
   final int? customer_id;
   final String? customer_type; // 'WALKIN', 'REGULAR'
+  final String? customer_name;
+  final String? customer_phone;
   final double paid_amount;
+  final String payment_mode;
+  final String status;
 
   InvoiceModel({
     required this.id,
@@ -27,7 +31,11 @@ class InvoiceModel {
     required this.staff_name,
     this.customer_id,
     this.customer_type = 'WALKIN',
+    this.customer_name,
+    this.customer_phone,
     this.paid_amount = 0.0,
+    this.payment_mode = 'Cash',
+    this.status = 'Paid',
   });
 
   factory InvoiceModel.fromJson(Map<String, dynamic> json) {
@@ -56,7 +64,11 @@ class InvoiceModel {
           : (json['staff_name'] ?? json['staffName'] ?? 'Owner'),
       customer_id: json['customer_id'],
       customer_type: json['customer_type'] ?? 'WALKIN',
+      customer_name: json['customer']?['name'] ?? json['customer_name'] ?? json['customerName'],
+      customer_phone: json['customer']?['phone_number'] ?? json['customer_phone'] ?? json['customerPhone'],
       paid_amount: double.tryParse(json['paid_amount']?.toString() ?? '') ?? 0.0,
+      payment_mode: json['payment_mode'] ?? 'Cash',
+      status: json['status'] ?? 'Paid',
     );
   }
 
@@ -73,8 +85,11 @@ class InvoiceModel {
       'staff_name': staff_name,
       'customer_id': customer_id,
       'customer_type': customer_type,
+      'customer_name': customer_name,
+      'customer_phone': customer_phone,
       'paid_amount': paid_amount,
-      'status': (final_amount <= paid_amount) ? 'Paid' : 'Pending',
+      'payment_mode': payment_mode,
+      'status': status,
     };
   }
 
@@ -90,7 +105,11 @@ class InvoiceModel {
     String? staff_name,
     int? customer_id,
     String? customer_type,
+    String? customer_name,
+    String? customer_phone,
     double? paid_amount,
+    String? payment_mode,
+    String? status,
   }) {
     return InvoiceModel(
       id: id ?? this.id,
@@ -104,7 +123,11 @@ class InvoiceModel {
       staff_name: staff_name ?? this.staff_name,
       customer_id: customer_id ?? this.customer_id,
       customer_type: customer_type ?? this.customer_type,
+      customer_name: customer_name ?? this.customer_name,
+      customer_phone: customer_phone ?? this.customer_phone,
       paid_amount: paid_amount ?? this.paid_amount,
+      payment_mode: payment_mode ?? this.payment_mode,
+      status: status ?? this.status,
     );
   }
 }

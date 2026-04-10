@@ -59,5 +59,10 @@ router.use("/customers", authenticate, customerRoutes);
 const paymentRoutes = require("./modules/payments/payments.routes");
 router.use("/payments", authenticate, paymentRoutes);
 
+// Analytics Routes
+const analyticsRoutes = require("./modules/analytics/analytics.routes");
+router.get("/analytics/test-reachability", (req, res) => res.json({ message: "Analytics route is reachable" }));
+router.use("/analytics", authenticate, analyticsRoutes);
+
 module.exports = router;
 

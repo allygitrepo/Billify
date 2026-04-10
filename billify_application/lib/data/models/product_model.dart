@@ -5,6 +5,7 @@ class ProductModel {
   final String barcode;
   final String name;
   final double basePrice;
+  final double purchasePrice;
   final int stock;
   final String? category_id;
   final String uom;
@@ -18,6 +19,7 @@ class ProductModel {
     required this.barcode,
     required this.name,
     required this.basePrice,
+    this.purchasePrice = 0.0,
     required this.stock,
     this.category_id,
     required this.uom,
@@ -33,6 +35,7 @@ class ProductModel {
       barcode: json['barcode'] ?? json['sku'] ?? '',
       name: json['name'],
       basePrice: double.tryParse(json['basePrice']?.toString() ?? '') ?? double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
+      purchasePrice: double.tryParse(json['purchasePrice']?.toString() ?? '') ?? 0.0,
       stock: int.tryParse(json['stock']?.toString() ?? '') ?? 0,
       category_id: json['category_id']?.toString() ?? json['categoryId']?.toString(),
       uom: json['uom']?.toString() ?? json['uomId']?.toString() ?? 'pcs',
@@ -52,6 +55,7 @@ class ProductModel {
       'barcode': barcode,
       'name': name,
       'basePrice': basePrice,
+      'purchasePrice': purchasePrice,
       'stock': stock,
       'category_id': category_id,
       'uom': uom,
@@ -67,6 +71,7 @@ class ProductModel {
     String? barcode,
     String? name,
     double? basePrice,
+    double? purchasePrice,
     int? stock,
     String? category_id,
     String? uom,
@@ -80,6 +85,7 @@ class ProductModel {
       barcode: barcode ?? this.barcode,
       name: name ?? this.name,
       basePrice: basePrice ?? this.basePrice,
+      purchasePrice: purchasePrice ?? this.purchasePrice,
       stock: stock ?? this.stock,
       category_id: category_id ?? this.category_id,
       uom: uom ?? this.uom,

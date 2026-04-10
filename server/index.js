@@ -30,6 +30,8 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 })();
 
 app.use("/billify", mainRouter);
+app.get("/billify/ping", (req, res) => res.json({ status: "ok", time: new Date().toISOString() }));
+
 app.get("/billify/test", (req, res) => {
     res.json(
         {

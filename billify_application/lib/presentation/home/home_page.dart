@@ -14,6 +14,7 @@ import 'package:billify_application/providers/feature_settings_provider.dart';
 import 'package:billify_application/providers/invoice_provider.dart';
 import 'package:billify_application/providers/product_provider.dart';
 import 'package:billify_application/data/models/user_permission.dart';
+import 'package:billify_application/presentation/analytics/analytics_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -587,6 +588,24 @@ class _HomePageState extends ConsumerState<HomePage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => const KhataDashboardScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  if (authState.hasPermission(
+                    PermissionModule.analytics,
+                    PermissionAction.view,
+                  ))
+                    _QuickMenuItem(
+                      icon: Icons.analytics,
+                      label: 'Reports',
+                      color: Colors.indigo,
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AnalyticsDashboardScreen(),
                           ),
                         );
                       },

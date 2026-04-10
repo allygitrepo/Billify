@@ -173,6 +173,7 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
     final barcodeController = TextEditingController(text: product?.barcode ?? barcode ?? '');
     final nameController = TextEditingController(text: product?.name ?? '');
     final priceController = TextEditingController(text: product?.basePrice.toString() ?? '');
+    final purchasePriceController = TextEditingController(text: product?.purchasePrice.toString() ?? '');
     final stockController = TextEditingController(text: product?.stock.toString() ?? '1');
     
     String? selectedCategoryId = product?.category_id;
@@ -297,6 +298,7 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
                         Row(
                           children: [
                             Expanded(
+                              flex: 1,
                               child: CustomTextField(
                                 controller: priceController,
                                 label: 'Price',
@@ -306,7 +308,23 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
                                 validator: (v) => Validators.validateRequired(v, 'Price'),
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 1,
+                              child: CustomTextField(
+                                controller: purchasePriceController,
+                                label: 'Cost Price',
+                                hint: '0.00',
+                                keyboardType: TextInputType.number,
+                                prefixIcon: Icons.shopping_basket_outlined,
+                                validator: (v) => Validators.validateRequired(v, 'Cost Price'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
                             Expanded(
                               child: CustomTextField(
                                 controller: stockController,
@@ -424,6 +442,7 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
                               barcode: hasVariants ? '' : barcodeController.text,
                               name: nameController.text,
                               basePrice: hasVariants ? 0.0 : (double.tryParse(priceController.text) ?? 0.0),
+                              purchasePrice: hasVariants ? 0.0 : (double.tryParse(purchasePriceController.text) ?? 0.0),
                               stock: hasVariants ? 0 : (int.tryParse(stockController.text) ?? 0),
                               category_id: selectedCategoryId,
                               uom: selectedUomId,

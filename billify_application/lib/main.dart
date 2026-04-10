@@ -12,6 +12,12 @@ import 'package:billify_application/presentation/settings/user_management_page.d
 import 'package:billify_application/presentation/settings/profile_page.dart';
 import 'package:billify_application/presentation/customers/customer_list_screen.dart';
 import 'package:billify_application/presentation/payments/add_payment_screen.dart';
+import 'package:billify_application/presentation/analytics/analytics_dashboard_screen.dart';
+import 'package:billify_application/presentation/analytics/report_screens.dart';
+import 'package:billify_application/features/analytics/sales_reports/presentation/sales_reports_screen.dart';
+import 'package:billify_application/features/analytics/profit_reports/presentation/profit_reports_screen.dart';
+import 'package:billify_application/features/analytics/khata_reports/presentation/khata_reports_screen.dart';
+import 'package:billify_application/features/analytics/customer_reports/presentation/customer_reports_screen.dart';
 import 'package:billify_application/providers/storage_provider.dart';
 import 'package:billify_application/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
@@ -67,12 +73,22 @@ class BillifyApp extends ConsumerWidget {
         '/profile': (context) => const ProfilePage(),
         '/customers': (context) => const CustomerListScreen(),
         '/add-payment': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          final args =
+              ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
           if (args != null && args.containsKey('customerId')) {
             return AddPaymentScreen(customerId: args['customerId'] as int);
           }
-          return const Scaffold(body: Center(child: Text('CustomerId required')));
+          return const Scaffold(
+            body: Center(child: Text('CustomerId required')),
+          );
         },
+        '/analytics': (context) => const AnalyticsDashboardScreen(),
+        '/analytics/sales': (context) => const SalesReportsScreen(),
+        '/analytics/profit': (context) => const ProfitReportsScreen(),
+        '/analytics/inventory': (context) => const InventoryReportsScreen(),
+        '/analytics/customers': (context) => const CustomerReportsScreen(),
+        '/analytics/khata': (context) => const KhataReportsScreen(),
+        '/analytics/payments': (context) => const PaymentReportsScreen(),
       },
     );
   }

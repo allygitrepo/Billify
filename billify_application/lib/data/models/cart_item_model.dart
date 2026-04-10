@@ -23,7 +23,7 @@ class CartItemModel {
         id: (json['product_id'] ?? json['productId'] ?? '0').toString(),
         name: json['product_name'] ?? json['productName'] ?? 'Deleted Product',
         barcode: '',
-        basePrice: (json['price'] as num?)?.toDouble() ?? 0.0,
+        basePrice: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
         stock: 0,
         uom: 'pcs',
       );

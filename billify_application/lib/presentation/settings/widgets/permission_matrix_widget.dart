@@ -76,6 +76,7 @@ class _PermissionMatrixWidgetState extends State<PermissionMatrixWidget> {
           PermissionModule.userManagement,
           PermissionModule.customers,
           PermissionModule.payments,
+          PermissionModule.analytics,
         ].map((module) {
           final modulePermissions = _permissions[module] ?? [];
           return DataRow(

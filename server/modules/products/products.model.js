@@ -10,6 +10,7 @@ const Product = sequelize.define("Product", {
     name: { type: DataTypes.STRING, allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     basePrice: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    purchasePrice: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     hsnCode: { type: DataTypes.STRING, allowNull: true },
     uom: { type: DataTypes.STRING, defaultValue: 'Pcs' },
     status: { type: DataTypes.STRING, defaultValue: 'active' }, // 'active' or 'inactive'

@@ -14,6 +14,16 @@ import { formatCurrency } from '../../utils/formatCurrency';
 import { fileToBase64, validateImage } from '../../utils/fileHelpers';
 import { exportToCSV, importFromCSV, downloadTemplate as downloadCSVTemplate } from '../../utils/csvService';
 
+const UOM_OPTIONS = [
+  { label: 'Pieces (pcs)', value: 'pcs' },
+  { label: 'Kilograms (kg)', value: 'kg' },
+  { label: 'Grams (g)', value: 'g' },
+  { label: 'Litre (l)', value: 'litre' },
+  { label: 'Millilitre (ml)', value: 'ml' },
+  { label: 'Meter (m)', value: 'meter' }
+];
+
+
 const Products = () => {
   const fileInputRef = useRef(null);
   const { products, categories: allCategories, uoms, addProduct, updateProduct, deleteProduct, showToast, settings } = useDataContext();
@@ -48,11 +58,13 @@ const Products = () => {
     description: '',
     basePrice: '',
     hsnCode: '',
-    uom: 'Pcs',
+    uom: 'pcs',
+    is_weighted: false,
     status: 'active',
     photo: '',
     variants: [{ id: Date.now(), name: '', sku: '', price: '', stock: '', status: 'active' }]
   });
+
   const [errors, setErrors] = useState({});
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
@@ -60,10 +72,23 @@ const Products = () => {
   // Handlers
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const val = type === 'checkbox' ? (checked ? 'active' : 'inactive') : value;
+    let val = type === 'checkbox' ? (checked ? 'active' : 'inactive') : value;
+    
+    // Special handling for is_weighted toggle
+    if (name === 'is_weighted') {
+      const isWeighted = checked;
+      setFormData(prev => ({ 
+        ...prev, 
+        is_weighted: isWeighted,
+        uom: isWeighted ? 'kg' : 'pcs' 
+      }));
+      return;
+    }
+
     setFormData(prev => ({ ...prev, [name]: val }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
+
 
   const handleProductPhotoChange = async (e) => {
     const file = e.target.files[0];
@@ -132,21 +157,17 @@ const Products = () => {
 
     if (!validateForm()) return;
 
-    // Simulate FormData
-    const mockFormData = new FormData();
-    Object.keys(formData).forEach(key => {
-      mockFormData.append(key, formData[key]);
-    });
-
     const processedData = {
       ...formData,
       basePrice: parseFloat(formData.basePrice) || 0,
+      is_weighted: !!formData.is_weighted,
       variants: formData.variants.map(v => ({
         ...v,
-        price: parseFloat(v.price),
-        stock: parseInt(v.stock)
+        price: parseFloat(v.price) || 0,
+        stock: formData.is_weighted ? parseFloat(v.stock) || 0 : parseInt(v.stock) || 0
       }))
     };
+
 
     if (isEditing) {
       updateProduct(editingId, processedData);
@@ -167,11 +188,13 @@ const Products = () => {
       description: '',
       basePrice: '',
       hsnCode: '',
-      uom: 'Pcs',
+      uom: 'pcs',
+      is_weighted: false,
       status: 'active',
       photo: '',
       variants: [{ id: Date.now(), name: '', sku: '', price: '', stock: '', status: 'active' }]
     });
+
     setErrors({});
     setShowForm(false);
     setIsEditing(false);
@@ -184,10 +207,35 @@ const Products = () => {
   const handleEdit = (product) => {
     setIsEditing(true);
     setEditingId(product.id);
-    setFormData({ ...product });
+    
+    // Ensure we have at least one variant for non-variant products
+    const variants = (product.variants && product.variants.length > 0)
+      ? product.variants.map(v => ({
+          ...v,
+          price: parseFloat(v.price) || 0,
+          stock: v.current_stock || v.opening_stock || 0
+        }))
+      : [{ 
+          id: Date.now(), 
+          name: 'Standard', 
+          sku: product.sku || '', 
+          price: parseFloat(product.price) || 0, 
+          stock: product.current_stock || product.opening_stock || 0,
+          status: 'active' 
+        }];
+
+    setFormData({ 
+      ...product, 
+      basePrice: product.price || 0,
+      is_weighted: !!product.is_weighted,
+      variants: variants
+    });
+    
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+
 
   const handleDelete = (id) => {
     setProductToDelete(id);
@@ -364,19 +412,46 @@ const Products = () => {
       {
         key: 'photo',
         label: 'Image',
+        render: (_, row) => {
+          const imageSrc = row.photo 
+            ? `data:image/jpeg;base64,${row.photo}` 
+            : "/placeholder.png";
+            
+          return (
+            <div className="table-thumb">
+              <img src={imageSrc} alt="Product" style={{ width: 40, height: 40, objectFit: 'cover' }} />
+            </div>
+          );
+        }
+      },
+
+
+
+      { key: 'name', label: 'Product Name' },
+      { 
+        key: 'is_weighted', 
+        label: 'Type',
         render: (val) => (
-          <div className="table-thumb">
-            {val ? <img src={val} alt="Product" /> : null}
-          </div>
+          <span className={`badge ${val ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: '10px' }}>
+            {val ? '⚖️ Loose' : '📦 Packaged'}
+          </span>
         )
       },
-      { key: 'name', label: 'Product Name' },
       { key: 'category', label: 'Category' },
+
       {
-        key: 'basePrice',
-        label: 'Base Price',
-        render: (price) => formatCurrency(price)
+        key: 'price',
+        label: 'Price',
+        render: (_, row) => {
+          const price = (row.variants && row.variants.length > 0)
+            ? row.variants[0].price
+            : (row.price || 0);
+          return formatCurrency(price);
+        }
       },
+
+
+
       {
         key: 'variants',
         label: 'Variants',
@@ -388,23 +463,33 @@ const Products = () => {
               {(variants || []).map((v, i) => (
                 <div key={i} className="tooltip-item">
                   <span className="v-name">{v.name || 'Standard'}</span>
-                  <span className={`v-stock ${(parseInt(v.stock) || 0) <= 10 ? 'low' : ''}`}>{v.stock} unit</span>
+                  <span className={`v-stock ${(parseInt(v.current_stock) || 0) <= 10 ? 'low' : ''}`}>{v.current_stock || 0}</span>
                 </div>
               ))}
+
             </div>
           </div>
         )
       },
       {
         key: 'stock',
-        label: 'Stock',
+        label: 'Total Stock',
         render: (_, row) => {
-          const variants = row.variants || [];
-          if (variants.length === 0) return '0';
-          const lowest = Math.min(...variants.map(v => parseInt(v.stock) || 0));
-          return <span style={{ color: lowest <= 10 ? 'var(--danger-500)' : 'inherit', fontWeight: 'bold' }}>{lowest}</span>;
+          const totalStock = (row.variants && row.variants.length > 0)
+            ? row.variants.reduce((sum, v) => sum + Number(v.current_stock || 0), 0)
+            : Number(row.current_stock || row.opening_stock || 0);
+
+          const isLow = row.is_weighted ? totalStock <= 2 : totalStock <= 10;
+          return (
+            <span style={{ color: isLow ? 'var(--danger-500)' : 'inherit', fontWeight: 'bold' }}>
+              {totalStock}
+            </span>
+          );
         }
       },
+
+
+
       {
         key: 'status',
         label: 'Status',
@@ -554,33 +639,62 @@ const Products = () => {
                         name="uom" 
                         value={formData.uom} 
                         onChange={handleInputChange} 
-                        options={(uoms || []).map(u => ({ label: `${u.name} (${u.shortCode})`, value: u.shortCode }))} 
+                        options={UOM_OPTIONS} 
                         error={errors.uom} 
                         required 
                       />
+
+                      <div className="form-col-all mb-4">
+                        <label className="input-label mb-2 block">Selling Type</label>
+                        <div style={{ display: 'flex', gap: 'var(--spacing-4)' }}>
+                          <button
+                            type="button"
+                            className={`btn ${!formData.is_weighted ? 'btn-primary' : 'btn-secondary'}`}
+                            onClick={() => handleInputChange({ target: { name: 'is_weighted', checked: false, type: 'checkbox' } })}
+                            style={{ flex: 1, fontSize: '0.875rem' }}
+                          >
+                            📦 Packaged
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn ${formData.is_weighted ? 'btn-primary' : 'btn-secondary'}`}
+                            onClick={() => handleInputChange({ target: { name: 'is_weighted', checked: true, type: 'checkbox' } })}
+                            style={{ flex: 1, fontSize: '0.875rem' }}
+                          >
+                            ⚖️ Loose / Weighted
+                          </button>
+                        </div>
+                        <p style={{ fontSize: '11px', color: 'var(--neutral-400)', marginTop: '6px' }}>
+                          {formData.is_weighted ? "Allows decimal quantities (e.g. 0.5 kg)" : "Only whole numbers allowed (e.g. 1, 2, 3)"}
+                        </p>
+                      </div>
                       
                       {!settings.variantsEnabled && (
                         <>
                           <Input 
-                            label="Price" 
+                            label={formData.is_weighted ? "Price per Unit" : "Price"} 
                             name="price" 
                             type="number" 
+                            step={formData.is_weighted ? "0.01" : "1"}
                             value={formData.variants[0].price} 
                             onChange={(e) => handleVariantChange(0, e)} 
                             error={errors['variant_price_0']}
                             required
                           />
                           <Input 
-                            label="Initial Stock" 
+                            label={isEditing ? "Initial Stock (Locked)" : "Initial Stock"} 
                             name="stock" 
                             type="number" 
+                            step={formData.is_weighted ? "0.001" : "1"}
+                            disabled={isEditing}
                             value={formData.variants[0].stock} 
                             onChange={(e) => handleVariantChange(0, e)} 
                             error={errors['variant_stock_0']}
-                            required
+                            required={!isEditing}
                           />
                         </>
                       )}
+
 
                       <Input label="Base Price (Reference)" name="basePrice" type="number" value={formData.basePrice} onChange={handleInputChange} />
                       <ToggleSwitch label="Active Status" name="status" checked={formData.status === 'active'} onChange={handleInputChange} />
@@ -616,10 +730,46 @@ const Products = () => {
                           </div>
                           {formData.variants.map((v, idx) => (
                             <div key={v.id} className="variant-item-card-split">
-                              <Input placeholder="Variant Name" name="name" value={v.name} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_name_${idx}`]} />
-                              <Input placeholder="SKU" name="sku" value={v.sku} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_sku_${idx}`]} />
-                              <Input placeholder="Price" name="price" type="number" value={v.price} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_price_${idx}`]} />
-                              <Input placeholder="Stock" name="stock" type="number" value={v.stock} onChange={(e) => handleVariantChange(idx, e)} error={errors[`variant_stock_${idx}`]} />
+                              <Input 
+                                placeholder="Variant Name" 
+                                name="name" 
+                                value={v.name} 
+                                onChange={(e) => handleVariantChange(idx, e)} 
+                                error={errors[`variant_name_${idx}`]} 
+                              />
+                              <Input 
+                                placeholder="SKU/Barcode" 
+                                name="sku" 
+                                value={v.sku} 
+                                onChange={(e) => handleVariantChange(idx, e)} 
+                                error={errors[`variant_sku_${idx}`]} 
+                                endIcon={<span>📷</span>}
+                                onIconClick={(e) => {
+                                  const input = e.currentTarget.closest('.input-wrapper').querySelector('input');
+                                  if (input) input.focus();
+                                  showToast('Scanner focused. Use physical scanner or type barcode.');
+                                }}
+                              />
+                              <Input 
+                                placeholder="Price" 
+                                name="price" 
+                                type="number" 
+                                step={formData.is_weighted ? "0.01" : "1"}
+                                value={v.price} 
+                                onChange={(e) => handleVariantChange(idx, e)} 
+                                error={errors[`variant_price_${idx}`]} 
+                              />
+                              <Input 
+                                placeholder="Stock" 
+                                name="stock" 
+                                type="number" 
+                                step={formData.is_weighted ? "0.001" : "1"}
+                                disabled={isEditing && v.id < 1000000000000} // Disable only for existing variants
+                                value={v.stock} 
+                                onChange={(e) => handleVariantChange(idx, e)} 
+                                error={errors[`variant_stock_${idx}`]} 
+                              />
+
                               <ToggleSwitch
                                 name="status"
                                 checked={v.status === 'active'}

@@ -90,7 +90,17 @@ export const AuthProvider = ({ children }) => {
     
     setUser(updatedUser);
     localStorage.setItem('billify_user', JSON.stringify(updatedUser));
+    
+    // Sync with individual keys for header injection
+    if (businessId) {
+      localStorage.setItem('business_id', businessId);
+      if (businessInfo) {
+        localStorage.setItem('business_name', businessInfo.name);
+      }
+    }
+
     return { success: true };
+
   };
 
   const refreshUser = (newData) => {

@@ -9,7 +9,9 @@ import { uomService } from '../services/uom.service';
 import { invoiceService } from '../services/invoice.service';
 import { inventoryService } from '../services/inventory.service';
 import { settingsService } from '../services/settings.service';
+import { customerService } from '../services/customer.service';
 import { generateId } from '../utils/idGenerator';
+
 import Toast from '../components/common/Toast';
 import { AnimatePresence } from 'framer-motion';
 
@@ -29,7 +31,9 @@ export const DataProvider = ({ children }) => {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [uoms, setUoms] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [toast, setToast] = useState(null);
 
   const showToast = (message, type = 'success') => {
@@ -51,8 +55,10 @@ export const DataProvider = ({ children }) => {
             uomsResult,
             transactionsResult,
             inventoryResult,
-            settingsResult
+            settingsResult,
+            customersResult
           ] = await Promise.all([
+
             businessService.getMyBusinesses(),
             userService.getUsers(businessId),
             roleService.getRoles(businessId),
@@ -61,8 +67,10 @@ export const DataProvider = ({ children }) => {
             uomService.getUOMs(businessId),
             invoiceService.getInvoices(businessId),
             inventoryService.getInventoryLog(businessId),
-            settingsService.getSettings(businessId)
+            settingsService.getSettings(businessId),
+            customerService.getCustomers({ business_id: businessId })
           ]);
+
           
           const rolesData = (rolesResult || []).map(role => {
             const permsObj = {};
@@ -162,8 +170,10 @@ export const DataProvider = ({ children }) => {
           setInventoryLog(mappedLogs);
           setSettings(mappedSettings);
           setBusinesses(businessesResult || []);
+          setCustomers(customersResult?.data || []);
           
         } catch (error) {
+
           console.error('Error fetching business data:', error);
           showToast('Failed to load business data', 'error');
         }
@@ -330,6 +340,43 @@ export const DataProvider = ({ children }) => {
     }
   };
 
+  // CUSTOMERS
+  const addCustomer = async (customerData) => {
+    try {
+      const result = await customerService.createCustomer(customerData);
+      setCustomers(prev => [...prev, result.data]);
+      showToast('Customer added successfully');
+      return result;
+    } catch (error) {
+      console.error('Add customer error:', error);
+      showToast(error.message || 'Failed to add customer', 'error');
+    }
+  };
+
+  const updateCustomer = async (id, updatedData) => {
+    try {
+      const result = await customerService.updateCustomer(id, updatedData);
+      setCustomers(prev => prev.map(c => c.id === id ? result.data : c));
+      showToast('Customer updated successfully');
+      return result;
+    } catch (error) {
+      console.error('Update customer error:', error);
+      showToast(error.message || 'Failed to update customer', 'error');
+    }
+  };
+
+  const deleteCustomer = async (id) => {
+    try {
+      await customerService.deleteCustomer(id);
+      setCustomers(prev => prev.filter(c => c.id !== id));
+      showToast('Customer deleted successfully');
+    } catch (error) {
+      console.error('Delete customer error:', error);
+      showToast(error.message || 'Failed to delete customer', 'error');
+    }
+  };
+
+
   // INVENTORY LOG & STOCK SYNC (Bulk Support)
   const addInventoryEntry = async (data) => {
     try {
@@ -382,13 +429,20 @@ export const DataProvider = ({ children }) => {
         enrichedLogs.forEach(log => {
           updated = updated.map(p => {
             if (p.id === log.product_id) {
-              const updatedVariants = p.variants.map(v => {
+              const updatedVariants = (p.variants || []).map(v => {
                 if (v.name === log.variant_name) {
-                  return { ...v, stock: log.stockAfter };
+                  return { ...v, current_stock: log.stockAfter };
                 }
                 return v;
               });
-              return { ...p, variants: updatedVariants };
+              // Update top-level current_stock if it's a standalone product matching the update
+              const isStandaloneMatch = p.variants.length === 0 && !log.variant_name;
+              return { 
+                ...p, 
+                current_stock: isStandaloneMatch ? log.stockAfter : p.current_stock,
+                variants: updatedVariants 
+              };
+
             }
             return p;
           });
@@ -413,13 +467,16 @@ export const DataProvider = ({ children }) => {
       const payload = {
         business_id: businessId,
         user_id: user?.id,
+        customer_id: transaction.customer_id,
+        customer_type: transaction.customer_type,
         customer_name: transaction.customerName || 'Walking Customer',
         customer_phone: transaction.customerPhone || '',
         total_amount: transaction.subtotal,
         discount: transaction.discount,
         tax_amount: (transaction.tax || 0) + (transaction.gst || 0),
         final_amount: transaction.total,
-        payment_mode: transaction.paymentMethod,
+        payment_mode: transaction.paymentMode,
+        paid_amount: transaction.paidAmount || 0,
         status: 'Paid',
         items: transaction.items.map(item => ({
           productId: item.productId,
@@ -432,6 +489,23 @@ export const DataProvider = ({ children }) => {
       };
 
       const result = await invoiceService.createInvoice(payload);
+      
+      // Proper Ledger Management: Record payment entry if cash was received (Matching mobile parity)
+      if (transaction.customer_id && transaction.customer_type === 'REGULAR' && transaction.paidAmount > 0) {
+        try {
+          await paymentService.receivePayment({
+            customer_id: transaction.customer_id,
+            amount: transaction.paidAmount,
+            payment_method: 'Cash',
+            note: `Payment received against Invoice #${result.invoice.invoice_number}`,
+            date: new Date().toISOString()
+          });
+        } catch (paymentError) {
+          console.error("Ledger sync error:", paymentError);
+          // We don't throw here to avoid failing the confirmed invoice, 
+          // but the record will be visible after next refresh
+        }
+      }
       
       // Update local transactions state
       const newTransaction = {
@@ -669,12 +743,18 @@ export const DataProvider = ({ children }) => {
     users,
     roles,
     loading,
+    uoms,
+    customers,
+    businessId,
     addCategory,
     updateCategory,
     deleteCategory,
     addProduct,
     updateProduct,
     deleteProduct,
+    addCustomer,
+    updateCustomer,
+    deleteCustomer,
     addInventoryEntry,
     addTransaction,
     updateSettings,
@@ -685,11 +765,11 @@ export const DataProvider = ({ children }) => {
     updateRole,
     addBusiness,
     deleteBusiness: deleteBusinessStore,
-    uoms,
     addUom,
     updateUom,
     deleteUom,
     showToast
+
   };
 
   return (

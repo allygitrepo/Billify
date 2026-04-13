@@ -415,16 +415,37 @@ textarea,
   background-color: var(--neutral-200);
 }
 
-.btn-danger {
-  background-color: var(--danger-500);
-  color: white;
-}
-
 .btn-danger:hover:not(:disabled) {
   background-color: var(--danger-600);
 }
 
+/* Badges & Indicators */
+.badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.badge-info {
+  background-color: var(--primary-50);
+  color: var(--primary-700);
+  border: 1px solid var(--primary-100);
+}
+
+.badge-warning {
+  background-color: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fef3c7;
+}
+
 .input-group {
+
   display: flex;
   flex-direction: column;
   gap: var(--spacing-1);

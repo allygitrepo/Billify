@@ -5,6 +5,8 @@ import PageContainer from '../../components/layout/PageContainer';
 import ProductGrid from '../../components/pos/ProductGrid';
 import CartPanel from '../../components/pos/CartPanel';
 import InvoiceModal from '../../components/pos/InvoiceModal';
+import WeightInputModal from '../../components/pos/WeightInputModal';
+import CustomerSelectorModal from '../../components/pos/CustomerSelectorModal';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { printInvoice } from '../../utils/printService';
 
@@ -21,18 +23,39 @@ const POS = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newInvoiceData, setNewInvoiceData] = useState(null);
 
-  const handleAddToCart = (product, variant) => {
+  // Flow States
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [paymentMode, setPaymentMode] = useState('CASH'); // CASH, KHATA, SPLIT
+  const [paidAmount, setPaidAmount] = useState('');
+  
+  // Flow Modals
+  const [weightModalData, setWeightModalData] = useState(null);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [pendingCheckoutData, setPendingCheckoutData] = useState(null);
+
+
+
+  const { customers = [] } = useDataContext();
+
+  const handleAddToCart = (product, variant, manualQty = null) => {
+    if (product.is_weighted && manualQty === null) {
+      setWeightModalData({ product, variant });
+      return;
+    }
+
     setCart(prev => {
       const cartItemId = `${product.id}-${variant.name}`;
       const existing = prev.find(item => item.cartItemId === cartItemId);
+      const qtyToAdd = manualQty !== null ? manualQty : 1;
 
       if (existing) {
-        if (existing.quantity >= variant.stock) {
-          showToast('Out of stock!', 'error');
+        const variantStock = variant.current_stock ?? variant.stock ?? 0;
+        if (existing.quantity + qtyToAdd > variantStock) {
+          showToast('Insufficient stock!', 'error');
           return prev;
         }
         return prev.map(item =>
-          item.cartItemId === cartItemId ? { ...item, quantity: item.quantity + 1 } : item
+          item.cartItemId === cartItemId ? { ...item, quantity: item.quantity + qtyToAdd } : item
         );
       }
 
@@ -42,15 +65,15 @@ const POS = () => {
         name: product.name,
         variantName: variant.name,
         price: variant.price,
-        stock: variant.stock,
+        stock: variant.current_stock ?? variant.stock ?? 0,
         hsnCode: product.hsnCode || '',
-        quantity: 1
+        quantity: qtyToAdd
       }];
     });
 
-    // Trigger flash feedback
     setFlashOrderId(prev => prev + 1);
   };
+
 
   const handleUpdateQty = (cartItemId, delta) => {
     setCart(prev => prev.map(item => {
@@ -71,7 +94,7 @@ const POS = () => {
     setCart(prev => prev.filter(item => item.cartItemId !== cartItemId));
   };
 
-  const handleCheckout = async (paymentMethod, customerInfo = {}) => {
+  const handleCheckoutTrigger = async (paymentMethod) => {
     if (cart.length === 0) return;
 
     const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -83,6 +106,14 @@ const POS = () => {
     const gst = subtotal * gstRate;
     const total = subtotal + tax + gst - discAmt;
 
+    // Validation for payment modes
+    if (paymentMode === 'KHATA' && !selectedCustomer) {
+      showToast('Please select a customer for Khata (Credit)', 'warning');
+      return;
+    }
+
+    const finalPaid = paymentMode === 'CASH' ? total : (parseFloat(paidAmount) || 0);
+
     const transaction = {
       type: 'Invoice',
       subtotal,
@@ -90,9 +121,12 @@ const POS = () => {
       gst,
       discount: discAmt,
       total,
-      paymentMethod,
-      customerName: customerInfo.customerName || 'Walking Customer',
-      customerPhone: customerInfo.customerPhone || '',
+      paymentMode,
+      paidAmount: finalPaid,
+      customer_id: selectedCustomer?.id,
+      customer_type: selectedCustomer ? 'REGULAR' : 'WALKIN',
+      customerName: selectedCustomer?.name || 'Walk-in Customer',
+      customerPhone: selectedCustomer?.phone || '',
       items: cart,
       itemsCount: cart.reduce((acc, i) => acc + i.quantity, 0)
     };
@@ -104,11 +138,16 @@ const POS = () => {
         setIsModalOpen(true);
         setCart([]);
         setDiscount('');
+        setSelectedCustomer(null);
+        setPaymentMode('CASH');
+        setPaidAmount('');
       }
     } catch (err) {
-      // Error is already handled with toast in useDataContext
+      // Handled in context
     }
   };
+
+
 
   const handlePrint = (transaction) => {
     printInvoice(transaction, settings);
@@ -159,15 +198,34 @@ const POS = () => {
             cart={cart}
             onUpdateQty={handleUpdateQty}
             onRemove={handleRemove}
-            onCheckout={handleCheckout}
+            onCheckout={handleCheckoutTrigger}
             discount={discount}
             onDiscountChange={setDiscount}
             settings={settings}
+            customers={customers}
+            selectedCustomer={selectedCustomer}
+            onSelectCustomer={setSelectedCustomer}
+            paymentMode={paymentMode}
+            onPaymentModeChange={setPaymentMode}
+            paidAmount={paidAmount}
+            onPaidAmountChange={setPaidAmount}
           />
         </div>
       </motion.div>
 
+      {/* Weight Modal */}
+      {weightModalData && (
+        <WeightInputModal
+          product={weightModalData.product}
+          variant={weightModalData.variant}
+          onClose={() => setWeightModalData(null)}
+          onAdd={handleAddToCart}
+        />
+      )}
+
       {/* Invoice Modal to show after checkout */}
+
+
       <InvoiceModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

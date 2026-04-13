@@ -7,8 +7,10 @@ const Table = ({
   data = [],
   isLoading = false,
   className = '',
-  showPagination = true
+  showPagination = true,
+  onRowClick = null
 }) => {
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -69,8 +71,9 @@ const Table = ({
               <motion.tr 
                 key={row.id || idx} 
                 variants={itemVariants}
-                className="table-row-hover"
-                style={{borderBottom: '1px solid var(--neutral-100)'}}
+                className={`table-row-hover ${onRowClick ? 'clickable-row' : ''}`}
+                style={{borderBottom: '1px solid var(--neutral-100)', cursor: onRowClick ? 'pointer' : 'default'}}
+                onClick={() => onRowClick && onRowClick(row)}
               >
                 {columns.map((col) => (
                   <td key={col.key} style={{padding: 'var(--spacing-4) var(--spacing-6)', fontSize: '0.875rem', color: 'var(--neutral-700)', whiteSpace: 'nowrap'}}>

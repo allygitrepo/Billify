@@ -59,37 +59,66 @@ const inventoryController = {
                 // Allow per-item type, fallback to root type
                 const finalType = itemType || type;
 
+                // Improved matching: try specific variant first, then 'Default', then first available
                 let variant = await Variant.findOne({ 
                     where: { product_id, name: variant_name || 'Default' },
                     transaction: t
                 });
 
-                // Fallback: If 'Default' or specified name not found, take the first available variant for this product
-                if (!variant) {
+                if (!variant && variant_name && variant_name !== 'Default') {
                     variant = await Variant.findOne({ 
-                        where: { product_id },
+                        where: { product_id, name: 'Default' },
                         transaction: t
                     });
                 }
 
                 if (!variant) {
-                    throw new Error(`No variant found for product ID ${product_id}. Stock cannot be updated.`);
+                    variant = await Variant.findOne({ 
+                        where: { product_id, status: 'active' },
+                        transaction: t
+                    });
                 }
 
-                const currentStock = parseInt(variant.stock) || 0;
-                // Use per-item logic for netChange
-                const netChange = finalType === 'IN' ? Math.abs(quantity_change) : -Math.abs(quantity_change);
-                const stockAfter = Math.max(0, currentStock + netChange);
+                let currentStock;
+                let stockAfter;
+                let netChange;
+                const change = Math.abs(parseFloat(quantity_change));
+                netChange = finalType === 'IN' ? change : -change;
 
-                // Update Variant Stock
-                await variant.update({ stock: stockAfter }, { transaction: t });
+                if (variant) {
+                    currentStock = parseFloat(variant.current_stock) || 0;
+                    stockAfter = parseFloat((currentStock + netChange).toFixed(3));
+
+                    // Update Variant Stock
+                    await variant.update({ current_stock: stockAfter }, { transaction: t });
+
+                    // Synchronize parent Product current_stock
+                    const product = await Product.findByPk(product_id, { transaction: t });
+                    if (product) {
+                        const allVariants = await Variant.findAll({ where: { product_id, status: 'active' }, transaction: t });
+                        const totalProductStock = allVariants.reduce((sum, v) => sum + parseFloat(v.current_stock), 0);
+                        await product.update({ current_stock: parseFloat(totalProductStock.toFixed(3)) }, { transaction: t });
+                    }
+                } else {
+                    // Update Product directly if no variant found
+                    const product = await Product.findByPk(product_id, { transaction: t });
+                    if (!product) {
+                        throw new Error(`Product ID ${product_id} not found. Stock cannot be updated.`);
+                    }
+
+                    currentStock = parseFloat(product.current_stock) || 0;
+                    stockAfter = parseFloat((currentStock + netChange).toFixed(3));
+
+                    // Update Product Stock
+                    await product.update({ current_stock: stockAfter }, { transaction: t });
+                }
 
                 // Create Log Entry
                 const log = await InventoryLog.create({
                     business_id,
                     product_id,
-                    variant_name,
-                    change_type: finalType, // Per-item type
+                    variant_name: variant ? (variant_name || variant.name) : 'No Variant',
+                    change_type: finalType,
                     quantity_change: netChange,
                     reason: reason || 'Manual Update',
                     stock_after: stockAfter,

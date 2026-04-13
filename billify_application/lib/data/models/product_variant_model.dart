@@ -5,7 +5,8 @@ class ProductVariantModel {
   final String name;
   final String sku;
   final double price;
-  final int stock;
+  final double openingStock;
+  final double currentStock;
   final String uom;
 
   ProductVariantModel({
@@ -13,17 +14,26 @@ class ProductVariantModel {
     required this.name,
     required this.sku,
     required this.price,
-    required this.stock,
+    double? openingStock,
+    double? currentStock,
+    double? stock, // Legacy support
     required this.uom,
-  });
+  })  : this.openingStock = openingStock ?? stock ?? 0.0,
+        this.currentStock = currentStock ?? stock ?? 0.0;
+
+  // Alias for backward compatibility
+  double get stock => currentStock;
 
   factory ProductVariantModel.fromJson(Map<String, dynamic> json) {
+    final currentStockVal = double.tryParse(json['current_stock']?.toString() ?? '') ?? 
+                            double.tryParse(json['stock']?.toString() ?? '') ?? 0.0;
     return ProductVariantModel(
       id: json['id'].toString(),
       name: json['name'],
       sku: json['sku'] ?? json['barcode'] ?? '',
       price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
-      stock: int.tryParse(json['stock']?.toString() ?? '') ?? 0,
+      openingStock: double.tryParse(json['opening_stock']?.toString() ?? '') ?? currentStockVal,
+      currentStock: currentStockVal,
       uom: json['uom']?.toString() ?? json['uomId']?.toString() ?? 'pcs',
     );
   }
@@ -34,7 +44,9 @@ class ProductVariantModel {
       'name': name,
       'sku': sku,
       'price': price,
-      'stock': stock,
+      'opening_stock': openingStock,
+      'current_stock': currentStock,
+      'stock': currentStock, // Legacy
       'uom': uom,
     };
   }
@@ -44,7 +56,9 @@ class ProductVariantModel {
     String? name,
     String? sku,
     double? price,
-    int? stock,
+    double? openingStock,
+    double? currentStock,
+    double? stock, // Legacy support
     String? uom,
   }) {
     return ProductVariantModel(
@@ -52,7 +66,8 @@ class ProductVariantModel {
       name: name ?? this.name,
       sku: sku ?? this.sku,
       price: price ?? this.price,
-      stock: stock ?? this.stock,
+      openingStock: openingStock ?? this.openingStock,
+      currentStock: currentStock ?? stock ?? this.currentStock,
       uom: uom ?? this.uom,
     );
   }
@@ -63,7 +78,8 @@ class ProductVariantModel {
       name: '',
       sku: '',
       price: 0.0,
-      stock: 0,
+      openingStock: 0.0,
+      currentStock: 0.0,
       uom: 'pcs',
     );
   }

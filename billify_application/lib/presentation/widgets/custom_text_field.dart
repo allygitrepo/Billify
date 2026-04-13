@@ -93,11 +93,17 @@ class _CustomTextFieldState extends State<CustomTextField> {
             fillColor: Theme.of(context).colorScheme.surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(
+                color: Theme.of(context).dividerColor.withOpacity(0.1),
+                width: 1,
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(
+                color: Theme.of(context).dividerColor.withOpacity(0.2),
+                width: 1,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppConstants.borderRadius),

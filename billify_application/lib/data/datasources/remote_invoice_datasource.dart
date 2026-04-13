@@ -45,7 +45,9 @@ class RemoteInvoiceDatasource {
           return {
             'productId': item.product.id,
             'productName': item.customName?.isNotEmpty == true ? item.customName! : item.product.name,
-            'variantName': item.product.selectedVariantId != null ? item.product.variants.firstWhere((v) => v.id == item.product.selectedVariantId, orElse: () => item.product.variants.first).name : null,
+            'variantName': item.product.selectedVariantId != null 
+                ? item.product.variants.where((v) => v.id == item.product.selectedVariantId).firstOrNull?.name 
+                : null,
             'quantity': item.quantity,
             'price': item.price,
             'subtotal': item.subtotal

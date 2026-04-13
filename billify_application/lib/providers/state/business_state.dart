@@ -3,10 +3,14 @@ import 'package:billify_application/data/models/business_model.dart';
 class BusinessState {
   final List<BusinessModel> businesses;
   final String? currentBusinessId;
+  final String? error;
+  final dynamic errorObject;
 
   BusinessState({
     this.businesses = const [],
     this.currentBusinessId,
+    this.error,
+    this.errorObject,
   });
 
   BusinessModel? get currentBusiness {
@@ -20,10 +24,14 @@ class BusinessState {
   BusinessState copyWith({
     List<BusinessModel>? businesses,
     String? currentBusinessId,
+    String? error,
+    dynamic errorObject,
   }) {
     return BusinessState(
       businesses: businesses ?? this.businesses,
       currentBusinessId: currentBusinessId ?? this.currentBusinessId,
+      error: error,
+      errorObject: errorObject ?? this.errorObject,
     );
   }
 }

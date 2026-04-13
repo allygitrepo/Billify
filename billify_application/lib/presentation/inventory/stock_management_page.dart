@@ -14,6 +14,9 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:intl/intl.dart';
 import 'package:billify_application/data/models/user_permission.dart';
 import 'package:billify_application/providers/auth_provider.dart';
+import 'package:billify_application/presentation/billing/widgets/weight_input_sheet.dart';
+import 'package:billify_application/providers/uom_provider.dart';
+import 'package:billify_application/presentation/widgets/error_handler.dart';
 
 class StockManagementPage extends ConsumerStatefulWidget {
   const StockManagementPage({super.key});
@@ -26,7 +29,7 @@ class StockManagementPage extends ConsumerStatefulWidget {
 class _StockManagementPageState extends ConsumerState<StockManagementPage> {
   StockMode _mode = StockMode.inMode;
   int _selectedTabIndex = 0; // 0: Transaction, 1: In-Stock, 2: History
-  final Map<String, int> _transactionItems = {}; // ProductId -> Quantity
+  final Map<String, double> _transactionItems = {}; // ProductId -> Quantity
   bool _isProcessing = false;
   String? _selectedReason;
   final TextEditingController _otherReasonController = TextEditingController();
@@ -68,24 +71,52 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
     // Stock Out Validation
     if (_mode == StockMode.outMode) {
       if (product.stock <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cannot remove stock from an out-of-stock item'),
-          ),
-        );
+        ErrorHandler.showErrorSnackBar(context, 'Cannot remove stock from an out-of-stock item');
         return;
       }
+    }
+
+    if (product.is_weighted) {
+      _showWeightInputSheet(product);
+      return;
     }
 
     setState(() {
       final key = product.selectedVariantId != null
           ? '${product.id}:${product.selectedVariantId}'
           : product.id;
-      _transactionItems[key] = (_transactionItems[key] ?? 0) + 1;
+      _transactionItems[key] = (_transactionItems[key] ?? 0.0) + 1.0;
     });
   }
 
-  void _updateQuantity(String compositeId, int newQuantity) {
+  void _showWeightInputSheet(ProductModel product, {double? initialQuantity}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => WeightInputSheet(
+        product: product,
+        buttonLabel: _mode == StockMode.inMode ? 'ADD STOCK' : 'REMOVE STOCK',
+        onAdd: (quantity) {
+          setState(() {
+            final key = product.selectedVariantId != null
+                ? '${product.id}:${product.selectedVariantId}'
+                : product.id;
+            
+            if (initialQuantity != null) {
+              // If editing, replace quantity
+              _transactionItems[key] = quantity;
+            } else {
+              // If adding new, increment
+              _transactionItems[key] = (_transactionItems[key] ?? 0.0) + quantity;
+            }
+          });
+        },
+      ),
+    );
+  }
+
+  void _updateQuantity(String compositeId, double newQuantity) {
     if (newQuantity <= 0) {
       setState(() {
         _transactionItems.remove(compositeId);
@@ -104,7 +135,7 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
 
     try {
       // For Out mode, we send negative deltas
-      final Map<String, int> deltas = {};
+      final Map<String, double> deltas = {};
       _transactionItems.forEach((key, qty) {
         deltas[key] = _mode == StockMode.inMode ? qty : -qty;
       });
@@ -125,26 +156,20 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
           );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Stock updated successfully for ${_transactionItems.length} products',
-            ),
-          ),
+        ErrorHandler.showSuccessSnackBar(
+          context,
+          'Stock updated successfully for ${_transactionItems.length} products',
         );
         setState(() {
           _transactionItems.clear();
-          _selectedTabIndex = 2; // Switch to history to see the change
+          _selectedTabIndex = 1; // Switch to Portfolio to see the change
         });
+        // Force refresh products to update the list
+        ref.read(productProvider.notifier).fetchAndSyncProducts();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating stock: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ErrorHandler.showErrorSnackBar(context, e);
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -313,7 +338,8 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                                   ),
                                   trailing: Icon(
                                     Icons.add_circle_outline,
-                                    color: (_mode == StockMode.outMode &&
+                                    color:
+                                        (_mode == StockMode.outMode &&
                                             v.stock <= 0)
                                         ? Colors.grey
                                         : AppTheme.primaryTeal,
@@ -322,19 +348,19 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                                   onTap: () {
                                     if (_mode == StockMode.outMode &&
                                         v.stock <= 0) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
-                                          content:
-                                              Text('Product out of stock'),
+                                          content: Text('Product out of stock'),
                                         ),
                                       );
                                       return;
                                     }
+                                    Navigator.pop(context);
                                     _addItem(
                                       p.copyWith(selectedVariantId: v.id),
                                     );
-                                    Navigator.pop(context);
                                   },
                                 ),
                               )
@@ -372,8 +398,8 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                             );
                             return;
                           }
-                          _addItem(p);
                           Navigator.pop(context);
+                          _addItem(p);
                         },
                       );
                     },
@@ -573,9 +599,11 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                         final productId = parts[0];
                         final variantId = parts.length > 1 ? parts[1] : null;
 
-                        final p = allProducts.firstWhere(
+                        final p = allProducts.where(
                           (p) => p.id == productId,
-                        );
+                        ).firstOrNull;
+
+                        if (p == null) return const SizedBox.shrink();
 
                         return _StockItemTile(
                           product: p,
@@ -701,7 +729,7 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search products or barcodes...',
+                  hintText: 'Search products...',
                   prefixIcon: const Icon(
                     Icons.search,
                     color: AppTheme.primaryTeal,
@@ -731,16 +759,12 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                     final matchesName = p.name.toLowerCase().contains(
                       _searchQuery,
                     );
-                    final matchesBarcode = p.barcode.toLowerCase().contains(
-                      _searchQuery,
-                    );
                     final matchesVariant = p.variants.any(
                       (v) =>
-                          v.name.toLowerCase().contains(_searchQuery) ||
-                          v.sku.toLowerCase().contains(_searchQuery),
+                          v.name.toLowerCase().contains(_searchQuery)
                     );
 
-                    if (!matchesName && !matchesBarcode && !matchesVariant) {
+                    if (!matchesName && !matchesVariant) {
                       return const SizedBox.shrink();
                     }
                   }
@@ -977,8 +1001,8 @@ class _HistoryItem extends ConsumerWidget {
     // Find product to get image
     final product = ref
         .watch(productProvider)
-        .cast<ProductModel?>()
-        .firstWhere((p) => p?.id == history.product_id, orElse: () => null);
+        .where((p) => p.id == history.product_id)
+        .firstOrNull;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -1175,8 +1199,8 @@ class _ModeButton extends StatelessWidget {
 class _StockItemTile extends StatelessWidget {
   final ProductModel product;
   final String? variantId;
-  final int quantity;
-  final Function(int) onUpdateQty;
+  final double quantity;
+  final Function(double) onUpdateQty;
   final bool isStockOut;
 
   const _StockItemTile({
@@ -1191,13 +1215,15 @@ class _StockItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     String name = product.name;
     String barcode = product.barcode;
-    int currentStock = product.stock;
+    double currentStock = product.stock;
 
     if (variantId != null) {
-      final variant = product.variants.firstWhere((v) => v.id == variantId);
-      name = '${product.name} (${variant.name})';
-      barcode = variant.sku;
-      currentStock = variant.stock;
+      final variant = product.variants.where((v) => v.id == variantId).firstOrNull;
+      if (variant != null) {
+        name = '${product.name} (${variant.name})';
+        barcode = variant.sku;
+        currentStock = variant.stock;
+      }
     }
 
     return Card(
@@ -1219,14 +1245,25 @@ class _StockItemTile extends StatelessWidget {
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: product.photo != null && product.photo!.isNotEmpty
-                      ? Image.memory(
-                          base64Decode(product.photo!.split(',').last),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(
+                      ? Builder(
+                          builder: (context) {
+                            try {
+                              return Image.memory(
+                                base64Decode(product.photo!.split(',').last),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(
+                                  Icons.image_not_supported_outlined,
+                                  size: 18,
+                                ),
+                              );
+                            } catch (e) {
+                              return const Icon(
                                 Icons.image_not_supported_outlined,
                                 size: 18,
-                              ),
+                              );
+                            }
+                          },
                         )
                       : const Icon(
                           Icons.shopping_bag_outlined,
@@ -1260,12 +1297,37 @@ class _StockItemTile extends StatelessWidget {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.remove_circle_outline, size: 20),
-                      onPressed: () => onUpdateQty(quantity - 1),
+                      onPressed: () {
+                        if (product.is_weighted) {
+                          // Allow editing with weight screen
+                          final parent = context.findAncestorStateOfType<
+                            _StockManagementPageState
+                          >();
+                          parent?._showWeightInputSheet(
+                            product,
+                            initialQuantity: quantity,
+                          );
+                        } else {
+                          onUpdateQty(quantity - 1);
+                        }
+                      },
                       constraints: const BoxConstraints(),
                       padding: const EdgeInsets.all(8),
                     ),
                     InkWell(
-                      onTap: () => _showManualQuantityDialog(context),
+                      onTap: () {
+                        if (product.is_weighted) {
+                          final parent = context.findAncestorStateOfType<
+                            _StockManagementPageState
+                          >();
+                          parent?._showWeightInputSheet(
+                            product,
+                            initialQuantity: quantity,
+                          );
+                        } else {
+                          _showManualQuantityDialog(context);
+                        }
+                      },
                       borderRadius: BorderRadius.circular(4),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -1289,7 +1351,19 @@ class _StockItemTile extends StatelessWidget {
                     ),
                     IconButton(
                       icon: const Icon(Icons.add_circle_outline, size: 20),
-                      onPressed: () => onUpdateQty(quantity + 1),
+                      onPressed: () {
+                        if (product.is_weighted) {
+                          final parent = context.findAncestorStateOfType<
+                            _StockManagementPageState
+                          >();
+                          parent?._showWeightInputSheet(
+                            product,
+                            initialQuantity: quantity,
+                          );
+                        } else {
+                          onUpdateQty(quantity + 1);
+                        }
+                      },
                       constraints: const BoxConstraints(),
                       padding: const EdgeInsets.all(8),
                     ),
@@ -1327,7 +1401,7 @@ class _StockItemTile extends StatelessWidget {
 
   Future<void> _showManualQuantityDialog(BuildContext context) async {
     final controller = TextEditingController(text: quantity.toString());
-    final result = await showDialog<int?>(
+    final result = await showDialog<double?>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Enter Quantity for ${product.name}'),
@@ -1340,7 +1414,7 @@ class _StockItemTile extends StatelessWidget {
             suffixText: product.uom.isNotEmpty ? product.uom : 'units',
           ),
           onSubmitted: (val) {
-            final qty = int.tryParse(val);
+            final qty = double.tryParse(val);
             if (qty != null) Navigator.pop(context, qty);
           },
         ),
@@ -1351,7 +1425,7 @@ class _StockItemTile extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              final qty = int.tryParse(controller.text);
+              final qty = double.tryParse(controller.text);
               if (qty != null) Navigator.pop(context, qty);
             },
             child: const Text('OK'),
@@ -1366,13 +1440,16 @@ class _StockItemTile extends StatelessWidget {
   }
 }
 
-class _InventoryProductTile extends StatelessWidget {
+class _InventoryProductTile extends ConsumerWidget {
   final ProductModel product;
 
   const _InventoryProductTile({required this.product});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uoms = ref.watch(uomProvider);
+    final resolvedUom = uoms.where((u) => u.id == product.uom).firstOrNull?.shortCode ?? product.uom;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
@@ -1403,11 +1480,19 @@ class _InventoryProductTile extends StatelessWidget {
           ),
           clipBehavior: Clip.antiAlias,
           child: product.photo != null && product.photo!.isNotEmpty
-              ? Image.memory(
-                  base64Decode(product.photo!.split(',').last),
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.image_not_supported_outlined, size: 20),
+              ? Builder(
+                  builder: (context) {
+                    try {
+                      return Image.memory(
+                        base64Decode(product.photo!.split(',').last),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.image_not_supported_outlined, size: 20),
+                      );
+                    } catch (e) {
+                      return const Icon(Icons.image_not_supported_outlined, size: 20);
+                    }
+                  },
                 )
               : const Icon(
                   Icons.inventory_2_outlined,
@@ -1425,7 +1510,7 @@ class _InventoryProductTile extends StatelessWidget {
                 style: const TextStyle(color: Colors.grey, fontSize: 13),
               )
             : Text(
-                'Qty: ${product.stock} ${product.uom.isNotEmpty ? product.uom : ''} | Barcode: ${product.barcode}',
+                'Price: ₹${product.basePrice.toStringAsFixed(2)}',
                 style: const TextStyle(color: Colors.grey, fontSize: 13),
               ),
         trailing: !product.hasVariants
@@ -1438,13 +1523,13 @@ class _InventoryProductTile extends StatelessWidget {
                   color: (product.stock <= 0
                           ? Colors.red
                           : (product.stock > 10
-                              ? Colors.green
-                              : Colors.orange))
+                                ? Colors.green
+                                : Colors.orange))
                       .withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  product.stock <= 0 ? 'OUT OF STOCK' : '${product.stock}',
+                  product.stock <= 0 ? 'OUT OF STOCK' : '${product.stock} $resolvedUom',
                   style: TextStyle(
                     color: product.stock <= 0
                         ? Colors.red
@@ -1458,7 +1543,7 @@ class _InventoryProductTile extends StatelessWidget {
         children: product.hasVariants
             ? product.variants
                   .map(
-                    (v) => _InventoryVariantTile(variant: v, uom: product.uom),
+                    (v) => _InventoryVariantTile(variant: v, uom: resolvedUom),
                   )
                   .toList()
             : [],
@@ -1504,7 +1589,7 @@ class _InventoryVariantTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Barcode: ${variant.sku}',
+                  'Price: ₹${variant.price.toStringAsFixed(2)}',
                   style: const TextStyle(color: Colors.grey, fontSize: 11),
                 ),
               ],
@@ -1513,10 +1598,11 @@ class _InventoryVariantTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: (variant.stock <= 0
-                      ? Colors.red
-                      : (variant.stock > 5 ? Colors.green : Colors.orange))
-                  .withOpacity(0.1),
+              color:
+                  (variant.stock <= 0
+                          ? Colors.red
+                          : (variant.stock > 5 ? Colors.green : Colors.orange))
+                      .withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(

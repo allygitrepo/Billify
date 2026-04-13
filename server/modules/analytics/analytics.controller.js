@@ -277,7 +277,7 @@ exports.getProfitSummary = async (req, res) => {
                 {
                     model: Product,
                     as: 'product',
-                    attributes: ['purchasePrice', 'category_id']
+                    attributes: ['category_id']
                 }
             ],
             raw: true,
@@ -350,7 +350,7 @@ exports.getProfitByProducts = async (req, res) => {
                 {
                     model: Product,
                     as: 'product',
-                    attributes: ['purchasePrice']
+                    attributes: []
                 }
             ],
             raw: true,
@@ -415,7 +415,7 @@ exports.getProfitByCategories = async (req, res) => {
                 {
                     model: Product,
                     as: 'product',
-                    attributes: ['purchasePrice'],
+                    attributes: [],
                     include: [{ model: Category, as: 'category', attributes: ['name'] }]
                 }
             ],

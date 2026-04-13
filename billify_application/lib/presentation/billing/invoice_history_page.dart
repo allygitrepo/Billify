@@ -345,6 +345,12 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
         gstAmount: invoice.gst_amount,
         total: invoice.final_amount,
         invoiceId: invoice.id,
+        invoiceDate: invoice.date,
+        initialPaidAmount: invoice.paid_amount,
+        initialPaymentMode: invoice.payment_mode,
+        customerId: invoice.customer_id,
+        customerType: invoice.customer_type,
+        isViewOnly: true,
       ),
     );
   }

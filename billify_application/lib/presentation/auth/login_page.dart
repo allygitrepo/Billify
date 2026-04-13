@@ -4,6 +4,7 @@ import 'package:billify_application/presentation/widgets/custom_button.dart';
 import 'package:billify_application/presentation/widgets/custom_text_field.dart';
 import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/business_provider.dart';
+import 'package:billify_application/presentation/widgets/error_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -32,8 +33,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           .read(authProvider.notifier)
           .login(_emailController.text, _passwordController.text);
 
+      if (!mounted) return;
+
       final authState = ref.read(authProvider);
-      if (authState.isLoggedIn && mounted) {
+      if (authState.isLoggedIn) {
         ref.invalidate(businessProvider);
         final businessState = ref.read(businessProvider);
         if (businessState.currentBusiness == null) {
@@ -41,10 +44,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         } else {
           Navigator.pushReplacementNamed(context, '/home');
         }
-      } else if (authState.error != null && mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(authState.error!)));
+      } else if (authState.error != null) {
+        ErrorHandler.showErrorSnackBar(context, authState.errorObject ?? authState.error);
       }
     }
   }

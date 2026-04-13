@@ -1,27 +1,31 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../../config/db");
 
-const InventoryLog = sequelize.define("InventoryLog", {
+const Inventory = sequelize.define("Inventory", {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     business_id: { type: DataTypes.INTEGER, allowNull: false },
     product_id: { type: DataTypes.INTEGER, allowNull: false },
-    variant_name: { type: DataTypes.STRING, allowNull: true },
-    change_type: { type: DataTypes.STRING, allowNull: false }, // 'IN' or 'OUT'
-    quantity_change: { type: DataTypes.INTEGER, allowNull: false },
-    reason: { type: DataTypes.STRING, allowNull: true }, // 'Sale', 'Restock', 'Damage', 'Return'
-    stock_after: { type: DataTypes.INTEGER, allowNull: true },
-    user_id: { type: DataTypes.INTEGER, allowNull: true }, // Who performed the move
-    reference_no: { type: DataTypes.STRING, allowNull: true },
-    entity_name: { type: DataTypes.STRING, allowNull: true }, // Vendor or Customer
-    unit_price: { type: DataTypes.DECIMAL(10, 2), allowNull: true, defaultValue: 0 },
-    total_amount: { type: DataTypes.DECIMAL(12, 2), allowNull: true, defaultValue: 0 }
+    variant_id: { type: DataTypes.INTEGER, allowNull: true }, // NULL if product has no variants
+    current_stock: { type: DataTypes.DECIMAL(12, 3), defaultValue: 0 }
 }, {
-    tableName: "inventory_log",
-    timestamps: true
+    tableName: "inventory",
+    timestamps: true,
+    indexes: [
+        {
+            unique: true,
+            fields: ['product_id', 'variant_id'],
+            name: 'unique_product_variant_stock'
+        }
+    ]
 });
 
 // Associations
 const Product = require("../products/products.model");
-InventoryLog.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+const Variant = require("../variants/variants.model");
 
-module.exports = InventoryLog;
+Inventory.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+Inventory.belongsTo(Variant, { foreignKey: 'variant_id', as: 'variant' });
+Product.hasMany(Inventory, { foreignKey: 'product_id', as: 'inventory' });
+Variant.hasOne(Inventory, { foreignKey: 'variant_id', as: 'inventory' });
+
+module.exports = Inventory;

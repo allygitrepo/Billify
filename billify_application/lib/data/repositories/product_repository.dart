@@ -55,10 +55,11 @@ class ProductRepository {
         throw Exception("Failed to save product on server");
       }
     } on DioException catch (e) {
+      print("SAVE ERROR: ${e.response?.data ?? e.message}");
       if (e.response?.statusCode == 409) {
         throw Exception(e.response?.data['message'] ?? 'Product already exists');
       }
-      throw Exception('Network error while saving product');
+      throw Exception(e.response?.data['message'] ?? 'Network error while saving product');
     } catch (e) {
       throw e;
     }

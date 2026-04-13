@@ -30,9 +30,15 @@ class ThermalInvoiceDialog extends ConsumerStatefulWidget {
     this.customerId,
     this.customerType = 'WALKIN',
     this.isViewOnly = false,
+    this.invoiceDate,
+    this.initialPaidAmount,
+    this.initialPaymentMode,
   });
 
   final bool isViewOnly;
+  final DateTime? invoiceDate;
+  final double? initialPaidAmount;
+  final String? initialPaymentMode;
 
   @override
   ConsumerState<ThermalInvoiceDialog> createState() =>
@@ -47,10 +53,12 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
   @override
   void initState() {
     super.initState();
+    _paymentMode = (widget.initialPaymentMode ?? 'CASH').toUpperCase();
+    final initialPaid = widget.initialPaidAmount ?? widget.total;
     _paidController = TextEditingController(
-      text: widget.total.toStringAsFixed(2),
+      text: initialPaid.toStringAsFixed(2),
     );
-    _remaining = 0.0;
+    _remaining = widget.total - initialPaid;
   }
 
   @override
@@ -92,7 +100,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final now = widget.invoiceDate ?? DateTime.now();
     final dateFormat = DateFormat('dd-MM-yyyy');
     final timeFormat = DateFormat('hh:mm a');
     final isRegular = widget.customerType == 'REGULAR';

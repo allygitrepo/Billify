@@ -1,6 +1,7 @@
 import 'package:billify_application/core/theme/app_theme.dart';
 import 'package:billify_application/presentation/widgets/full_screen_image_viewer.dart';
 import 'package:billify_application/providers/auth_provider.dart';
+import 'package:billify_application/presentation/widgets/error_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -91,16 +92,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully!')),
-        );
+        ErrorHandler.showSuccessSnackBar(context, 'Profile updated successfully!');
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating profile: $e')),
-        );
+        ErrorHandler.showErrorSnackBar(context, e);
       }
     }
   }

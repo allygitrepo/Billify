@@ -17,7 +17,7 @@ class ContactsImportScreen extends ConsumerStatefulWidget {
 
 class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
   List<Contact>? _contacts;
-  final Set<int> _selectedIndices = {};
+  final Set<String> _selectedPhones = {};
   bool _isLoading = true;
   String _searchQuery = '';
 
@@ -98,11 +98,11 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
       appBar: AppBar(
         title: const Text('Import Contacts'),
         actions: [
-          if (_selectedIndices.isNotEmpty)
+          if (_selectedPhones.isNotEmpty)
             TextButton(
               onPressed: () => _importSelected(existingPhones),
               child: Text(
-                'IMPORT (${_selectedIndices.length})',
+                'IMPORT (${_selectedPhones.length})',
                 style: const TextStyle(color: Colors.white),
               ),
             ),
@@ -130,27 +130,21 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
                     CheckboxListTile(
                       title: const Text('Select All'),
                       value:
-                          _selectedIndices.length == _filteredContacts.length &&
+                          _selectedPhones.length == _filteredContacts.length &&
                               _filteredContacts.isNotEmpty,
                       onChanged: (val) {
                         setState(() {
                           if (val == true) {
-                            for (int i = 0; i < _filteredContacts.length; i++) {
-                              _selectedIndices.add(i);
-                            }
-                          } else {
-                            _selectedIndices.clear();
-                            // Keep already added ones selected
-                            for (int i = 0; i < _filteredContacts.length; i++) {
-                              final contact = _filteredContacts[i];
-                              final phone = contact.phones.isNotEmpty
-                                  ? _normalizePhone(
-                                      contact.phones.first.number ?? '')
-                                  : '';
-                              if (existingPhones.contains(phone)) {
-                                _selectedIndices.add(i);
+                            for (final contact in _filteredContacts) {
+                              if (contact.phones.isNotEmpty) {
+                                final phone = _normalizePhone(contact.phones.first.number ?? '');
+                                _selectedPhones.add(phone);
                               }
                             }
+                          } else {
+                            _selectedPhones.clear();
+                            // Keep already added ones as effectively selected (though disabled in UI)
+                            _selectedPhones.addAll(existingPhones);
                           }
                         });
                       },
@@ -172,22 +166,8 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
                                 final isAlreadyAdded =
                                     existingPhones.contains(phone);
 
-                                // Auto-select if already added
-                                if (isAlreadyAdded &&
-                                    !_selectedIndices.contains(index)) {
-                                  WidgetsBinding.instance
-                                      .addPostFrameCallback((_) {
-                                    if (mounted &&
-                                        !_selectedIndices.contains(index)) {
-                                      setState(() {
-                                        _selectedIndices.add(index);
-                                      });
-                                    }
-                                  });
-                                }
-
                                 final isSelected =
-                                    _selectedIndices.contains(index) ||
+                                    _selectedPhones.contains(phone) ||
                                         isAlreadyAdded;
 
                                 final String dName =
@@ -200,9 +180,9 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
                                       : (val) {
                                           setState(() {
                                             if (val == true) {
-                                              _selectedIndices.add(index);
+                                              _selectedPhones.add(phone);
                                             } else {
-                                              _selectedIndices.remove(index);
+                                              _selectedPhones.remove(phone);
                                             }
                                           });
                                         },
@@ -289,11 +269,14 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
       final int businessId = int.parse(businessIdString ?? '0');
 
       final List<Customer> toImport = [];
-      for (final index in _selectedIndices) {
-        final contact = _filteredContacts[index];
-        if (contact.phones.isNotEmpty && contact.phones.first.number != null) {
-          final phone = _normalizePhone(contact.phones.first.number!);
-
+      for (final phone in _selectedPhones) {
+        // Find the first contact in the master list that matches this phone
+        final contact = (_contacts ?? []).firstWhere(
+          (c) => c.phones.isNotEmpty && _normalizePhone(c.phones.first.number ?? '') == phone,
+          orElse: () => Contact(),
+        );
+        
+        if (contact.displayName != null) {
           // Skip if already added
           if (existingPhones.contains(phone)) continue;
 

@@ -29,63 +29,92 @@ class BusinessNotifier extends Notifier<BusinessState> {
   }
 
   Future<void> saveBusiness(BusinessModel business) async {
-    final repo = ref.read(businessRepositoryProvider);
-    await repo.saveBusiness(business);
-    
-    final businesses = repo.getBusinesses();
-    state = state.copyWith(
-      businesses: businesses,
-      currentBusinessId: state.currentBusinessId ?? business.id,
-    );
+    state = state.copyWith(error: null, errorObject: null);
+    try {
+      final repo = ref.read(businessRepositoryProvider);
+      await repo.saveBusiness(business);
+      
+      final businesses = repo.getBusinesses();
+      state = state.copyWith(
+        businesses: businesses,
+        currentBusinessId: state.currentBusinessId ?? business.id,
+      );
+    } catch (e) {
+      state = state.copyWith(error: e.toString(), errorObject: e);
+      rethrow;
+    }
   }
 
   Future<void> switchBusiness(String id) async {
-    final repo = ref.read(businessRepositoryProvider);
-    await repo.setCurrentBusinessId(id);
-    state = state.copyWith(currentBusinessId: id);
+    state = state.copyWith(error: null, errorObject: null);
+    try {
+      final repo = ref.read(businessRepositoryProvider);
+      await repo.setCurrentBusinessId(id);
+      state = state.copyWith(currentBusinessId: id);
+    } catch (e) {
+      state = state.copyWith(error: e.toString(), errorObject: e);
+      rethrow;
+    }
   }
 
   Future<void> deleteBusiness(String id) async {
-    final repo = ref.read(businessRepositoryProvider);
-    final remaining = state.businesses.where((b) => b.id != id).toList();
-    
-    // Simplistic clear for now, ideally we'd have a delete method in datasource
-    await repo.clearAll();
-    for (final b in remaining) {
-      await repo.saveBusiness(b);
-    }
+    state = state.copyWith(error: null, errorObject: null);
+    try {
+      final repo = ref.read(businessRepositoryProvider);
+      final remaining = state.businesses.where((b) => b.id != id).toList();
+      
+      await repo.clearAll();
+      for (final b in remaining) {
+        await repo.saveBusiness(b);
+      }
 
-    String? nextId;
-    if (remaining.isNotEmpty) {
-      nextId = remaining.first.id;
-      await repo.setCurrentBusinessId(nextId);
-    }
+      String? nextId;
+      if (remaining.isNotEmpty) {
+        nextId = remaining.first.id;
+        await repo.setCurrentBusinessId(nextId);
+      }
 
-    state = BusinessState(
-      businesses: remaining,
-      currentBusinessId: nextId,
-    );
+      state = BusinessState(
+        businesses: remaining,
+        currentBusinessId: nextId,
+      );
+    } catch (e) {
+      state = state.copyWith(error: e.toString(), errorObject: e);
+      rethrow;
+    }
   }
 
   Future<void> updateBusiness(BusinessModel business) async {
-    final repo = ref.read(businessRepositoryProvider);
-    await repo.saveBusiness(business);
-    
-    final businesses = repo.getBusinesses();
-    state = state.copyWith(businesses: businesses);
+    state = state.copyWith(error: null, errorObject: null);
+    try {
+      final repo = ref.read(businessRepositoryProvider);
+      await repo.saveBusiness(business);
+      
+      final businesses = repo.getBusinesses();
+      state = state.copyWith(businesses: businesses);
+    } catch (e) {
+      state = state.copyWith(error: e.toString(), errorObject: e);
+      rethrow;
+    }
   }
 
   Future<void> sync() async {
-    final repo = ref.read(businessRepositoryProvider);
-    await repo.syncBusinesses();
-    
-    final businesses = repo.getBusinesses();
-    final currentId = repo.getCurrentBusinessId();
-    
-    state = state.copyWith(
-      businesses: businesses,
-      currentBusinessId: currentId ?? (businesses.isNotEmpty ? businesses.first.id : null),
-    );
+    state = state.copyWith(error: null, errorObject: null);
+    try {
+      final repo = ref.read(businessRepositoryProvider);
+      await repo.syncBusinesses();
+      
+      final businesses = repo.getBusinesses();
+      final currentId = repo.getCurrentBusinessId();
+      
+      state = state.copyWith(
+        businesses: businesses,
+        currentBusinessId: currentId ?? (businesses.isNotEmpty ? businesses.first.id : null),
+      );
+    } catch (e) {
+      state = state.copyWith(error: e.toString(), errorObject: e);
+      // Don't rethrow for sync, just log error internally if needed
+    }
   }
 
   Future<void> clearAll() async {

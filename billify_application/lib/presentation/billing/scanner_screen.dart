@@ -15,6 +15,8 @@ import 'package:billify_application/data/models/user_permission.dart';
 import 'package:billify_application/providers/customer_provider.dart';
 import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/providers/invoice_provider.dart';
+import 'package:billify_application/presentation/billing/widgets/weight_input_sheet.dart';
+import 'package:billify_application/presentation/widgets/error_handler.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
   const ScannerScreen({super.key});
@@ -88,7 +90,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           builder: (context) => _ProductPickerSheet(
             products: [product],
             onSelected: (selectedVariant) {
-              if (ref.read(billingProvider.notifier).addToCart(selectedVariant)) {
+              if (ref
+                  .read(billingProvider.notifier)
+                  .addToCart(selectedVariant)) {
                 Navigator.pop(context);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -98,6 +102,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
             },
           ),
         ).then((_) => _resumeScanner());
+        return;
+      }
+
+      if (product.is_weighted) {
+        _showWeightInput(product);
         return;
       }
 
@@ -159,7 +168,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => _CustomerSelectorSheet(
         onSelected: (customerId, customerType) {
-          ref.read(billingProvider.notifier).setCustomer(customerId, customerType);
+          ref
+              .read(billingProvider.notifier)
+              .setCustomer(customerId, customerType);
           Navigator.pop(context);
           _showInvoice(ref, context);
         },
@@ -195,6 +206,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
         gstAmount: billingState.calculateTax(gstPercent),
         total: billingState.getTotal(taxPercent, gstPercent),
         invoiceId: invoiceNo,
+        invoiceDate: DateTime.now(),
+        initialPaidAmount: billingState.getTotal(taxPercent, gstPercent),
+        initialPaymentMode: 'CASH',
         customerId: billingState.selectedCustomerId,
         customerType: billingState.customerType,
       ),
@@ -211,10 +225,39 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
         products: allProducts,
         onSelected: (product) {
           final billingNotifier = ref.read(billingProvider.notifier);
-          billingNotifier.addToCart(product);
+          if (product.is_weighted) {
+            Navigator.pop(context);
+            _showWeightInput(product);
+          } else {
+            billingNotifier.addToCart(product);
+          }
         },
       ),
     );
+  }
+
+  void _showWeightInput(ProductModel product) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => WeightInputSheet(
+        product: product,
+        onAdd: (quantity) {
+          if (ref
+              .read(billingProvider.notifier)
+              .addToCart(product, quantity: quantity)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('${product.name} added: $quantity KG')),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Limited stock available')),
+            );
+          }
+        },
+      ),
+    ).then((_) => _resumeScanner());
   }
 
   @override
@@ -295,7 +338,10 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                             const SizedBox(height: 8),
                             const Text(
                               'Please check permissions',
-                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
                             ),
                             const SizedBox(height: 16),
                             ElevatedButton(
@@ -470,9 +516,9 @@ class _CustomerSelectorSheet extends ConsumerWidget {
               children: [
                 Text(
                   'Select Customer',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 IconButton(
@@ -533,9 +579,7 @@ class _CustomerSelectorSheet extends ConsumerWidget {
                     itemBuilder: (context, index) {
                       final customer = customers[index];
                       return ListTile(
-                        leading: CircleAvatar(
-                          child: Text(customer.name[0]),
-                        ),
+                        leading: CircleAvatar(child: Text(customer.name[0])),
                         title: Text(customer.name),
                         subtitle: Text(customer.phoneNumber),
                         trailing: Text(
@@ -837,13 +881,15 @@ class _ProductListTile extends ConsumerWidget {
           ),
         ),
         subtitle: Text(
-          'Stock: ${product.stock} | Barcode: ${product.barcode}',
+          'Stock: ${product.is_weighted ? product.stock.toStringAsFixed(3) : product.stock.toInt()} | Barcode: ${product.barcode}',
           style: TextStyle(
             color: product.stock <= 0
                 ? Colors.red
                 : Theme.of(context).textTheme.bodySmall?.color,
             fontSize: 12,
-            fontWeight: product.stock <= 0 ? FontWeight.bold : FontWeight.normal,
+            fontWeight: product.stock <= 0
+                ? FontWeight.bold
+                : FontWeight.normal,
           ),
         ),
         trailing: Row(
@@ -876,7 +922,9 @@ class _ProductListTile extends ConsumerWidget {
               IconButton(
                 icon: Icon(
                   Icons.add_circle_outline,
-                  color: product.stock <= 0 ? Colors.grey : AppTheme.primaryTeal,
+                  color: product.stock <= 0
+                      ? Colors.grey
+                      : AppTheme.primaryTeal,
                 ),
                 onPressed: product.stock <= 0
                     ? () {
@@ -918,7 +966,9 @@ class _ProductListTile extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Text(
-                        '$quantity',
+                        product.is_weighted
+                            ? quantity.toStringAsFixed(3)
+                            : quantity.toInt().toString(),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -939,7 +989,8 @@ class _ProductListTile extends ConsumerWidget {
                             )) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                                content: Text('Limited stock available')),
+                              content: Text('Limited stock available'),
+                            ),
                           );
                         }
                       },
@@ -983,147 +1034,191 @@ class _PanelItemTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      margin: const EdgeInsets.only(top: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
+    return Dismissible(
+      key: ValueKey(
+        'cart_item_${item.product.id}_${item.product.selectedVariantId}',
       ),
-      child: Row(
-        children: [
-          // Product Image
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.background,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: item.product.photo != null && item.product.photo!.isNotEmpty
-                ? Image.memory(
-                    base64Decode(item.product.photo!.split(',').last),
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.image_not_supported_outlined,
-                      size: 20,
-                    ),
-                  )
-                : const Icon(
-                    Icons.shopping_bag_outlined,
-                    color: AppTheme.primaryTeal,
-                  ),
-          ),
-          const SizedBox(width: 12),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Theme.of(context).textTheme.titleMedium?.color,
-                  ),
-                ),
-                Text(
-                  '₹${item.price.toStringAsFixed(2)}${item.product.uom.isNotEmpty ? ' / ${item.product.uom}' : ''}',
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodySmall?.color,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+      direction: DismissDirection.startToEnd,
+      background: Container(
+        margin: const EdgeInsets.only(top: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.red.shade400,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        alignment: Alignment.centerLeft,
+        child: const Icon(Icons.delete_outline, color: Colors.white),
+      ),
+      onDismissed: (direction) {
+        ref
+            .read(billingProvider.notifier)
+            .removeFromCart(
+              item.product.id,
+              variantId: item.product.selectedVariantId,
+            );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${item.name} removed from cart'),
+            action: SnackBarAction(
+              label: 'UNDO',
+              onPressed: () {
+                ref
+                    .read(billingProvider.notifier)
+                    .addToCart(item.product, quantity: item.quantity);
+              },
             ),
           ),
-
-          if (ref
-              .watch(authProvider)
-              .hasPermission(PermissionModule.billing, PermissionAction.update))
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(top: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            // Product Image
             Container(
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.background,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Row(
+              clipBehavior: Clip.antiAlias,
+              child:
+                  item.product.photo != null && item.product.photo!.isNotEmpty
+                  ? Image.memory(
+                      base64Decode(item.product.photo!.split(',').last),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 20,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.shopping_bag_outlined,
+                      color: AppTheme.primaryTeal,
+                    ),
+            ),
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.remove,
-                      size: 18,
-                      color: Theme.of(context).iconTheme.color,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 32,
-                      minHeight: 32,
-                    ),
-                    onPressed: () => ref
-                        .read(billingProvider.notifier)
-                        .updateQuantity(
-                          item.product.id,
-                          item.quantity - 1,
-                          variantId: item.product.selectedVariantId,
-                        ),
-                  ),
                   Text(
-                    '${item.quantity}',
+                    item.name,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                      fontSize: 15,
+                      color: Theme.of(context).textTheme.titleMedium?.color,
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.add,
-                      size: 18,
-                      color: Theme.of(context).iconTheme.color,
+                  Text(
+                    '₹${item.product.is_weighted ? item.product.price_per_unit.toStringAsFixed(2) : item.price.toStringAsFixed(2)}${item.product.uom.isNotEmpty ? ' / ${item.product.uom}' : ''}',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                      fontSize: 12,
                     ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 32,
-                      minHeight: 32,
-                    ),
-                    onPressed: () {
-                      if (!ref
-                          .read(billingProvider.notifier)
-                          .updateQuantity(
-                            item.product.id,
-                            item.quantity + 1,
-                            variantId: item.product.selectedVariantId,
-                          )) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Limited stock available')),
-                        );
-                      }
-                    },
                   ),
                 ],
               ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'x${item.quantity}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+
+            if (ref
+                .watch(authProvider)
+                .hasPermission(
+                  PermissionModule.billing,
+                  PermissionAction.update,
+                ))
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.background,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.remove,
+                        size: 18,
+                        color: Theme.of(context).iconTheme.color,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      onPressed: () => ref
+                          .read(billingProvider.notifier)
+                          .updateQuantity(
+                            item.product.id,
+                            item.quantity - 1,
+                            variantId: item.product.selectedVariantId,
+                          ),
+                    ),
+                    Text(
+                      item.product.is_weighted
+                          ? item.quantity.toStringAsFixed(3)
+                          : item.quantity.toInt().toString(),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.add,
+                        size: 18,
+                        color: Theme.of(context).iconTheme.color,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      onPressed: () {
+                        if (!ref
+                            .read(billingProvider.notifier)
+                            .updateQuantity(
+                              item.product.id,
+                              item.quantity + 1,
+                              variantId: item.product.selectedVariantId,
+                            )) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Limited stock available'),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'x${item.product.is_weighted ? item.quantity.toStringAsFixed(3) : item.quantity.toInt()}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            const SizedBox(width: 8),
+            Text(
+              '₹${item.subtotal.toStringAsFixed(2)}',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
-          const SizedBox(width: 8),
-          Text(
-            '₹${item.subtotal.toStringAsFixed(2)}',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

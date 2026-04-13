@@ -71,7 +71,7 @@ class ProductNotifier extends Notifier<List<ProductModel>> {
     state = repo.getProducts();
   }
 
-  Future<void> updateStockBulk(Map<String, int> deltas, {StockMode mode = StockMode.inMode, required String reason, String source = 'manual'}) async {
+  Future<void> updateStockBulk(Map<String, double> deltas, {StockMode mode = StockMode.inMode, required String reason, String source = 'manual'}) async {
     final historyNotifier = ref.read(stockHistoryProvider.notifier);
     final businessProviderState = ref.read(businessProvider);
     final authState = ref.read(authProvider);

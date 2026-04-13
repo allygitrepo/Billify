@@ -2,19 +2,19 @@ import 'package:billify_application/data/models/product_model.dart';
 
 class CartItemModel {
   final ProductModel product;
-  final int quantity;
+  final double quantity;
   final double? customPrice;
   final String? customName;
 
   CartItemModel({
     required this.product,
-    this.quantity = 1,
+    this.quantity = 1.0,
     this.customPrice,
     this.customName,
   });
 
   factory CartItemModel.fromJson(Map<String, dynamic> json) {
-    ProductModel? product;
+    final ProductModel product;
     if (json['product'] != null) {
       product = ProductModel.fromJson(json['product']);
     } else {
@@ -24,14 +24,14 @@ class CartItemModel {
         name: json['product_name'] ?? json['productName'] ?? 'Deleted Product',
         barcode: '',
         basePrice: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
-        stock: 0,
+        stock: 0.0,
         uom: 'pcs',
       );
     }
 
     return CartItemModel(
       product: product,
-      quantity: int.tryParse(json['quantity']?.toString() ?? '') ?? 1,
+      quantity: double.tryParse(json['quantity']?.toString() ?? '') ?? 1.0,
       customPrice: double.tryParse(json['customPrice']?.toString() ?? json['price']?.toString() ?? '') ?? 0.0,
       customName: (json['customName'] ?? json['product_name'] ?? json['productName'] ?? 'Unknown').toString(),
     );
@@ -57,13 +57,16 @@ class CartItemModel {
     };
   }
 
-  double get price => customPrice ?? product.basePrice;
+  double get price {
+    if (customPrice != null) return customPrice!;
+    return product.is_weighted ? product.price_per_unit : product.basePrice;
+  }
   String get name => customName ?? product.name;
   double get subtotal => price * quantity;
 
   CartItemModel copyWith({
     ProductModel? product,
-    int? quantity,
+    double? quantity,
     double? customPrice,
     String? customName,
   }) {

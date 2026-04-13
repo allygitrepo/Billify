@@ -8,8 +8,9 @@ const Variant = sequelize.define("Variant", {
     product_id: { type: DataTypes.INTEGER, allowNull: false },
     name: { type: DataTypes.STRING, allowNull: false },
     sku: { type: DataTypes.STRING, allowNull: true },
-    price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-    stock: { type: DataTypes.INTEGER, defaultValue: 0 },
+    price: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
+    opening_stock: { type: DataTypes.DECIMAL(12, 3), defaultValue: 0 },
+    current_stock: { type: DataTypes.DECIMAL(12, 3), defaultValue: 0 },
     status: { type: DataTypes.STRING, defaultValue: 'active' } // 'active' or 'inactive'
 }, {
     tableName: "variants",

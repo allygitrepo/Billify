@@ -64,7 +64,7 @@ class BillingNotifier extends Notifier<BillingState> {
     state = state.copyWith(paidAmount: amount);
   }
 
-  bool addToCart(ProductModel product) {
+  bool addToCart(ProductModel product, {double? quantity}) {
     if (product.stock <= 0) {
       print('DEBUG: Cannot add to cart - Product ${product.name} is out of stock!');
       return false;
@@ -76,20 +76,26 @@ class BillingNotifier extends Notifier<BillingState> {
           i.product.selectedVariantId == product.selectedVariantId,
     );
 
+    final double qtyToAdd = quantity ?? (product.is_weighted ? 0.0 : 1.0);
+    if (qtyToAdd == 0.0 && product.is_weighted && quantity == null) {
+      // Return true but don't add yet, caller should show weight input
+      return true;
+    }
+
     if (index >= 0) {
       final existingItem = state.items[index];
-      // Check if we have enough stock for one more
-      if (existingItem.quantity >= product.stock) {
+      // Check if we have enough stock
+      if (existingItem.quantity + qtyToAdd > product.stock) {
         print('DEBUG: Cannot add more - Limited stock for ${product.name}');
         return false;
       }
       final updatedItems = List<CartItemModel>.from(state.items);
       updatedItems[index] =
-          existingItem.copyWith(quantity: existingItem.quantity + 1);
+          existingItem.copyWith(quantity: existingItem.quantity + qtyToAdd);
       state = state.copyWith(items: updatedItems);
     } else {
       state = state.copyWith(
-          items: [...state.items, CartItemModel(product: product)]);
+          items: [...state.items, CartItemModel(product: product, quantity: qtyToAdd)]);
     }
     return true;
   }
@@ -153,7 +159,7 @@ class BillingNotifier extends Notifier<BillingState> {
     }
   }
 
-  bool updateQuantity(String productId, int newQuantity, {String? variantId}) {
+  bool updateQuantity(String productId, double newQuantity, {String? variantId}) {
     if (newQuantity <= 0) {
       removeFromCart(productId, variantId: variantId);
       return true;

@@ -45,7 +45,7 @@ class _AddCustomerBottomSheetState extends ConsumerState<AddCustomerBottomSheet>
 
   @override
   Widget build(BuildContext context) {
-    final bool isEditing = widget.initialCustomer != null;
+    final bool isEditing = widget.initialCustomer?.id != null;
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,

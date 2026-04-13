@@ -10,6 +10,7 @@ import 'package:billify_application/presentation/widgets/section_card.dart';
 import 'package:billify_application/providers/business_provider.dart';
 import 'package:billify_application/providers/registration_provider.dart';
 import 'package:billify_application/providers/auth_provider.dart';
+import 'package:billify_application/presentation/widgets/error_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -114,20 +115,14 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
           final authState = ref.read(authProvider);
           if (authState.error == null && mounted) {
             await ref.read(registrationProvider.notifier).clear();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Registration successful! Please login.'),
-              ),
-            );
+            ErrorHandler.showSuccessSnackBar(context, 'Registration successful! Please login.');
             Navigator.pushNamedAndRemoveUntil(
               context,
               '/login',
               (route) => false,
             );
           } else if (authState.error != null && mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(authState.error!)));
+            ErrorHandler.showErrorSnackBar(context, authState.errorObject ?? authState.error);
           }
         }
       } else {

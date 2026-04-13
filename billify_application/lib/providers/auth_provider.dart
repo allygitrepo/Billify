@@ -27,6 +27,7 @@ class AuthState {
   final bool isLoggedIn;
   final bool isLoading;
   final String? error;
+  final dynamic errorObject;
 
   AuthState({
     this.user,
@@ -34,6 +35,7 @@ class AuthState {
     this.isLoggedIn = false,
     this.isLoading = false,
     this.error,
+    this.errorObject,
   });
 
   bool hasPermission(PermissionModule module, PermissionAction action) {
@@ -48,6 +50,7 @@ class AuthState {
     bool? isLoggedIn,
     bool? isLoading,
     String? error,
+    dynamic errorObject,
   }) {
     return AuthState(
       user: user ?? this.user,
@@ -55,6 +58,7 @@ class AuthState {
       isLoggedIn: isLoggedIn ?? this.isLoggedIn,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      errorObject: errorObject ?? this.errorObject,
     );
   }
 }
@@ -150,19 +154,24 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> login(String email, String password) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null, errorObject: null);
     try {
       final repo = ref.read(authRepositoryProvider);
       final response = await repo.login(email, password);
 
       if (response['token'] != null) {
         final user = repo.getUser();
-        state = state.copyWith(user: user, isLoggedIn: true, isLoading: false);
+        // Update user state but keep isLoading: true for sync tasks
+        state = state.copyWith(user: user, isLoggedIn: true);
+        
         if (user != null) {
           await _loadRoleForUser(user);
           // Ensure businesses are synced after login
           await ref.read(businessProvider.notifier).sync();
         }
+        
+        // Finally stop loading
+        state = state.copyWith(isLoading: false);
       } else {
         state = state.copyWith(
           isLoading: false,
@@ -170,12 +179,12 @@ class AuthNotifier extends Notifier<AuthState> {
         );
       }
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, errorObject: e, error: e.toString());
     }
   }
 
   Future<void> register(Map<String, dynamic> registrationData) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null, errorObject: null);
     try {
       final repo = ref.read(authRepositoryProvider);
       final response = await repo.registerWithDetails(registrationData);
@@ -190,7 +199,7 @@ class AuthNotifier extends Notifier<AuthState> {
         );
       }
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, errorObject: e, error: e.toString());
     }
   }
 
@@ -199,7 +208,7 @@ class AuthNotifier extends Notifier<AuthState> {
     String? oldPassword,
     String? newPassword,
   }) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null, errorObject: null);
     try {
       final userMgmtRepo = ref.read(userManagementRepositoryProvider);
 
@@ -236,7 +245,7 @@ class AuthNotifier extends Notifier<AuthState> {
       // 4. Update state
       state = state.copyWith(user: updatedUser, isLoading: false);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, errorObject: e, error: e.toString());
       rethrow;
     }
   }

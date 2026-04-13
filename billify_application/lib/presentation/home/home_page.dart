@@ -490,8 +490,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                     PermissionAction.view,
                   ))
                     _QuickMenuItem(
-                      icon: Icons.history,
-                      label: 'History',
+                      icon: Icons.receipt_long,
+                      label: 'Invoices',
                       color: Colors.blue,
                       onTap: () {
                         Navigator.pop(context);
@@ -605,7 +605,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const AnalyticsDashboardScreen(),
+                            builder: (context) =>
+                                const AnalyticsDashboardScreen(),
                           ),
                         );
                       },
@@ -736,9 +737,12 @@ class _HomeHeader extends StatelessWidget {
                           size: 30,
                         )
                       : null,
-                  onBackgroundImageError: (exception, stackTrace) {
-                    debugPrint('Error loading profile image: $exception');
-                  },
+                  onBackgroundImageError:
+                      (user?.photo != null && user!.photo!.isNotEmpty)
+                      ? (exception, stackTrace) {
+                          debugPrint('Error loading profile image: $exception');
+                        }
+                      : null,
                 ),
               ),
             ),

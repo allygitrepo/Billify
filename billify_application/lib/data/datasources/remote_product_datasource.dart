@@ -30,18 +30,12 @@ class RemoteProductDatasource {
     ProductModel product,
     String businessId,
   ) async {
+    final Map<String, dynamic> payload = product.toJson();
+    payload['business_id'] = businessId; // Explicitly ensure business_id is sent
+
     final response = await _apiService.post(
       ApiEndpoints.createProduct,
-      data: {
-        'business_id': businessId,
-        'category_id': product.category_id,
-        'name': product.name,
-        'basePrice': product.basePrice,
-        'uom': product.uom,
-        'photo': product.photo,
-        'barcode': product.barcode,
-        'variants': product.variants.map((v) => v.toJson()).toList(),
-      },
+      data: payload,
     );
     if (response.statusCode == 201) {
       return ProductModel.fromJson(response.data['product']);
@@ -52,15 +46,7 @@ class RemoteProductDatasource {
   Future<ProductModel?> updateProduct(ProductModel product) async {
     final response = await _apiService.put(
       ApiEndpoints.updateProduct(product.id),
-      data: {
-        'category_id': product.category_id,
-        'name': product.name,
-        'basePrice': product.basePrice,
-        'uom': product.uom,
-        'photo': product.photo,
-        'barcode': product.barcode,
-        'variants': product.variants.map((v) => v.toJson()).toList(),
-      },
+      data: product.toJson(),
     );
     if (response.statusCode == 200) {
       return ProductModel.fromJson(response.data['product']);

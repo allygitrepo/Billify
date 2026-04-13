@@ -17,9 +17,15 @@ const invoiceController = {
         const t = await sequelize.transaction();
         try {
             const { 
-                business_id, 
-                customer_id,
-                customer_type,
+                items,
+            } = req.body;
+
+            // 1. Normalize and Validate Body
+            const business_id = parseInt(req.body.business_id);
+            const user_id = req.body.user_id ? parseInt(req.body.user_id) : null;
+            const customer_id = req.body.customer_id ? parseInt(req.body.customer_id) : null;
+            const customer_type = req.body.customer_type || 'WALKIN';
+            const {
                 customer_name, 
                 customer_phone, 
                 total_amount, 
@@ -29,11 +35,14 @@ const invoiceController = {
                 paid_amount,
                 payment_mode, 
                 status,
-                items,
-                user_id // ID of the user creating the invoice
             } = req.body;
 
-            // 1. Generate Sequential Invoice Number using shared utility
+            if (isNaN(business_id)) {
+                await t.rollback();
+                return res.status(400).json({ message: "Invalid Business ID" });
+            }
+
+            // 2. Generate Sequential Invoice Number
             const invoice_number = await getNextSequenceNumber(business_id);
 
             // 2. Create Invoice
@@ -82,10 +91,12 @@ const invoiceController = {
 
             // 3. Process Items
             for (const item of items) {
+                const productId = parseInt(item.productId);
+                
                 // a. Create Invoice Item record
                 await InvoiceItem.create({
                     invoice_id: invoice.id,
-                    product_id: item.productId,
+                    product_id: productId,
                     product_name: item.productName,
                     variant_name: item.variantName,
                     quantity: item.quantity,
@@ -93,38 +104,70 @@ const invoiceController = {
                     subtotal: item.subtotal
                 }, { transaction: t });
 
-                // b. Update stock for the variant
+                // b. Update stock for the variant or product
+                // Improved matching: try specific variant first, then 'Default', then first available
                 let variant = await Variant.findOne({ 
-                    where: { product_id: item.productId, name: item.variantName },
+                    where: { product_id: productId, name: item.variantName || 'Default' },
                     transaction: t
                 });
 
-                // Fallback: If specified variant not found, take the first available one for this product
-                if (!variant) {
+                if (!variant && item.variantName && item.variantName !== 'Default') {
                     variant = await Variant.findOne({ 
-                        where: { product_id: item.productId },
+                        where: { product_id: productId, name: 'Default' },
                         transaction: t
                     });
                 }
 
-                if (variant) {
-                    const stockBefore = parseInt(variant.stock) || 0;
-                    const stockAfter = stockBefore - Math.abs(item.quantity);
-                    
-                    await variant.update({ stock: stockAfter }, { transaction: t });
-
-                    // c. Log Inventory Change
-                    await InventoryLog.create({
-                        business_id,
-                        product_id: item.productId,
-                        variant_name: item.variantName,
-                        change_type: 'OUT',
-                        quantity_change: -Math.abs(item.quantity),
-                        reason: 'Sale',
-                        stock_after: stockAfter,
-                        user_id
-                    }, { transaction: t });
+                if (!variant) {
+                    variant = await Variant.findOne({ 
+                        where: { product_id: productId, status: 'active' },
+                        transaction: t
+                    });
                 }
+
+                let stockAfter;
+                let currentStock;
+                const quantityChange = -Math.abs(item.quantity);
+
+                if (variant) {
+                    currentStock = parseFloat(variant.current_stock) || 0;
+                    stockAfter = parseFloat((currentStock + quantityChange).toFixed(3));
+                    
+                    await variant.update({ current_stock: stockAfter }, { transaction: t });
+
+                    // Synchronize the parent Product current_stock column as well
+                    const product = await Product.findByPk(productId, { transaction: t });
+                    if (product) {
+                        const allVariants = await Variant.findAll({ where: { product_id: productId, status: 'active' }, transaction: t });
+                        const totalStock = allVariants.reduce((sum, v) => sum + parseFloat(v.current_stock), 0);
+                        await product.update({ current_stock: parseFloat(totalStock.toFixed(3)) }, { transaction: t });
+                    }
+                } else {
+                    // Update Product directly if no variant found
+                    const product = await Product.findByPk(productId, { transaction: t });
+                    if (product) {
+                        currentStock = parseFloat(product.current_stock) || 0;
+                        stockAfter = parseFloat((currentStock + quantityChange).toFixed(3));
+                        await product.update({ current_stock: stockAfter }, { transaction: t });
+                    } else {
+                        // Product not found, skip stock update or handle error
+                        console.warn(`Product ID ${productId} not found during invoice generation. Skipping stock update.`);
+                        continue; 
+                    }
+                }
+
+                // c. Log Inventory Change
+                await InventoryLog.create({
+                    business_id,
+                    product_id: productId,
+                    variant_name: variant ? (item.variantName || variant.name) : 'No Variant',
+                    change_type: 'OUT',
+                    quantity_change: quantityChange,
+                    reason: 'Sale',
+                    stock_after: stockAfter,
+                    user_id,
+                    reference_no: invoice_number // Use generating invoice number as reference
+                }, { transaction: t });
             }
 
             await t.commit();

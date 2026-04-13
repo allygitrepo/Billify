@@ -8,7 +8,7 @@ const InvoiceItem = sequelize.define("InvoiceItem", {
     product_id: { type: DataTypes.INTEGER, allowNull: false },
     product_name: { type: DataTypes.STRING, allowNull: true },
     variant_name: { type: DataTypes.STRING, allowNull: true },
-    quantity: { type: DataTypes.INTEGER, allowNull: false },
+    quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false },
     price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     subtotal: { type: DataTypes.DECIMAL(10, 2), allowNull: false }
 }, {

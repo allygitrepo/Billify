@@ -4,7 +4,7 @@ class StockHistoryModel {
   final String id;
   final String product_id;
   final String variant_name;
-  final int quantity_change;
+  final double quantity_change;
   final StockMode change_type;
   final DateTime createdAt;
   final String reason;
@@ -27,7 +27,7 @@ class StockHistoryModel {
       id: json['id'].toString(),
       product_id: json['product_id']?.toString() ?? json['productId']?.toString() ?? '',
       variant_name: json['variant_name'] ?? json['product']?['name'] ?? '',
-      quantity_change: (json['quantity_change'] as num?)?.toInt() ?? (json['quantity'] as num?)?.toInt() ?? 0,
+      quantity_change: (json['quantity_change'] as num?)?.toDouble() ?? (json['quantity'] as num?)?.toDouble() ?? 0.0,
       change_type: typeString == 'IN' ? StockMode.inMode : StockMode.outMode,
       createdAt: DateTime.tryParse(json['createdAt'] ?? json['timestamp'] ?? '') ?? DateTime.now(),
       reason: json['reason'] ?? 'Manual Adjustment',

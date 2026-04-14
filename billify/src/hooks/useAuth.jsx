@@ -94,6 +94,7 @@ export const AuthProvider = ({ children }) => {
     // Sync with individual keys for header injection
     if (businessId) {
       localStorage.setItem('business_id', businessId);
+      localStorage.setItem('last_business_id', businessId);
       if (businessInfo) {
         localStorage.setItem('business_name', businessInfo.name);
       }

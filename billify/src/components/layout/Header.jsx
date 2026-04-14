@@ -2,12 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useDataContext } from '../../hooks/useDataContext';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 const Header = ({ toggleSidebar, isPOS }) => {
   const { user, logout, switchBusiness } = useAuth();
   const { businesses } = useDataContext();
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isSwitchModalOpen, setIsSwitchModalOpen] = useState(false);
+  const [pendingBusinessId, setPendingBusinessId] = useState(null);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -24,6 +27,21 @@ const Header = ({ toggleSidebar, isPOS }) => {
     logout();
     navigate('/login');
   };
+
+  const handleSwitchClick = (id) => {
+    setPendingBusinessId(id);
+    setIsSwitchModalOpen(true);
+  };
+
+  const confirmSwitch = () => {
+    if (pendingBusinessId) {
+      switchBusiness(pendingBusinessId);
+    }
+    setIsSwitchModalOpen(false);
+    setPendingBusinessId(null);
+  };
+
+  const targetBusinessName = businesses.find(b => b.id.toString() === pendingBusinessId?.toString())?.name;
 
   return (
     <header style={{height: '64px', backgroundColor: 'white', borderBottom: '1px solid var(--neutral-100)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 var(--spacing-6)', position: 'sticky', top: '0', zIndex: '30'}}>
@@ -47,7 +65,7 @@ const Header = ({ toggleSidebar, isPOS }) => {
           <div className="business-switcher">
             <select 
               value={user.businessId} 
-              onChange={(e) => switchBusiness(e.target.value)}
+              onChange={(e) => handleSwitchClick(e.target.value)}
               style={{
                 padding: '6px 12px',
                 borderRadius: '8px',
@@ -67,6 +85,14 @@ const Header = ({ toggleSidebar, isPOS }) => {
             </select>
           </div>
         )}
+        
+        <ConfirmDialog
+          isOpen={isSwitchModalOpen}
+          onClose={() => setIsSwitchModalOpen(false)}
+          onConfirm={confirmSwitch}
+          title="Switch Business?"
+          message={`Are you sure you want to switch to "${targetBusinessName}"? Your current view will refresh to show data for this business.`}
+        />
         <div style={{position: 'relative'}} className="user-profile" ref={dropdownRef}>
           <button 
             style={{display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-2)', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', borderRadius: 'var(--radius-lg)'}} 

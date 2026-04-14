@@ -40,7 +40,7 @@ const Logo = ({ size = 'md', showText = true, variant = 'primary' }) => {
           transformOrigin: 'left',
           lineHeight: 1
         }}>
-          Billify
+          BilliFy
         </span>
       )}
     </div>

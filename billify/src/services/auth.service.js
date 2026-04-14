@@ -10,13 +10,19 @@ export const authService = {
         // Include default business and role info if available
         const userWithContext = { ...response.data.user };
         if (response.data.businesses && response.data.businesses.length > 0) {
-          userWithContext.businessId = response.data.businesses[0].id;
-          userWithContext.role = response.data.businesses[0].role;
+          const lastBusinessId = localStorage.getItem('last_business_id');
+          const lastBiz = lastBusinessId ? response.data.businesses.find(b => b.id.toString() === lastBusinessId.toString()) : null;
+          
+          const activeBiz = lastBiz || response.data.businesses[0];
+          
+          userWithContext.businessId = activeBiz.id;
+          userWithContext.role = activeBiz.role;
           userWithContext.businesses = response.data.businesses;
           
           // Store active business context for header injection
-          localStorage.setItem('business_id', response.data.businesses[0].id);
-          localStorage.setItem('business_name', response.data.businesses[0].name);
+          localStorage.setItem('business_id', activeBiz.id);
+          localStorage.setItem('business_name', activeBiz.name);
+          localStorage.setItem('last_business_id', activeBiz.id);
         }
         
         localStorage.setItem('billify_user', JSON.stringify(userWithContext));

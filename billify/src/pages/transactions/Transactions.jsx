@@ -118,7 +118,25 @@ const Transactions = () => {
               { key: 'date', label: 'Date', render: (val) => formatDate(val) },
               { key: 'items', label: 'Items', render: (val) => `${val.length} items` },
               { key: 'paymentMethod', label: 'Payment' },
-              { key: 'total', label: 'Total', render: (val) => <span className="font-bold">{formatCurrency(val)}</span> },
+              { 
+                key: 'total', 
+                label: 'Total', 
+                render: (val, row) => (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span className="font-bold">{formatCurrency(val)}</span>
+                    {(row.pending > 0 || 
+                      ['split', 'khata', 'pending'].some(term => 
+                        row.status?.toLowerCase().trim().includes(term) || 
+                        row.paymentMethod?.toLowerCase().trim().includes(term)
+                      )) && (
+                      <div style={{ fontSize: '11px', lineHeight: '1.2', marginTop: '4px' }}>
+                        <div style={{ color: 'var(--neutral-500)' }}>Paid: {formatCurrency(row.paid || 0)}</div>
+                        <div style={{ color: '#ef4444', fontWeight: '500' }}>Left: {formatCurrency(row.pending || 0)}</div>
+                      </div>
+                    )}
+                  </div>
+                ) 
+              },
               { key: 'status', label: 'Status', render: (val) => <span className={`status-badge ${val.toLowerCase()}`}>{val}</span> },
               {
                 key: 'actions',

@@ -26,7 +26,7 @@ const Customers = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const [formData, setFormData] = useState({
     name: '',
     phone_number: '',
@@ -71,7 +71,7 @@ const Customers = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.phone_number.trim()) newErrors.phone_number = 'Phone number is required';
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -160,12 +160,21 @@ const Customers = () => {
   };
 
   const filteredCustomers = useMemo(() => {
-    return (customers || []).filter(c => 
+    return (customers || []).filter(c =>
       c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.phone_number?.includes(searchTerm) ||
       c.city?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [customers, searchTerm]);
+
+  const totals = useMemo(() => {
+    return (customers || []).reduce((acc, c) => {
+      const bal = parseFloat(c.remaining_balance || 0);
+      if (bal > 0) acc.debit += bal;
+      if (bal < 0) acc.credit += Math.abs(bal);
+      return acc;
+    }, { debit: 0, credit: 0 });
+  }, [customers]);
 
   const columns = [
     {
@@ -173,10 +182,10 @@ const Customers = () => {
       label: 'Photo',
       render: (val) => (
         <div className="table-thumb">
-          <img 
-            src={val ? `data:image/jpeg;base64,${val}` : "/placeholder.png"} 
-            alt="Customer" 
-            style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} 
+          <img
+            src={val ? `data:image/jpeg;base64,${val}` : "/placeholder.png"}
+            alt="Customer"
+            style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }}
           />
         </div>
       )
@@ -188,9 +197,9 @@ const Customers = () => {
       key: 'remaining_balance',
       label: 'Balance',
       render: (val) => (
-        <span style={{ 
-          color: parseFloat(val || 0) > 0 ? 'var(--danger-500)' : 
-                 parseFloat(val || 0) < 0 ? 'var(--primary-600)' : 'inherit',
+        <span style={{
+          color: parseFloat(val || 0) > 0 ? 'var(--danger-500)' :
+            parseFloat(val || 0) < 0 ? 'var(--primary-600)' : 'inherit',
           fontWeight: '600'
         }}>
           {formatCurrency(Math.abs(val || 0))}
@@ -211,7 +220,7 @@ const Customers = () => {
       key: 'actions',
       label: 'Actions',
       render: (_, row) => (
-        <div className="table-actions">
+        <div style={{ display: 'flex', gap: 'var(--spacing-2)' }}>
           <button className="btn-icon" onClick={(e) => handleEditClick(e, row)} title="Edit">✏️</button>
           <button className="btn-icon-danger" onClick={(e) => handleDeleteClick(e, row.id)} title="Delete">🗑</button>
         </div>
@@ -221,15 +230,15 @@ const Customers = () => {
   ];
 
   return (
-    <PageContainer 
-      title="Customer Management" 
+    <PageContainer
+      title="Customer Management"
       actions={
         <div style={{ display: 'flex', gap: 'var(--spacing-4)' }}>
-          <Input 
-            placeholder="Search customers..." 
-            value={searchTerm} 
+          <Input
+            placeholder="Search customers..."
+            value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: '300px' }}
+            style={{ width: '300px', marginBottom: 0 }}
           />
           {!showForm && (
             <Button variant="primary" onClick={() => setShowForm(true)}>+ Add Customer</Button>
@@ -238,6 +247,33 @@ const Customers = () => {
       }
     >
       <div className="animate-fade-in">
+        {/* Balance Summary Header */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: 'var(--spacing-6)',
+          marginBottom: 'var(--spacing-8)'
+        }}>
+          <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-6)', borderLeft: '4px solid var(--danger-500)' }}>
+            <div>
+              <p style={{ fontSize: '0.875rem', color: 'var(--neutral-500)', fontWeight: '500', marginBottom: 'var(--spacing-1)' }}>Total Debit (Dr)</p>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--danger-500)' }}>{formatCurrency(totals.debit)}</h3>
+            </div>
+            <div style={{ padding: 'var(--spacing-3)', backgroundColor: 'var(--danger-50)', borderRadius: 'var(--radius-lg)', color: 'var(--danger-500)' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </div>
+          </div>
+
+          <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-6)', borderLeft: '4px solid var(--primary-600)' }}>
+            <div>
+              <p style={{ fontSize: '0.875rem', color: 'var(--neutral-500)', fontWeight: '500', marginBottom: 'var(--spacing-1)' }}>Total Credit (Cr)</p>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--primary-600)' }}>{formatCurrency(totals.credit)}</h3>
+            </div>
+            <div style={{ padding: 'var(--spacing-3)', backgroundColor: 'var(--primary-50)', borderRadius: 'var(--radius-lg)', color: 'var(--primary-600)' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+            </div>
+          </div>
+        </div>
         <AnimatePresence>
           {showForm && (
             <motion.div
@@ -267,55 +303,55 @@ const Customers = () => {
                           {formData.photo ? 'Change Photo' : 'Upload Photo'}
                         </Button>
                         <p className="upload-hint">Square Image, Max 1MB</p>
-                        <input 
-                          type="file" 
-                          ref={fileInputRef} 
-                          onChange={handlePhotoChange} 
-                          accept="image/*" 
-                          style={{ display: 'none' }} 
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handlePhotoChange}
+                          accept="image/*"
+                          style={{ display: 'none' }}
                         />
                       </div>
                     </div>
 
-                    <Input 
-                      label="Customer Name" 
-                      name="name" 
-                      value={formData.name} 
-                      onChange={handleInputChange} 
-                      error={errors.name} 
-                      required 
+                    <Input
+                      label="Customer Name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      error={errors.name}
+                      required
                     />
-                    <Input 
-                      label="Phone Number" 
-                      name="phone_number" 
-                      value={formData.phone_number} 
-                      onChange={handleInputChange} 
-                      error={errors.phone_number} 
-                      required 
+                    <Input
+                      label="Phone Number"
+                      name="phone_number"
+                      value={formData.phone_number}
+                      onChange={handleInputChange}
+                      error={errors.phone_number}
+                      required
                     />
                   </div>
-                  
+
                   <div className="form-col">
-                    <Input 
-                      label="City" 
-                      name="city" 
-                      value={formData.city} 
-                      onChange={handleInputChange} 
+                    <Input
+                      label="City"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
                     />
-                    <Input 
-                      label="Opening Balance" 
-                      name="opening_balance" 
+                    <Input
+                      label="Opening Balance"
+                      name="opening_balance"
                       type="number"
-                      value={formData.opening_balance} 
+                      value={formData.opening_balance}
                       onChange={handleInputChange}
                       placeholder="Amount customer owes you"
                       disabled={isEditing} // Lock opening balance on edit
                     />
-                    <ToggleSwitch 
-                      label="Active Status" 
-                      name="status" 
-                      checked={formData.status === 'active'} 
-                      onChange={handleInputChange} 
+                    <ToggleSwitch
+                      label="Active Status"
+                      name="status"
+                      checked={formData.status === 'active'}
+                      onChange={handleInputChange}
                     />
                   </div>
                 </div>
@@ -325,9 +361,9 @@ const Customers = () => {
         </AnimatePresence>
 
         <div className="card">
-          <Table 
-            columns={columns} 
-            data={filteredCustomers} 
+          <Table
+            columns={columns}
+            data={filteredCustomers}
             onRowClick={handleRowClick}
           />
         </div>

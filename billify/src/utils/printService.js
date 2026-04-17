@@ -107,7 +107,7 @@ export const printInvoice = (transaction, settings) => {
 
       <div class="declaration-section">
         <p>This is a computer-generated document.</p>
-        <p>Thank you! Powered by Billify</p>
+        <p>Thank you! Powered by Self Billing</p>
       </div>
     </div>
   `;

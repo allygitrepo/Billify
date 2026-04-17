@@ -18,7 +18,7 @@ const HeroSection = () => {
         </div>
         <div className="hero-image">
           <div className="hero-image-container">
-            <img src="/landingpage_photo.png" alt="Billify Dashboard Preview" className="hero-photo" />
+            <img src="/landingpage_photo.png" alt="Self Billing Dashboard Preview" className="hero-photo" />
           </div>
         </div>
       </div>

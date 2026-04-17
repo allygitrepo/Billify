@@ -1,5 +1,5 @@
 /**
- * Unique ID generator for Billify
+ * Unique ID generator for Self Billing
  */
 
 export const generateId = (prefix = '') => {

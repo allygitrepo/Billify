@@ -54,7 +54,7 @@ const Transactions = () => {
       total: t.total,
       status: t.status
     }));
-    exportToCSV(exportData, 'billify_transactions');
+    exportToCSV(exportData, 'self_billing_transactions');
   };
 
   return (

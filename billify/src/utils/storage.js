@@ -1,5 +1,5 @@
 /**
- * Storage utility for Billify (STUB)
+ * Storage utility for Self Billing (STUB)
  * LocalStorage usage has been removed.
  * Data is now managed by the API Services and React Context.
  */

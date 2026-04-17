@@ -168,7 +168,7 @@ const Users = () => {
       role: u.role,
       status: u.status
     }));
-    exportToCSV(exportData, 'billify_users');
+    exportToCSV(exportData, 'self_billing_users');
   };
 
   const handleImportCSV = async (e) => {

@@ -96,7 +96,7 @@ const Categories = () => {
       status: cat.status,
       productsCount: cat.productsCount
     }));
-    exportToCSV(exportData, 'billify_categories');
+    exportToCSV(exportData, 'self_billing_categories');
   };
 
   const handleImportCSV = async (e) => {

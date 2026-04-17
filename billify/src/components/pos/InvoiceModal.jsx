@@ -30,7 +30,7 @@ const InvoiceModal = ({ isOpen, onClose, transaction, settings, user, onPrint })
             {settings.photo && (
               <img src={settings.photo} alt="Logo" style={{ maxWidth: '100px', maxHeight: '60px', marginBottom: '12px' }} />
             )}
-            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>{settings.businessName || 'Billify POS'}</h2>
+            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>{settings.businessName || 'Self Billing POS'}</h2>
             <p style={{ margin: '4px 0', fontSize: '0.75rem', color: 'var(--neutral-500)' }}>{settings.address}</p>
             {settings.gstNumber && <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600 }}>GSTIN: {settings.gstNumber}</p>}
           </div>

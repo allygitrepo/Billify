@@ -141,7 +141,7 @@ const BusinessSetup = () => {
           </div>
 
           <div className="branding-footer">
-            <p>© 2026 Billify POS Systems.</p>
+            <p>© 2026 Self Billing POS Systems.</p>
           </div>
         </div>
 

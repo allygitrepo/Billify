@@ -26,7 +26,7 @@ const Logo = ({ size = 'md', showText = true, variant = 'primary' }) => {
         overflow: 'hidden',
         flexShrink: 0
       }}>
-        <img src="/billify.png" alt="Billify Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <img src="/SelfBilling.logo.png" alt="Self Billing Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       </div>
       {showText && (
         <span style={{
@@ -40,7 +40,7 @@ const Logo = ({ size = 'md', showText = true, variant = 'primary' }) => {
           transformOrigin: 'left',
           lineHeight: 1
         }}>
-          BilliFy
+          Self Billing
         </span>
       )}
     </div>

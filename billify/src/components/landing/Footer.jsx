@@ -6,9 +6,9 @@ const Footer = () => {
       <div className="container footer-container">
         <div className="footer-main">
           <div className="footer-info">
-            <h2 className="footer-logo">Billify</h2>
+            <h2 className="footer-logo">Self Billing</h2>
             <p className="footer-description">
-              Billify helps businesses manage billing, inventory, and transactions efficiently across multiple businesses.
+              Self Billing helps businesses manage billing, inventory, and transactions efficiently across multiple businesses.
             </p>
           </div>
           
@@ -46,14 +46,14 @@ const Footer = () => {
               <p>+91 9023960106</p>
             </div>
             <div className="contact-item">
-              <p>contact@billify.com</p>
-              <p>support@billify.com</p>
+              <p>contact@selfbilling.com</p>
+              <p>support@selfbilling.com</p>
             </div>
           </div>
         </div>
         
         <div className="footer-bottom">
-          <p className="copyright">Copyright © 2026 Billify. All Rights Reserved.</p>
+          <p className="copyright">Copyright © 2026 Self Billing. All Rights Reserved.</p>
           <div className="social-links">
             <a href="#" className="social-icon">FB</a>
             <a href="#" className="social-icon">TW</a>

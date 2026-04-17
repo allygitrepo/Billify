@@ -265,7 +265,7 @@ const Products = () => {
         status: p.status
       }))
     );
-    exportToCSV(exportData, 'billify_products');
+    exportToCSV(exportData, 'self_billing_products');
   };
 
   const handleImportCSV = async (e) => {

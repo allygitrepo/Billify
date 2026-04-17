@@ -114,6 +114,13 @@ const businessController = {
                 { business_id: business.id, name: 'Pieces', shortCode: 'pcs' }
             ], { transaction: t });
 
+            // 6. Generate Business Profile QR Code
+            const qrController = require("../qr_codes/qr_codes.controller");
+            await qrController.generateBusinessQR(business.id, { 
+                name: businessName, 
+                phone: phone 
+            });
+
             await t.commit();
 
             return res.status(201).json({
@@ -169,6 +176,13 @@ const businessController = {
                     invoice_prefix: invoice_prefix || settings.invoice_prefix
                 });
             }
+
+            // Update QR Code as well if name or phone changed
+            const qrController = require("../qr_codes/qr_codes.controller");
+            await qrController.generateBusinessQR(id, { 
+                name: business.name, 
+                phone: business.phone 
+            });
 
             return res.status(200).json({
                 message: "Business updated successfully",

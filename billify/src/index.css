@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+@import './qr_styles.css';
+
 :root {
   /* Color Palette */
   --primary-50: #f0fdfa;

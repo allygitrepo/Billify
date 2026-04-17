@@ -10,6 +10,7 @@ import { invoiceService } from '../services/invoice.service';
 import { inventoryService } from '../services/inventory.service';
 import { settingsService } from '../services/settings.service';
 import { customerService } from '../services/customer.service';
+import { qrService } from '../services/qr.service';
 import { generateId } from '../utils/idGenerator';
 
 import Toast from '../components/common/Toast';
@@ -32,6 +33,7 @@ export const DataProvider = ({ children }) => {
   const [roles, setRoles] = useState([]);
   const [uoms, setUoms] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [businessQr, setBusinessQr] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [toast, setToast] = useState(null);
@@ -56,7 +58,8 @@ export const DataProvider = ({ children }) => {
             transactionsResult,
             inventoryResult,
             settingsResult,
-            customersResult
+            customersResult,
+            qrResult
           ] = await Promise.all([
 
             businessService.getMyBusinesses(),
@@ -68,7 +71,8 @@ export const DataProvider = ({ children }) => {
             invoiceService.getInvoices(businessId),
             inventoryService.getInventoryLog(businessId),
             settingsService.getSettings(businessId),
-            customerService.getCustomers({ business_id: businessId })
+            customerService.getCustomers({ business_id: businessId }),
+            qrService.getBusinessQR(businessId)
           ]);
 
           
@@ -173,6 +177,7 @@ export const DataProvider = ({ children }) => {
           setSettings(mappedSettings);
           setBusinesses(businessesResult || []);
           setCustomers(customersResult?.data || []);
+          setBusinessQr(qrResult);
           
         } catch (error) {
 
@@ -747,6 +752,7 @@ export const DataProvider = ({ children }) => {
     loading,
     uoms,
     customers,
+    businessQr,
     businessId,
     addCategory,
     updateCategory,

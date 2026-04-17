@@ -8,6 +8,7 @@ import RevenueChart from '../../components/dashboard/RevenueChart';
 import StockAlerts from '../../components/dashboard/StockAlerts';
 import RecentTransactions from '../../components/dashboard/RecentTransactions';
 import TopProducts from '../../components/dashboard/TopProducts';
+import BusinessQR from '../../components/common/BusinessQR';
 import { formatCurrency } from '../../utils/formatCurrency';
 
 const Dashboard = () => {
@@ -135,6 +136,10 @@ const Dashboard = () => {
             <RecentTransactions transactions={transactions} />
           </motion.div>
           <motion.div className="dashboard-right-col" variants={itemVariants}>
+            <div className="card mb-6" style={{ padding: 'var(--spacing-4)' }}>
+               <h3 className="card-title text-sm mb-2" style={{ border: 'none', padding: 0 }}>Business Profile QR</h3>
+               <BusinessQR size="small" />
+            </div>
             <StockAlerts products={products} onViewAll={handleLowStockClick} />
             <TopProducts transactions={transactions} />
           </motion.div>

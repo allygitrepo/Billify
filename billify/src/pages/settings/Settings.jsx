@@ -7,6 +7,7 @@ import Select from '../../components/common/Select';
 import Button from '../../components/common/Button';
 import ToggleSwitch from '../../components/common/ToggleSwitch';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import BusinessQR from '../../components/common/BusinessQR';
 import { fileToBase64, validateImage } from '../../utils/fileHelpers';
 
 const Settings = () => {
@@ -196,6 +197,14 @@ const Settings = () => {
                     onChange={handleInputChange} 
                   />
                 </div>
+              </div>
+
+              <div className="card mb-6">
+                <h3 className="card-title mb-4">Business Profile QR</h3>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <BusinessQR />
+                </div>
+                <p className="upload-hint mt-4 text-center">Scan to share your business card digitally.</p>
               </div>
 
               <div className="card">

@@ -147,8 +147,8 @@ const Settings = () => {
                 <div className="settings-group">
                   <div className="image-upload-wrapper">
                     <div className={`image-preview-circle ${errors.photo ? 'has-error' : ''}`}>
-                      {formData.photo ? (
-                        <img src={formData.photo} alt="Business Logo" />
+                      {formData.photo || '/SelfBilling.logo.png' ? (
+                        <img src={formData.photo || '/SelfBilling.logo.png'} alt="Business Logo" />
                       ) : (
                         <span style={{ fontSize: '12px', color: 'var(--neutral-400)' }}>Logo</span>
                       )}

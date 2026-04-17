@@ -30,7 +30,7 @@ export const printInvoice = (transaction, settings) => {
     <div class="print-container">
       <div class="print-header">
         <div class="business-info">
-          ${settings.photo ? `<img src="${settings.photo}" alt="Logo" class="print-logo" />` : ''}
+          <img src="${settings.photo || '/SelfBilling.logo.png'}" alt="Logo" class="print-logo" />
           <h1>${settings.businessName || 'Your Business'}</h1>
           <p class="biz-address">${settings.address || ''}</p>
           ${settings.gstNumber ? `<p class="biz-gst">GSTIN: ${settings.gstNumber}</p>` : ''}
@@ -107,7 +107,7 @@ export const printInvoice = (transaction, settings) => {
 
       <div class="declaration-section">
         <p>This is a computer-generated document.</p>
-        <p>Thank you! Powered by Billify</p>
+        <p>Thank you! Powered by Self Billing</p>
       </div>
     </div>
   `;

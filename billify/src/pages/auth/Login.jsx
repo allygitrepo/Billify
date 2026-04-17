@@ -98,7 +98,7 @@ const Login = () => {
             <p>Streamline your billing, track inventory, and grow your business with our all-in-one POS solution.</p>
           </div>
           <div className="branding-footer">
-            <p>© 2026 Billify Inc.</p>
+            <p>© 2026 Self Billing Inc.</p>
           </div>
         </div>
 

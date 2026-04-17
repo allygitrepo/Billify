@@ -158,7 +158,7 @@ const Register = () => {
           </div>
 
           <div className="branding-footer">
-            <p>© 2026 Billify POS Systems. All rights reserved.</p>
+            <p>© 2026 Self Billing POS Systems. All rights reserved.</p>
           </div>
         </div>
 
@@ -325,8 +325,8 @@ const Register = () => {
                         border: '2px solid white',
                         boxShadow: 'var(--shadow-sm)'
                       }}>
-                        {formData.businessPhoto ? (
-                          <img src={formData.businessPhoto} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        {formData.businessPhoto || '/SelfBilling.logo.png' ? (
+                          <img src={formData.businessPhoto || '/SelfBilling.logo.png'} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         ) : (
                           <Building size={32} color="var(--neutral-300)" />
                         )}

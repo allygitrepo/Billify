@@ -67,7 +67,7 @@ const Landing = () => {
 
         <section className="cta-section">
           <div className="container cta-container">
-            <h2>Start Managing Your Business with Billify</h2>
+            <h2>Start Managing Your Business with Self Billing</h2>
             <NavLink to="/login" className="btn btn-primary btn-lg">Get Started Now</NavLink>
           </div>
         </section>

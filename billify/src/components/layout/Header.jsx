@@ -38,7 +38,7 @@ const Header = ({ toggleSidebar, isPOS }) => {
         </button>
       <div style={{flex: '1'}} className={isPOS ? "" : "lg-ml-0"}>
         <h1 style={{fontSize: '0.75rem', fontWeight: '600', color: 'var(--neutral-500)', textTransform: 'uppercase', letterSpacing: '0.05em'}} className="header-welcome">
-          {(businesses.find(b => b.id === user?.businessId)?.name || user?.businessName || 'Billify')} / {user?.name || 'Admin'}
+          {(businesses.find(b => b.id === user?.businessId)?.name || user?.businessName || 'Self Billing')} / {user?.name || 'Admin'}
         </h1>
       </div>
 

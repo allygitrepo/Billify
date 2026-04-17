@@ -3,7 +3,7 @@ const sequelize = require("../../config/db");
 
 const Customer = sequelize.define("Customer", {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    business_id: { type: DataTypes.INTEGER, allowNull: false },
+    business_id: { type: DataTypes.BIGINT, allowNull: false },
     name: { type: DataTypes.STRING, allowNull: false },
     phone_number: { type: DataTypes.STRING, allowNull: false },
     opening_balance: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },

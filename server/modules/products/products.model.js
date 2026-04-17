@@ -5,7 +5,7 @@ const Category = require("../categories/categories.model");
 
 const Product = sequelize.define("Product", {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    business_id: { type: DataTypes.INTEGER, allowNull: false },
+    business_id: { type: DataTypes.BIGINT, allowNull: false },
     category_id: { type: DataTypes.INTEGER, allowNull: true }, // Not mandatory
     name: { type: DataTypes.STRING, allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },

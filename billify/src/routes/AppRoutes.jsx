@@ -11,7 +11,11 @@ import { usePermissions } from '../hooks/usePermissions';
 // Pages
 import Dashboard from '../pages/dashboard/Dashboard';
 import Categories from '../pages/categories/Categories';
+import Customers from '../pages/customers/Customers';
+import CustomerDetail from '../pages/customers/CustomerDetail';
 import Products from '../pages/products/Products';
+
+
 import Inventory from '../pages/inventory/Inventory';
 import POS from '../pages/pos/POS';
 import Transactions from '../pages/transactions/Transactions';
@@ -23,6 +27,7 @@ import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import Landing from '../pages/landing/Landing';
 import Profile from '../pages/profile/Profile';
+import BusinessSetup from '../pages/auth/BusinessSetup';
 
 const PageTransition = ({ children }) => (
   <motion.div
@@ -53,7 +58,11 @@ const AppLayout = () => {
             <Route path="/billing" element={canView('billing') ? <PageTransition><POS /></PageTransition> : <Navigate to="/dashboard" replace />} />
             <Route path="/categories" element={canView('categories') ? <PageTransition><Categories /></PageTransition> : <Navigate to="/dashboard" replace />} />
             <Route path="/products" element={canView('products') ? <PageTransition><Products /></PageTransition> : <Navigate to="/dashboard" replace />} />
+            <Route path="/customers" element={canView('customers') ? <PageTransition><Customers /></PageTransition> : <Navigate to="/dashboard" replace />} />
+            <Route path="/customers/:id" element={canView('customers') ? <PageTransition><CustomerDetail /></PageTransition> : <Navigate to="/dashboard" replace />} />
             <Route path="/inventory" element={canView('inventory') ? <PageTransition><Inventory /></PageTransition> : <Navigate to="/dashboard" replace />} />
+
+
             <Route path="/uoms" element={canView('uoms') ? <PageTransition><Uoms /></PageTransition> : <Navigate to="/dashboard" replace />} />
             <Route path="/transactions" element={canView('transactions') ? <PageTransition><Transactions /></PageTransition> : <Navigate to="/dashboard" replace />} />
             <Route path="/users" element={canView('users') ? <PageTransition><Users /></PageTransition> : <Navigate to="/dashboard" replace />} />
@@ -77,6 +86,7 @@ const AppRoutes = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route element={<ProtectedRoute />}>
+            <Route path="/business-setup" element={<BusinessSetup />} />
             <Route path="/*" element={<AppLayout />} />
           </Route>
         </Routes>

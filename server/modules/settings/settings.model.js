@@ -3,7 +3,7 @@ const sequelize = require("../../config/db");
 
 const Settings = sequelize.define("Settings", {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    business_id: { type: DataTypes.INTEGER, allowNull: false, unique: true },
+    business_id: { type: DataTypes.BIGINT, allowNull: false, unique: true },
     tax_percentage: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
     gst_percentage: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
     currency: { type: DataTypes.STRING, defaultValue: 'INR' },

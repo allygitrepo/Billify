@@ -59,6 +59,18 @@ class RemoteAuthDatasource implements AuthDatasource {
     return response.data;
   }
 
+  Future<Map<String, dynamic>> googleLogin(String idToken) async {
+    final response = await _apiService.post(
+      ApiEndpoints.googleLogin,
+      data: {
+        'provider': 'google',
+        'idToken': idToken,
+        'platform': 'android',
+      },
+    );
+    return response.data;
+  }
+
   // Helper method for Registration with more fields
   Future<Map<String, dynamic>> registerWithDetails(Map<String, dynamic> registrationData) async {
     final response = await _apiService.post(

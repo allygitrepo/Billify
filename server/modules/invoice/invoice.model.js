@@ -3,7 +3,7 @@ const sequelize = require("../../config/db");
 
 const Invoice = sequelize.define("Invoice", {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    business_id: { type: DataTypes.INTEGER, allowNull: false },
+    business_id: { type: DataTypes.BIGINT, allowNull: false },
     invoice_number: { type: DataTypes.STRING, allowNull: false },
     customer_id: { type: DataTypes.INTEGER, allowNull: true }, // For regular customers
     customer_type: { type: DataTypes.STRING, defaultValue: 'WALKIN' }, // 'WALKIN', 'REGULAR'

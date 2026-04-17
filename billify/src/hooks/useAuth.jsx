@@ -24,15 +24,23 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      // console.log('useAuth: calling authService.login');
       const result = await authService.login(email, password);
-      // console.log('useAuth: authService.login result user:', result.user);
-      // The service already sets sessionStorage for token and user
       setUser(result.user);
-      return { success: true };
+      return { success: true, hasBusiness: result.user.hasBusiness !== false };
     } catch (error) {
       console.error('useAuth: Login error:', error);
       return { success: false, message: error.message || 'Invalid email or password' };
+    }
+  };
+
+  const googleLogin = async (idToken) => {
+    try {
+      const result = await authService.googleLogin(idToken);
+      setUser(result.user);
+      return { success: true, hasBusiness: result.user.hasBusiness !== false };
+    } catch (error) {
+      console.error('useAuth: Google login error:', error);
+      return { success: false, message: error.message || 'Google authentication failed' };
     }
   };
 
@@ -90,7 +98,18 @@ export const AuthProvider = ({ children }) => {
     
     setUser(updatedUser);
     localStorage.setItem('billify_user', JSON.stringify(updatedUser));
+    
+    // Sync with individual keys for header injection
+    if (businessId) {
+      localStorage.setItem('business_id', businessId);
+      localStorage.setItem('last_business_id', businessId);
+      if (businessInfo) {
+        localStorage.setItem('business_name', businessInfo.name);
+      }
+    }
+
     return { success: true };
+
   };
 
   const refreshUser = (newData) => {
@@ -104,6 +123,7 @@ export const AuthProvider = ({ children }) => {
     user,
     businessId: user?.businessId,
     login,
+    googleLogin,
     register,
     logout,
     switchBusiness,

@@ -3,7 +3,7 @@ const sequelize = require("../../config/db");
 
 const Payment = sequelize.define("Payment", {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    business_id: { type: DataTypes.INTEGER, allowNull: false },
+    business_id: { type: DataTypes.BIGINT, allowNull: false },
     customer_id: { type: DataTypes.INTEGER, allowNull: false },
     amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     type: { type: DataTypes.STRING, allowNull: false }, // 'credit' (customer owes), 'debit' (customer paid)

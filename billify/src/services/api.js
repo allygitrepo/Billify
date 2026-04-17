@@ -11,11 +11,18 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('billify_token');
-    // console.log(`API Request: ${config.method.toUpperCase()} ${config.url}`, { hasToken: !!token });
+    const businessId = localStorage.getItem('business_id');
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    if (businessId) {
+      config.headers['x-business-id'] = businessId;
+    }
+
     return config;
+
   },
   (error) => {
     console.error('API Request Error:', error);

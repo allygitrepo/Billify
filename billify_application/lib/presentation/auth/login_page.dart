@@ -165,6 +165,71 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 32),
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: Colors.grey[300])),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                'OR',
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: Colors.grey[300])),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+                        GestureDetector(
+                          onTap: () async {
+                            await ref.read(authProvider.notifier).loginWithGoogle();
+                            if (!mounted) return;
+
+                            final authState = ref.read(authProvider);
+                            if (authState.isLoggedIn) {
+                              ref.invalidate(businessProvider);
+                              final businessState = ref.read(businessProvider);
+                              if (businessState.currentBusiness == null) {
+                                Navigator.pushReplacementNamed(context, '/business-setup');
+                              } else {
+                                Navigator.pushReplacementNamed(context, '/home');
+                              }
+                            } else if (authState.error != null) {
+                              ErrorHandler.showErrorSnackBar(context, authState.errorObject ?? authState.error);
+                            }
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Image.asset(
+                              'assets/sign_in_with_google.webp',
+                              fit: BoxFit.contain,
+                              height: 52, // Standard height for better UI
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                height: 52,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey[300]!),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                alignment: Alignment.center,
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.login, size: 20),
+                                    SizedBox(width: 12),
+                                    Text('Sign in with Google'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 24),
                       ],
                     ),

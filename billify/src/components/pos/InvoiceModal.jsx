@@ -76,16 +76,48 @@ const InvoiceModal = ({ isOpen, onClose, transaction, settings, user, onPrint })
           </div>
 
           <div className="voucher-summary" style={{ borderTop: '2px dashed var(--neutral-200)', paddingTop: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '8px', color: 'var(--neutral-500)' }}>
+              <span>Subtotal</span>
+              <span>{formatCurrency(transaction.subtotal)}</span>
+            </div>
+            {transaction.tax > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '4px', color: 'var(--neutral-500)' }}>
+                <span>Tax</span>
+                <span>{formatCurrency(transaction.tax)}</span>
+              </div>
+            )}
+            {transaction.gst > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '4px', color: 'var(--neutral-500)' }}>
+                <span>GST</span>
+                <span>{formatCurrency(transaction.gst)}</span>
+              </div>
+            )}
             {transaction.discount > 0 && (
-              <div style={{ display: 'flex', justifySelf: 'space-between', fontSize: '0.875rem', marginBottom: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '4px', color: 'var(--danger-500)' }}>
                 <span>Discount</span>
                 <span>-{formatCurrency(transaction.discount)}</span>
               </div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 900 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 900, marginTop: '8px', paddingBottom: '12px', borderBottom: '1px solid var(--neutral-100)' }}>
               <span>Grand Total</span>
               <span>{formatCurrency(transaction.total || transaction.final_amount)}</span>
             </div>
+
+            {/* Split/Khata Details */}
+            {(transaction.paymentMode === 'SPLIT' || transaction.paymentMode === 'KHATA') && (
+              <div style={{ marginTop: '12px', padding: '12px', background: 'var(--neutral-50)', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 600 }}>Amount Paid (Cash)</span>
+                  <span style={{ fontWeight: 700, color: 'var(--primary-600)' }}>{formatCurrency(transaction.paidAmount || 0)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ fontWeight: 600 }}>Remaining to Khata</span>
+                  <span style={{ fontWeight: 700, color: 'var(--danger-600)' }}>
+                    {formatCurrency((transaction.total || transaction.final_amount) - (transaction.paidAmount || 0))}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="voucher-footer" style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--neutral-400)' }}>

@@ -130,7 +130,7 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
         final business = BusinessModel(
           id:
               _activeBusinessId ??
-              DateTime.now().millisecondsSinceEpoch.toString(),
+              'temp_${DateTime.now().millisecondsSinceEpoch}',
           name: _nameController.text,
           gstin: _gstNumberController.text,
           phone: _phoneController.text,

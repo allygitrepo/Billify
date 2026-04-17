@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 const User = require("./users.model");
 const Business = require("../businesses/businesses.model");
 const UserBusiness = require("./user_businesses.model");
@@ -264,6 +265,105 @@ const authController = {
         } catch (error) {
             console.error("Login Error Deep Detail:", error);
             return res.status(500).json({ message: "Internal server error", error: error.message });
+        }
+    },
+
+    // ============ Google Login ============
+    googleLogin: async (req, res) => {
+        try {
+            const { idToken } = req.body;
+            if (!idToken) {
+                return res.status(400).json({ message: "ID Token is required" });
+            }
+
+            const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+            const ticket = await client.verifyIdToken({
+                idToken,
+                audience: process.env.GOOGLE_CLIENT_ID
+            });
+
+            const payload = ticket.getPayload();
+            const { email, name, picture, sub: google_id } = payload;
+
+            // 1. Find user by email
+            let user = await User.findOne({ where: { email } });
+
+            if (!user) {
+                console.log("New User via Google, creating account:", email);
+                // Create user with random password (satisfies db constraint)
+                const randomPassword = Math.random().toString(36).slice(-12) + "A1!";
+                const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+                // Default role should be "Admin" for the first account creation if we expect them to create a business
+                const [adminRole] = await Role.findOrCreate({
+                    where: { name: 'Admin', business_id: null },
+                    defaults: { 
+                        description: 'System Administrator with full access',
+                        business_id: null 
+                    }
+                });
+
+                user = await User.create({
+                    name,
+                    email,
+                    password: hashedPassword,
+                    role_id: adminRole.id,
+                    photo: picture,
+                    status: true
+                });
+            }
+
+            // 2. Fetch all active businesses for user
+            const userBusinesses = await UserBusiness.findAll({
+                where: { user_id: user.id, status: true },
+                include: [
+                    { 
+                        model: Business, 
+                        as: 'business', 
+                        where: { status: true },
+                        include: [{ model: Settings, as: 'settings' }]
+                    },
+                    { model: Role, as: 'role' }
+                ]
+            });
+
+            // 3. Generate token
+            const token = jwt.sign(
+                { id: user.id, email: user.email },
+                process.env.JWT_SECRET,
+                { expiresIn: "30d" } // Longer session for mobile/web convenience
+            );
+
+            return res.status(200).json({
+                message: "Google login successful",
+                token,
+                user: { 
+                    id: user.id, 
+                    name: user.name, 
+                    email: user.email,
+                    mobile: user.mobile,
+                    role_id: user.role_id,
+                    photo: user.photo,
+                    hasBusiness: userBusinesses.length > 0
+                },
+                businesses: userBusinesses.map(ub => {
+                    const b = ub.business.get({ plain: true });
+                    const s = b.settings || {};
+                    return {
+                        ...b,
+                        business_logo: s.business_logo || b.business_logo,
+                        tax: s.tax_percentage || b.tax,
+                        gst_percentage: s.gst_percentage || b.gst_percentage,
+                        invoice_prefix: s.invoice_prefix || b.invoice_prefix,
+                        role: ub.role ? ub.role.name : 'User',
+                        role_id: ub.role_id
+                    };
+                })
+            });
+
+        } catch (error) {
+            console.error("Google Login Error:", error);
+            return res.status(500).json({ message: "Google authentication failed", error: error.message });
         }
     }
 };

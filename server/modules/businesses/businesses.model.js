@@ -3,7 +3,7 @@ const sequelize = require("../../config/db");
 
 const Business = sequelize.define("Businesses",
     {
-        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
         owner_user_id: { type: DataTypes.INTEGER, allowNull: false },
         name: { type: DataTypes.STRING, allowNull: false, defaultValue: "" },
         phone: { type: DataTypes.STRING, allowNull: true },

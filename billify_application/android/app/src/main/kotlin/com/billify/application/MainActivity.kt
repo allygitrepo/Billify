@@ -1,4 +1,4 @@
-package com.example.billify_application
+package com.billify.application
 
 import io.flutter.embedding.android.FlutterActivity
 

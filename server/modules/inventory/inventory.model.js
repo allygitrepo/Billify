@@ -3,7 +3,7 @@ const sequelize = require("../../config/db");
 
 const Inventory = sequelize.define("Inventory", {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    business_id: { type: DataTypes.INTEGER, allowNull: false },
+    business_id: { type: DataTypes.BIGINT, allowNull: false },
     product_id: { type: DataTypes.INTEGER, allowNull: false },
     variant_id: { type: DataTypes.INTEGER, allowNull: true }, // NULL if product has no variants
     current_stock: { type: DataTypes.DECIMAL(12, 3), defaultValue: 0 }

@@ -7,6 +7,8 @@ const RolePermission = require("../role_permission/role_permission.model");
 const Role = require("../roles/roles.model");
 const UOM = require("../uoms/uoms.model");
 const Settings = require("../settings/settings.model");
+const QrCode = require("../qr_codes/qr_codes.model");
+const QRCode = require("qrcode");
 const sequelize = require("../../config/db");
 require("dotenv").config();
 
@@ -146,6 +148,23 @@ const authController = {
                 }));
                 await RolePermission.bulkCreate(adminPerms, { transaction: t });
             }
+
+            // 10. Generate Business Profile QR Code
+            const qrProfileData = JSON.stringify({
+                id: business.id,
+                name: business.name,
+                phone: business.phone,
+                type: 'business_profile'
+            });
+
+            const qrBase64 = await QRCode.toDataURL(qrProfileData);
+            await QrCode.create({
+                business_id: business.id,
+                qr_type: 'Profile',
+                qr_data: qrBase64,
+                status: true
+            }, { transaction: t });
+            console.log("Profile QR Code generated and stored for business:", business.id);
 
             await t.commit();
             console.log("Registration Successful for:", email);

@@ -64,5 +64,9 @@ const analyticsRoutes = require("./modules/analytics/analytics.routes");
 router.get("/analytics/test-reachability", (req, res) => res.json({ message: "Analytics route is reachable" }));
 router.use("/analytics", authenticate, analyticsRoutes);
 
+// QR Code Routes
+const qrCodeRoutes = require("./modules/qr_codes/qr_codes.routes");
+router.use("/qr-codes", authenticate, qrCodeRoutes);
+
 module.exports = router;
 

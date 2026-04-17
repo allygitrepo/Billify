@@ -26,6 +26,7 @@ const productsController = {
                 hasVariants, // Legacy support from frontend
                 is_weighted,
                 base_uom_id,
+                uom_id,
                 uom,
                 price_per_unit,
                 variants,
@@ -46,10 +47,8 @@ const productsController = {
 
             stock = stock !== undefined ? stock : 0;
             
-            // Map UOM ID to base_uom_id if base_uom_id is missing but uom (ID) is present
-            if (!base_uom_id && uom && !isNaN(parseInt(uom))) {
-                base_uom_id = parseInt(uom);
-            }
+            // Normalize UOM ID
+            const finalUomId = uom_id || base_uom_id || (uom && !isNaN(parseInt(uom)) ? parseInt(uom) : null);
 
             // Ensure barcode is null if empty string to avoid unique constraint issues
             barcode = (barcode && barcode.trim() !== "") ? barcode.trim() : null;
@@ -99,8 +98,7 @@ const productsController = {
                 barcode,
                 has_variants,
                 is_weighted: is_weighted,
-                uom: uom || 'Pcs',
-                base_uom_id: base_uom_id || null
+                uom_id: finalUomId
             }, { transaction: t });
 
             // 3. Handle Variants and Inventory
@@ -177,7 +175,7 @@ const productsController = {
                 include: [
                     { model: Category, as: 'category' },
                     { model: Variant, as: 'variants', where: { status: 'active' }, required: false },
-                    { model: UOM, as: 'baseUom' },
+                    { model: UOM, as: 'uom' },
                     { model: Inventory, as: 'inventory' }
                 ],
                 order: [['createdAt', 'DESC']]
@@ -210,6 +208,7 @@ const productsController = {
                 hasVariants, // Legacy support from frontend
                 is_weighted,
                 base_uom_id,
+                uom_id,
                 uom,
                 price_per_unit,
                 variants 
@@ -238,10 +237,8 @@ const productsController = {
 
             stock = stock !== undefined ? stock : product.stock;
 
-            // Map UOM ID to base_uom_id if missing
-            if (!base_uom_id && uom && !isNaN(parseInt(uom))) {
-                base_uom_id = parseInt(uom);
-            }
+            // Normalize UOM ID
+            const finalUomId = uom_id || base_uom_id || (uom && !isNaN(parseInt(uom)) ? parseInt(uom) : product.uom_id);
 
             // Ensure barcode is null if empty string
             barcode = (barcode && barcode.trim() !== "") ? barcode.trim() : null;
@@ -260,8 +257,7 @@ const productsController = {
                 barcode: barcode !== undefined ? barcode : product.barcode,
                 has_variants,
                 is_weighted,
-                uom: uom !== undefined ? uom : product.uom,
-                base_uom_id: base_uom_id !== undefined ? base_uom_id : product.base_uom_id
+                uom_id: finalUomId
             }, { transaction: t });
 
             // 2. Handle Variants update (Robust Sync)
@@ -340,7 +336,7 @@ const productsController = {
                 include: [
                     { model: Category, as: 'category' },
                     { model: Variant, as: 'variants', where: { status: 'active' }, required: false },
-                    { model: UOM, as: 'baseUom' },
+                    { model: UOM, as: 'uom' },
                     { model: Inventory, as: 'inventory' }
                 ]
             });
@@ -350,7 +346,7 @@ const productsController = {
                 product: updatedProduct
             });
         } catch (error) {
-            if (t) await t.rollback();
+            if (t && !t.finished) await t.rollback();
             console.error("Update Product Error:", error);
             return res.status(500).json({ message: "Internal server error" });
         }

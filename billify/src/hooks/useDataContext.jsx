@@ -9,6 +9,7 @@ import { uomService } from '../services/uom.service';
 import { invoiceService } from '../services/invoice.service';
 import { inventoryService } from '../services/inventory.service';
 import { settingsService } from '../services/settings.service';
+import { qrService } from '../services/qr.service';
 import { generateId } from '../utils/idGenerator';
 import Toast from '../components/common/Toast';
 import { AnimatePresence } from 'framer-motion';
@@ -29,6 +30,7 @@ export const DataProvider = ({ children }) => {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [uoms, setUoms] = useState([]);
+  const [qrCodes, setQrCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
@@ -51,7 +53,8 @@ export const DataProvider = ({ children }) => {
             uomsResult,
             transactionsResult,
             inventoryResult,
-            settingsResult
+            settingsResult,
+            qrCodesResult
           ] = await Promise.all([
             businessService.getMyBusinesses(),
             userService.getUsers(businessId),
@@ -61,7 +64,8 @@ export const DataProvider = ({ children }) => {
             uomService.getUOMs(businessId),
             invoiceService.getInvoices(businessId),
             inventoryService.getInventoryLog(businessId),
-            settingsService.getSettings(businessId)
+            settingsService.getSettings(businessId),
+            qrService.getQRByBusiness(businessId)
           ]);
           
           const rolesData = (rolesResult || []).map(role => {
@@ -162,6 +166,7 @@ export const DataProvider = ({ children }) => {
           setInventoryLog(mappedLogs);
           setSettings(mappedSettings);
           setBusinesses(businessesResult || []);
+          setQrCodes(qrCodesResult || []);
           
         } catch (error) {
           console.error('Error fetching business data:', error);
@@ -668,6 +673,7 @@ export const DataProvider = ({ children }) => {
     settings,
     users,
     roles,
+    qrCodes,
     loading,
     addCategory,
     updateCategory,

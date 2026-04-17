@@ -50,7 +50,13 @@ const authorize = (module_name, action) => {
     return async (req, res, next) => {
         try {
             const user_id = req.user ? req.user.id : null; 
-            const business_id = req.headers['x-business-id'] || req.body.business_id || req.query.business_id;
+            const raw_business_id = 
+                (req.headers && req.headers['x-business-id']) || 
+                (req.body && req.body.business_id) || 
+                (req.query && req.query.business_id) || 
+                (req.params && req.params.business_id);
+
+            const business_id = (raw_business_id && raw_business_id !== 'undefined') ? parseInt(raw_business_id) : null;
 
             if (!user_id || !business_id) {
                 return res.status(403).json({ message: "Access denied. User or Business not identified." });
@@ -60,12 +66,15 @@ const authorize = (module_name, action) => {
 
             // 3. Fast-pass for Admin role
             const mapping = await UserBusiness.findOne({
-                where: { user_id, business_id, status: true },
-                include: [{ model: require("../modules/roles/roles.model"), as: 'role' }]
+                where: { user_id, business_id, status: true }
             });
 
-            if (mapping && mapping.role && mapping.role.name === 'Admin') {
-                return next();
+            if (mapping) {
+                const Role = require("../modules/roles/roles.model");
+                const role = await Role.findByPk(mapping.role_id);
+                if (role && role.name === 'Admin') {
+                    return next();
+                }
             }
 
             if (!hasPermission) {

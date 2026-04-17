@@ -41,7 +41,15 @@ const uomsController = {
     // ============ Get UOMs by Business ID ============
     getUOMsByBusinessId: async (req, res) => {
         try {
-            const { business_id } = req.params;
+            const business_id = 
+                (req.params && (req.params.business_id || req.params.id)) || 
+                (req.headers && req.headers['x-business-id']) ||
+                (req.user && req.user.business_id);
+
+            if (!business_id) {
+                return res.status(400).json({ message: "Business ID is required" });
+            }
+
             const uoms = await UOM.findAll({ where: { business_id, status: true } });
             return res.status(200).json({ uoms });
         } catch (error) {

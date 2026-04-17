@@ -9,10 +9,14 @@ import StockAlerts from '../../components/dashboard/StockAlerts';
 import RecentTransactions from '../../components/dashboard/RecentTransactions';
 import TopProducts from '../../components/dashboard/TopProducts';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { Download, QrCode as QrIcon } from 'lucide-react';
+import Button from '../../components/common/Button';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { transactions, products } = useDataContext();
+  const { transactions, products, qrCodes, settings } = useDataContext();
+  
+  const profileQr = qrCodes?.find(q => q.qr_type === 'Profile');
 
   const handleLowStockClick = () => {
     navigate('/products?filter=low_stock');
@@ -135,6 +139,58 @@ const Dashboard = () => {
             <RecentTransactions transactions={transactions} />
           </motion.div>
           <motion.div className="dashboard-right-col" variants={itemVariants}>
+            {profileQr && (
+              <div className="card mb-8" style={{ padding: 'var(--spacing-6)', textAlign: 'center', background: 'linear-gradient(135deg, white 0%, var(--neutral-50) 100%)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: '-10px', right: '-10px', width: '60px', height: '60px', backgroundColor: 'var(--primary-50)', borderRadius: '50%', opacity: 0.5 }}></div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--spacing-5)', color: 'var(--neutral-800)', position: 'relative' }}>
+                  <div style={{ padding: '6px', backgroundColor: 'var(--primary-600)', borderRadius: '8px', color: 'white' }}>
+                    <QrIcon size={16} strokeWidth={2.5} />
+                  </div>
+                  <h3 style={{ fontSize: '0.825rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.075em' }}>Business Card</h3>
+                </div>
+                
+                <div style={{ 
+                  width: '160px', 
+                  height: '160px', 
+                  margin: '0 auto var(--spacing-4)', 
+                  padding: '12px',
+                  backgroundColor: 'white',
+                  border: '1px solid var(--neutral-100)',
+                  borderRadius: '16px',
+                  boxShadow: 'var(--shadow-sm)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <img src={profileQr.qr_data} alt="Business QR" style={{ width: '100%', height: '100%' }} />
+                </div>
+                
+                <div style={{ marginBottom: 'var(--spacing-5)' }}>
+                  <p style={{ fontSize: '0.925rem', fontWeight: '700', color: 'var(--neutral-900)', marginBottom: '2px' }}>
+                    {settings.businessName || 'Business Profile'}
+                  </p>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--neutral-400)', fontWeight: '600', letterSpacing: '0.02em' }}>
+                    Official Digital Identity
+                  </p>
+                </div>
+                
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = profileQr.qr_data;
+                    link.download = `${settings.businessName || 'Business'}_QR.png`;
+                    link.click();
+                  }}
+                  style={{ gap: '8px', fontSize: '0.75rem', height: '40px', borderRadius: '10px', border: '1px solid var(--neutral-200)' }}
+                >
+                  <Download size={15} /> Save to Device
+                </Button>
+              </div>
+            )}
             <StockAlerts products={products} onViewAll={handleLowStockClick} />
             <TopProducts transactions={transactions} />
           </motion.div>

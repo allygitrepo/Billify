@@ -42,7 +42,15 @@ const categoriesController = {
     // ============ Get Categories by Business ID ============
     getCategoriesByBusinessId: async (req, res) => {
         try {
-            const { business_id } = req.params;
+            const business_id = 
+                (req.params && (req.params.business_id || req.params.id)) || 
+                (req.headers && req.headers['x-business-id']) ||
+                (req.user && req.user.business_id);
+
+            if (!business_id) {
+                return res.status(400).json({ message: "Business ID is required" });
+            }
+
             const categories = await Category.findAll({ 
                 where: { business_id, status: 'active' } 
             });

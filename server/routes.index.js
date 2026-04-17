@@ -68,5 +68,8 @@ router.use("/analytics", authenticate, analyticsRoutes);
 const qrRoutes = require("./modules/qr_codes/qr_codes.routes");
 router.use("/qr-codes", authenticate, qrRoutes);
 
-module.exports = router;
+// Table Routes
+const tablesRoutes = require("./modules/tables/tables.routes");
+router.use("/tables", authenticate, tablesRoutes);
 
+module.exports = router;

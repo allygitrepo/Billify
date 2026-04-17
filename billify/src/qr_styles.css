@@ -158,3 +158,196 @@
 
 .qr-skeleton-box { width: 180px; height: 180px; background: var(--neutral-50); border-radius: 16px; }
 .qr-skeleton-text { width: 120px; height: 16px; background: var(--neutral-50); margin-top: 20px; border-radius: 4px; }
+
+/* Restaurant Table Grid Styles */
+.tables-grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
+  margin-top: 32px;
+}
+
+.table-qr-card {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid var(--neutral-100);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.table-qr-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-200);
+}
+
+.table-qr-card.selected {
+  border-color: var(--primary-500);
+  background-color: #f0fdfa; /* even lighter teal background */
+  box-shadow: 0 0 0 2px var(--primary-100);
+}
+
+.selection-indicator {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  color: var(--primary-600);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 4px;
+}
+
+.table-card-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-left: 0;
+  transition: padding 0.2s ease;
+}
+
+.table-qr-card.selected .table-card-header {
+  padding-left: 28px; /* Push text to the right when checkmark is visible */
+}
+
+
+.table-id-info h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--neutral-800);
+}
+
+.table-capacity {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--neutral-500);
+  margin-top: 2px;
+}
+
+.delete-table-btn {
+  background: none;
+  border: none;
+  color: var(--neutral-300);
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.delete-table-btn:hover {
+  color: var(--danger-500);
+  background: var(--danger-50);
+}
+
+.table-qr-box {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #fdfdfd;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--neutral-50);
+}
+
+.table-qr-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.table-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.table-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  background: var(--neutral-50);
+  border: 1px solid var(--neutral-100);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--neutral-600);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.table-action-btn:hover {
+  background: var(--neutral-100);
+  color: var(--neutral-800);
+}
+
+/* Premium Bulk Action Bar */
+.bulk-action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff5f5;
+  border: 1px solid #fee2e2;
+  border-left: 5px solid var(--danger-500);
+  padding: 12px 24px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  animation: slideDown 0.3s ease-out;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.08);
+}
+
+.selected-count-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.selected-count-info span {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--danger-600);
+}
+
+.bulk-delete-btn {
+  background: var(--danger-500);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.bulk-delete-btn:hover {
+  background: var(--danger-600);
+  transform: scale(1.02);
+  box-shadow: 0 4px 10px rgba(225, 29, 72, 0.2);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+

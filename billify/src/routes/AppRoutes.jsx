@@ -28,6 +28,7 @@ import Register from '../pages/auth/Register';
 import Landing from '../pages/landing/Landing';
 import Profile from '../pages/profile/Profile';
 import BusinessSetup from '../pages/auth/BusinessSetup';
+import TableManagement from '../pages/tables/TableManagement';
 
 const PageTransition = ({ children }) => (
   <motion.div
@@ -61,6 +62,7 @@ const AppLayout = () => {
             <Route path="/customers" element={canView('customers') ? <PageTransition><Customers /></PageTransition> : <Navigate to="/dashboard" replace />} />
             <Route path="/customers/:id" element={canView('customers') ? <PageTransition><CustomerDetail /></PageTransition> : <Navigate to="/dashboard" replace />} />
             <Route path="/inventory" element={canView('inventory') ? <PageTransition><Inventory /></PageTransition> : <Navigate to="/dashboard" replace />} />
+            <Route path="/tables" element={<PageTransition><TableManagement /></PageTransition>} />
 
 
             <Route path="/uoms" element={canView('uoms') ? <PageTransition><Uoms /></PageTransition> : <Navigate to="/dashboard" replace />} />

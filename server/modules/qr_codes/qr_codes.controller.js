@@ -48,6 +48,54 @@ const qrCodesController = {
         }
     },
 
+    generateTableQR: async (businessId, tableId, tableNumber, capacity = 0) => {
+        try {
+            // Data for Table QR (e.g., for ordering)
+            const qrData = JSON.stringify({
+                type: 'table_order',
+                business_id: businessId,
+                table_id: tableId,
+                table_number: tableNumber,
+                capacity: capacity
+            });
+
+            // Generate QR Image (with different color for distinction if desired)
+            const qrImage = await QRCode.toDataURL(qrData, {
+                color: {
+                    dark: '#0f172a', // Slate 900 for tables
+                    light: '#ffffff'
+                },
+                width: 1000,
+                margin: 2
+            });
+
+            // Save or Update in database
+            const [qrRecord, created] = await QrCode.findOrCreate({
+                where: { 
+                    business_id: businessId, 
+                    qr_type: 'table',
+                    reference_id: tableId 
+                },
+                defaults: {
+                    raw_data: qrData,
+                    qr_image: qrImage,
+                    status: true
+                }
+            });
+
+            if (!created) {
+                qrRecord.qr_image = qrImage;
+                qrRecord.raw_data = qrData;
+                await qrRecord.save();
+            }
+
+            return qrRecord;
+        } catch (error) {
+            console.error("Error generating Table QR:", error);
+            throw error;
+        }
+    },
+
     // ============ Get QR by Business ID ============
     getQrByBusinessId: async (req, res) => {
         try {

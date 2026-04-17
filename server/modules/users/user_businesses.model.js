@@ -9,7 +9,7 @@ const UserBusiness = sequelize.define("UserBusinesses",
     {
         id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
         user_id: { type: DataTypes.INTEGER, allowNull: false },
-        business_id: { type: DataTypes.INTEGER, allowNull: false },
+        business_id: { type: DataTypes.BIGINT, allowNull: false },
         role_id: { type: DataTypes.INTEGER, allowNull: false },
         status: { type: DataTypes.BOOLEAN, defaultValue: true }
     },

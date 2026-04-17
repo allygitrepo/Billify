@@ -27,6 +27,7 @@ import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import Landing from '../pages/landing/Landing';
 import Profile from '../pages/profile/Profile';
+import BusinessSetup from '../pages/auth/BusinessSetup';
 
 const PageTransition = ({ children }) => (
   <motion.div
@@ -85,6 +86,7 @@ const AppRoutes = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route element={<ProtectedRoute />}>
+            <Route path="/business-setup" element={<BusinessSetup />} />
             <Route path="/*" element={<AppLayout />} />
           </Route>
         </Routes>

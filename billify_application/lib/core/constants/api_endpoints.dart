@@ -3,6 +3,7 @@ class ApiEndpoints {
 
   // Auth Endpoints
   static const String login = "$baseUrl/auth/login";
+  static const String googleLogin = "$baseUrl/auth/google";
   static const String register = "$baseUrl/auth/register";
   static const String updateProfile = "$baseUrl/users/profile/update";
   static const String changePassword = "$baseUrl/users/change-password";

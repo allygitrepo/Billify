@@ -3,7 +3,7 @@ const sequelize = require("../../config/db");
 
 const UOM = sequelize.define("UOM", {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    business_id: { type: DataTypes.INTEGER, allowNull: false },
+    business_id: { type: DataTypes.BIGINT, allowNull: false },
     name: { type: DataTypes.STRING, allowNull: false },
     shortCode: { type: DataTypes.STRING, allowNull: false, field: 'symbol' },
     conversion_factor: { type: DataTypes.DECIMAL(10, 4), defaultValue: 1.0000 },

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:billify_application/data/datasources/auth_datasource.dart';
 import 'package:billify_application/data/models/user_model.dart';
 import 'package:billify_application/data/repositories/auth_repository.dart';
@@ -81,8 +82,17 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> _loadRoleForUser(UserModel user) async {
     if (user.roleId == null) {
       print(
-        "INFO: User has no roleId (Owner account). Granting all permissions.",
+        "INFO: User has no roleId (Owner account). Granting full administrative permissions.",
       );
+      final ownerRole = RoleModel(
+        id: 'owner_admin',
+        name: 'Owner',
+        permissions: {
+          for (var module in PermissionModule.values)
+            module: [PermissionAction.all],
+        },
+      );
+      state = state.copyWith(currentRole: ownerRole);
       return;
     }
 
@@ -158,28 +168,46 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final repo = ref.read(authRepositoryProvider);
       final response = await repo.login(email, password);
-
-      if (response['token'] != null) {
-        final user = repo.getUser();
-        // Update user state but keep isLoading: true for sync tasks
-        state = state.copyWith(user: user, isLoggedIn: true);
-        
-        if (user != null) {
-          await _loadRoleForUser(user);
-          // Ensure businesses are synced after login
-          await ref.read(businessProvider.notifier).sync();
-        }
-        
-        // Finally stop loading
-        state = state.copyWith(isLoading: false);
-      } else {
-        state = state.copyWith(
-          isLoading: false,
-          error: response['message'] ?? 'Login failed',
-        );
-      }
+      await _handleLoginResponse(response);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorObject: e, error: e.toString());
+    }
+  }
+
+  Future<void> loginWithGoogle() async {
+    debugPrint('DEBUG: Starting Google Sign-In process...');
+    state = state.copyWith(isLoading: true, error: null, errorObject: null);
+    try {
+      final repo = ref.read(authRepositoryProvider);
+      final response = await repo.loginWithGoogle();
+      debugPrint('DEBUG: Google Sign-In response received in provider: $response');
+      await _handleLoginResponse(response);
+    } catch (e, stack) {
+      debugPrint('DEBUG: Google Sign-In provider caught error: $e');
+      debugPrint('DEBUG: Provider stack trace: $stack');
+      state = state.copyWith(isLoading: false, errorObject: e, error: e.toString());
+    }
+  }
+
+  Future<void> _handleLoginResponse(Map<String, dynamic> response) async {
+    final repo = ref.read(authRepositoryProvider);
+    if (response['token'] != null) {
+      debugPrint('DEBUG: Auth token found in response. Finalizing login...');
+      final user = repo.getUser();
+      state = state.copyWith(user: user, isLoggedIn: true);
+      
+      if (user != null) {
+        await _loadRoleForUser(user);
+        await ref.read(businessProvider.notifier).sync();
+      }
+      state = state.copyWith(isLoading: false);
+      debugPrint('DEBUG: Login process completed successfully');
+    } else {
+      debugPrint('DEBUG: Login failed. Error message: ${response['message']}');
+      state = state.copyWith(
+        isLoading: false,
+        error: response['message'] ?? 'Authentication failed',
+      );
     }
   }
 

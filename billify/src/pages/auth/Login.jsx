@@ -4,6 +4,7 @@ import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import { validateEmail, validatePassword, validate } from '../../utils/validators';
 import { useAuth } from '../../hooks/useAuth';
+import { GoogleLogin } from '@react-oauth/google';
 import Logo from '../../components/common/Logo';
 
 const Login = () => {
@@ -49,7 +50,7 @@ const Login = () => {
     return error;
   };
 
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const [loginError, setLoginError] = useState('');
 
   const handleSubmit = async (e) => {
@@ -81,6 +82,31 @@ const Login = () => {
       setIsLoading(false);
       setLoginError('An unexpected error occurred. Please try again.');
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setIsLoading(true);
+    setLoginError('');
+    try {
+      const result = await googleLogin(credentialResponse.credential);
+      setIsLoading(false);
+      if (result.success) {
+        if (!result.hasBusiness) {
+          navigate('/business-setup');
+        } else {
+          navigate('/dashboard');
+        }
+      } else {
+        setLoginError(result.message);
+      }
+    } catch (error) {
+      setIsLoading(false);
+      setLoginError('Google login failed. Please try again.');
+    }
+  };
+
+  const handleGoogleError = () => {
+    setLoginError('Google login failed. Please try again.');
   };
 
   const isFormInvalid = !formData.email || !formData.password || !!errors.email || !!errors.password;
@@ -181,6 +207,29 @@ const Login = () => {
               >
                 Login
               </Button>
+
+              <div className="auth-divider" style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                margin: 'var(--spacing-6) 0',
+                color: 'var(--neutral-400)',
+                fontSize: '0.825rem'
+              }}>
+                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--neutral-100)' }}></div>
+                <span style={{ margin: '0 12px' }}>OR</span>
+                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--neutral-100)' }}></div>
+              </div>
+
+              <div className="google-login-wrapper" style={{ display: 'flex', justifyContent: 'center' }}>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap
+                  theme="filled_blue"
+                  shape="pill"
+                  width="100%"
+                />
+              </div>
 
               <div className="auth-footer">
                 <p>Don't have an account? <NavLink to="/register">Register your business</NavLink></p>

@@ -8,7 +8,7 @@ const { authorize } = require("../../middleware/permission.middleware");
 router.get("/my-businesses", authenticate, businessController.getMyBusinesses);
 
 // Create new business
-router.post("/", authenticate, authorize('businesses', 'can_add'), businessController.createBusiness);
+router.post("/", authenticate, businessController.createBusiness);
 
 // Update business
 router.put("/:id", authenticate, authorize('businesses', 'can_update'), businessController.updateBusiness);

@@ -34,7 +34,7 @@ const Inventory = () => {
   const handleProductChange = (productId) => {
     const selectedProduct = products.find(p => p.id == productId);
     const variants = selectedProduct ? selectedProduct.variants : [];
-    
+
     // Auto-select first variant if only one exists
     const autoVariant = variants.length === 1 ? variants[0].name : '';
     const autoPrice = (variants.length === 1) ? variants[0].price : '';
@@ -56,7 +56,7 @@ const Inventory = () => {
     const itemErrors = {};
 
     if (!currentItem.productId) itemErrors.productId = 'Product required';
-    if (!currentItem.variantName) itemErrors.variantName = 'Variant required';
+    // if (!currentItem.variantName) itemErrors.variantName = 'Variant required';
     if (!currentItem.quantity || isNaN(currentItem.quantity) || parseFloat(currentItem.quantity) <= 0) {
       itemErrors.quantity = 'Qty must be > 0';
     }
@@ -100,12 +100,12 @@ const Inventory = () => {
 
     const data = {
       ...header,
-      type: aggregateType, 
+      type: aggregateType,
       items: items
     };
 
     const result = await addInventoryEntry(data);
-    
+
     if (result) {
       // Reset everything
       setHeader({ reason: 'Manual Adjustment', referenceNo: '', entityName: '' });
@@ -117,10 +117,10 @@ const Inventory = () => {
   const filteredLogs = useMemo(() => {
     return inventoryLog.filter(log => {
       const matchesType = filterType === 'all' || log.type === filterType;
-      
+
       const logDate = new Date(log.date);
       logDate.setHours(0, 0, 0, 0);
-      
+
       let matchesDate = true;
       if (fromDate) {
         const from = new Date(fromDate);
@@ -161,33 +161,33 @@ const Inventory = () => {
   const columns = [
     { key: 'productName', label: 'Product' },
     { key: 'variantName', label: 'Variant' },
-    { 
-      key: 'type', 
+    {
+      key: 'type',
       label: 'Type',
       render: (type) => <span className={`type-badge ${type}`}>{type}</span>
     },
-    { 
-      key: 'quantityChange', 
+    {
+      key: 'quantityChange',
       label: 'Qty Change',
       render: (val) => <span style={{ color: val > 0 ? 'var(--success-600)' : 'var(--danger-600)', fontWeight: 'bold' }}>{val > 0 ? `+${val}` : val}</span>
     },
     { key: 'stockAfter', label: 'Stock After' },
-    { 
-      key: 'referenceNo', 
+    {
+      key: 'referenceNo',
       label: 'Reference',
       render: (val) => <span className="text-muted">{val || '-'}</span>
     },
-    { 
-      key: 'actions', 
+    {
+      key: 'actions',
       label: 'Invoice',
       render: (_, log) => (
-        <button 
-          className="btn-icon-xs" 
+        <button
+          className="btn-icon-xs"
           onClick={() => {
-            const groupItems = log.referenceNo 
+            const groupItems = log.referenceNo
               ? inventoryLog.filter(l => l.referenceNo === log.referenceNo)
               : [log];
-            
+
             const tx = {
               id: log.referenceNo || log.id,
               invoice_number: log.referenceNo,
@@ -212,8 +212,8 @@ const Inventory = () => {
         </button>
       )
     },
-    { 
-      key: 'date', 
+    {
+      key: 'date',
       label: 'Date & Time',
       render: (val) => {
         const d = new Date(val);
@@ -238,28 +238,28 @@ const Inventory = () => {
               Create Mixed Inventory Voucher
             </h3>
             <div className="header-meta-grid">
-              <Select 
-                label="Reason" 
-                value={header.reason} 
-                onChange={(e) => setHeader({...header, reason: e.target.value})} 
+              <Select
+                label="Reason"
+                value={header.reason}
+                onChange={(e) => setHeader({ ...header, reason: e.target.value })}
                 options={[
-                  {label: 'Manual Adjustment', value: 'Manual Adjustment'},
-                  {label: 'Bulk Purchase', value: 'Purchase'}, 
-                  {label: 'Stock Return', value: 'Return'},
-                  {label: 'Damage Correction', value: 'Damage'}
+                  { label: 'Manual Adjustment', value: 'Manual Adjustment' },
+                  { label: 'Bulk Purchase', value: 'Purchase' },
+                  { label: 'Stock Return', value: 'Return' },
+                  { label: 'Damage Correction', value: 'Damage' }
                 ]}
               />
-              <Input 
-                label="Vendor / Customer" 
-                placeholder="Name or Source" 
-                value={header.entityName} 
-                onChange={(e) => setHeader({...header, entityName: e.target.value})} 
+              <Input
+                label="Vendor / Customer"
+                placeholder="Name or Source"
+                value={header.entityName}
+                onChange={(e) => setHeader({ ...header, entityName: e.target.value })}
               />
-              <Input 
-                label="Ref. Number" 
-                placeholder="INV-001 or Bill No." 
-                value={header.referenceNo} 
-                onChange={(e) => setHeader({...header, referenceNo: e.target.value})} 
+              <Input
+                label="Ref. Number"
+                placeholder="INV-001 or Bill No."
+                value={header.referenceNo}
+                onChange={(e) => setHeader({ ...header, referenceNo: e.target.value })}
               />
             </div>
           </div>
@@ -268,63 +268,63 @@ const Inventory = () => {
             <h4 className="section-subtitle mb-4">Add Products to Voucher</h4>
             <div className="item-builder-grid mixed-grid">
               <div className="builder-col-main">
-                <Select 
-                  label="Product" 
-                  value={currentItem.productId} 
-                  onChange={(e) => handleProductChange(e.target.value)} 
+                <Select
+                  label="Product"
+                  value={currentItem.productId}
+                  onChange={(e) => handleProductChange(e.target.value)}
                   options={products.map(p => ({ label: p.name, value: p.id }))}
                   error={errors.productId}
                 />
               </div>
               <div className="builder-col">
-                <Select 
-                  label="Variant" 
-                  value={currentItem.variantName} 
-                  onChange={(e) => handleVariantChange(e.target.value)} 
+                <Select
+                  label="Variant"
+                  value={currentItem.variantName}
+                  onChange={(e) => handleVariantChange(e.target.value)}
                   options={currentItem.productId ? getVariants(currentItem.productId) : []}
                   error={errors.variantName}
                 />
               </div>
               <div className="builder-col">
-                <Select 
-                  label="Action" 
-                  value={currentItem.type} 
-                  onChange={(e) => setCurrentItem({...currentItem, type: e.target.value})} 
-                  options={[{label: 'Inbound (Stock IN)', value: 'IN'}, {label: 'Outbound (Stock OUT)', value: 'OUT'}]}
+                <Select
+                  label="Action"
+                  value={currentItem.type}
+                  onChange={(e) => setCurrentItem({ ...currentItem, type: e.target.value })}
+                  options={[{ label: 'Inbound (Stock IN)', value: 'IN' }, { label: 'Outbound (Stock OUT)', value: 'OUT' }]}
                 />
               </div>
               <div className="builder-col">
-                 <Input 
-                  label="Quantity" 
-                  type="number" 
+                <Input
+                  label="Quantity"
+                  type="number"
                   min="0"
-                  value={currentItem.quantity} 
+                  value={currentItem.quantity}
                   onChange={(e) => {
                     const val = e.target.value;
                     if (val !== '' && parseFloat(val) < 0) return;
-                    setCurrentItem({...currentItem, quantity: val});
+                    setCurrentItem({ ...currentItem, quantity: val });
                     if (errors.quantity) setErrors({ ...errors, quantity: null });
-                  }} 
+                  }}
                   error={errors.quantity}
                 />
               </div>
               <div className="builder-col">
-                <Input 
-                  label="Unit Price" 
-                  type="number" 
+                <Input
+                  label="Unit Price"
+                  type="number"
                   min="0"
-                  value={currentItem.unitPrice} 
+                  value={currentItem.unitPrice}
                   onChange={(e) => {
                     const val = e.target.value;
                     if (val !== '' && parseFloat(val) < 0) return;
-                    setCurrentItem({...currentItem, unitPrice: val});
+                    setCurrentItem({ ...currentItem, unitPrice: val });
                     if (errors.unitPrice) setErrors({ ...errors, unitPrice: null });
-                  }} 
+                  }}
                   error={errors.unitPrice}
                 />
               </div>
               <div className="builder-col-action">
-                 <Button variant="secondary" onClick={addItem} fullWidth icon={<Plus size={16} />}>
+                <Button variant="secondary" onClick={addItem} fullWidth icon={<Plus size={16} />}>
                   Add
                 </Button>
               </div>
@@ -388,9 +388,9 @@ const Inventory = () => {
                       <strong>{formatCurrency(netTotal)}</strong>
                     </div>
                   </div>
-                  <Button 
-                    variant="primary" 
-                    onClick={handleTransactionSubmit} 
+                  <Button
+                    variant="primary"
+                    onClick={handleTransactionSubmit}
                     className="submit-batch-btn"
                   >
                     <Printer size={18} style={{ marginRight: '8px' }} /> Confirm & Record Transaction
@@ -408,10 +408,10 @@ const Inventory = () => {
             <div className="history-filters-container">
               <div className="filter-field-group">
                 <label className="field-label">Transaction Type</label>
-                <Select 
-                  value={filterType} 
+                <Select
+                  value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  options={[{label: 'All Types', value: 'all'}, {label: 'Stock IN', value: 'IN'}, {label: 'Stock OUT', value: 'OUT'}]}
+                  options={[{ label: 'All Types', value: 'all' }, { label: 'Stock IN', value: 'IN' }, { label: 'Stock OUT', value: 'OUT' }]}
                   placeholder={null}
                   className="history-filter-select"
                 />
@@ -419,7 +419,7 @@ const Inventory = () => {
 
               <div className="filter-field-group">
                 <label className="field-label">From Date</label>
-                <input 
+                <input
                   type="date"
                   className="history-date-input"
                   value={fromDate}
@@ -429,7 +429,7 @@ const Inventory = () => {
 
               <div className="filter-field-group">
                 <label className="field-label">To Date</label>
-                <input 
+                <input
                   type="date"
                   className="history-date-input"
                   value={toDate}
@@ -445,16 +445,16 @@ const Inventory = () => {
               </div>
             </div>
           </div>
-          <Table 
-            columns={columns} 
-            data={filteredLogs} 
-            isLoading={loading && !inventoryLog} 
+          <Table
+            columns={columns}
+            data={filteredLogs}
+            isLoading={loading && !inventoryLog}
             emptyMessage="No inventory history found"
           />
         </div>
       </div>
 
-      <InvoiceModal 
+      <InvoiceModal
         isOpen={!!selectedVoucher}
         onClose={() => setSelectedVoucher(null)}
         transaction={selectedVoucher}

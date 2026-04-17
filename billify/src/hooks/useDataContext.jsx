@@ -10,6 +10,8 @@ import { invoiceService } from '../services/invoice.service';
 import { inventoryService } from '../services/inventory.service';
 import { settingsService } from '../services/settings.service';
 import { qrService } from '../services/qr.service';
+import { customerService } from '../services/customer.service';
+import { paymentService } from '../services/payment.service';
 import { generateId } from '../utils/idGenerator';
 
 import Toast from '../components/common/Toast';

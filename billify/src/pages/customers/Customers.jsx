@@ -51,9 +51,9 @@ const Customers = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const validation = validateImage(file);
-    if (!validation.isValid) {
-      showToast(validation.error, 'error');
+    const error = validateImage(file);
+    if (error) {
+      showToast(error, 'error');
       return;
     }
 
@@ -77,7 +77,7 @@ const Customers = () => {
   };
 
   const handleFormSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!validateForm()) return;
 
     const payload = {

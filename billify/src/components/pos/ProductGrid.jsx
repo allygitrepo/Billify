@@ -177,8 +177,9 @@ const ProductGrid = ({ products, categories: allCategories, activeCategory, onCa
       <div className="product-grid">
         {filteredProducts.map(product => {
           const variants = getVariants(product);
-          const activeVariants = variants.filter(v => v.status === 'active' && (v.current_stock > 0 || v.stock > 0));
-          const lowestPrice = Math.min(...(activeVariants.map(v => v.price) || [0]));
+          const activeVariants = variants.filter(v => v.status === 'active');
+          const variantPrices = activeVariants.map(v => parseFloat(v.price) || 0);
+          const lowestPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : (parseFloat(product.price) || 0);
           const totalStock = activeVariants.reduce((s, v) => s + (v.current_stock ?? v.stock ?? 0), 0);
           const variantCount = product.variants?.length || 0;
           const photoUrl = getImageUrl(product);

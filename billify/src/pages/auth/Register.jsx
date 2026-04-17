@@ -7,7 +7,7 @@ import { validateEmail, validatePassword, validate } from '../../utils/validator
 import { useAuth } from '../../hooks/useAuth';
 import { fileToBase64, validateImage } from '../../utils/fileHelpers';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, User, Building, MapPin, Phone, CreditCard, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, User, Building, MapPin, Phone, CreditCard, ChevronRight, ArrowLeft, CheckCircle, Download } from 'lucide-react';
 import Logo from '../../components/common/Logo';
 
 const Register = () => {
@@ -15,6 +15,7 @@ const Register = () => {
   const { register } = useAuth();
   
   const [step, setStep] = useState(1);
+  const [registeredQr, setRegisteredQr] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -110,9 +111,9 @@ const Register = () => {
       const result = await register(formData);
       
       if (result.success) {
-        // Since the server register returns user info but no session token,
-        // we redirect to login to ensure proper session establishment.
-        navigate('/login', { state: { message: 'Registration successful! Please login.' } });
+        setRegisteredQr(result.qrCode);
+        setStep(3);
+        setIsLoading(false);
       } else {
         setIsLoading(false);
         setRegisterError(result.message);
@@ -173,13 +174,18 @@ const Register = () => {
                    <span style={{ position: 'absolute', top: '44px', left: '0', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: '700', color: step === 1 ? 'var(--primary-600)' : 'var(--neutral-400)', letterSpacing: '0.05em' }}>REGISTRATION</span>
                 </div>
                 <div style={{ flex: 2, height: '4px', backgroundColor: step >= 2 ? 'var(--primary-600)' : 'var(--neutral-100)', borderRadius: '2px' }}></div>
-                <div style={{ flex: 1, position: 'relative', display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ flex: 1, position: 'relative', display: 'flex', justifyContent: 'center' }}>
                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '10px', backgroundColor: step >= 2 ? 'var(--primary-600)' : 'var(--neutral-100)', color: step >= 2 ? 'white' : 'var(--neutral-400)', fontWeight: '700', fontSize: '14px', zIndex: 1, position: 'relative' }}>2</div>
-                   <span style={{ position: 'absolute', top: '44px', right: '0', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: '700', color: step === 2 ? 'var(--primary-600)' : 'var(--neutral-400)', letterSpacing: '0.05em' }}>BUSINESS PROFILE</span>
+                   <span style={{ position: 'absolute', top: '44px', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: '700', color: step === 2 ? 'var(--primary-600)' : 'var(--neutral-400)', letterSpacing: '0.05em' }}>BUSINESS</span>
+                </div>
+                <div style={{ flex: 2, height: '4px', backgroundColor: step >= 3 ? 'var(--primary-600)' : 'var(--neutral-100)', borderRadius: '2px' }}></div>
+                <div style={{ flex: 1, position: 'relative', display: 'flex', justifyContent: 'flex-end' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '10px', backgroundColor: step >= 3 ? 'var(--primary-600)' : 'var(--neutral-100)', color: step >= 3 ? 'white' : 'var(--neutral-400)', fontWeight: '700', fontSize: '14px', zIndex: 1, position: 'relative' }}>3</div>
+                   <span style={{ position: 'absolute', top: '44px', right: '0', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: '700', color: step === 3 ? 'var(--primary-600)' : 'var(--neutral-400)', letterSpacing: '0.05em' }}>SUCCESS</span>
                 </div>
               </div>
-              <h2>{step === 1 ? 'Account Registration' : 'Business Essentials'}</h2>
-              <p>{step === 1 ? 'Fill in your primary account credentials.' : 'Set up your business identity and billing defaults.'}</p>
+              <h2>{step === 1 ? 'Account Registration' : step === 2 ? 'Business Essentials' : 'Welcome Aboard!'}</h2>
+              <p>{step === 1 ? 'Fill in your primary account credentials.' : step === 2 ? 'Set up your business identity and billing defaults.' : 'Your account is ready. Here is your unique Business QR code.'}</p>
             </div>
 
             {registerError && (
@@ -303,7 +309,7 @@ const Register = () => {
                     </Button>
                   </div>
                 </motion.div>
-              ) : (
+              ) : step === 2 ? (
                 <motion.div
                   key="step2"
                   initial={{ opacity: 0, y: 15 }}
@@ -432,6 +438,70 @@ const Register = () => {
                         style={{ flex: 2, height: '52px', borderRadius: '12px', fontWeight: '700' }}
                       >
                         Complete & Get Started
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <div style={{ textAlign: 'center', padding: 'var(--spacing-4) 0' }}>
+                    <div style={{ 
+                      width: '240px', 
+                      height: '240px', 
+                      margin: '0 auto var(--spacing-8)', 
+                      backgroundColor: 'white', 
+                      padding: 'var(--spacing-4)',
+                      borderRadius: '24px',
+                      border: '1px solid var(--neutral-100)',
+                      boxShadow: 'var(--shadow-lg)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--primary-600)', marginBottom: '12px', letterSpacing: '0.1em' }}>YOUR BUSINESS ID</div>
+                      {registeredQr ? (
+                        <img src={registeredQr} alt="Business QR" style={{ width: '160px', height: '160px' }} />
+                      ) : (
+                        <div style={{ width: '160px', height: '160px', backgroundColor: 'var(--neutral-50)' }}></div>
+                      )}
+                    </div>
+                    
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: 'var(--spacing-4)',
+                      maxWidth: '320px',
+                      margin: '0 auto'
+                    }}>
+                      <p style={{ fontSize: '0.925rem', color: 'var(--neutral-600)', lineHeight: '1.6' }}>
+                        Scan this QR code to view your public business profile or share it with your customers.
+                      </p>
+                      
+                      <Button 
+                        variant="secondary" 
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = registeredQr;
+                          link.download = `${formData.businessName}_QR.png`;
+                          link.click();
+                        }}
+                        style={{ width: '100%', height: '48px', gap: '8px' }}
+                      >
+                         <Download size={18} /> Download QR Code
+                      </Button>
+                      
+                      <Button 
+                        variant="primary" 
+                        onClick={() => navigate('/login')}
+                        style={{ width: '100%', height: '52px', borderRadius: '12px', marginTop: 'var(--spacing-4)' }}
+                      >
+                         Proceed to Login
                       </Button>
                     </div>
                   </div>

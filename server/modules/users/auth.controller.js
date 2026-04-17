@@ -172,7 +172,8 @@ const authController = {
             return res.status(201).json({
                 message: "User and Business registered successfully",
                 user: { id: user.id, name: user.name, email: user.email },
-                business: { id: business.id, name: business.name }
+                business: { id: business.id, name: business.name },
+                qr_code: qrBase64
             });
 
         } catch (error) {

@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
       // but the server might return the user. Let's redirect to login for simplicity
       // or try to auto-login if the server supports it properly. 
       // Based on my implementation plan, I'll return success and let the component handle it.
-      return { success: true, message: result.message };
+      return { success: true, message: result.message, qrCode: result.qr_code };
     } catch (error) {
       console.error('Registration error:', error);
       return { success: false, message: error.message || 'Registration failed' };

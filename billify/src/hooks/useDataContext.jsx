@@ -32,6 +32,7 @@ export const DataProvider = ({ children }) => {
   const [roles, setRoles] = useState([]);
   const [uoms, setUoms] = useState([]);
   const [qrCodes, setQrCodes] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [toast, setToast] = useState(null);

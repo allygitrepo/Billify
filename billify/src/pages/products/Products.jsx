@@ -62,7 +62,6 @@ const Products = () => {
     is_weighted: false,
     status: 'active',
     photo: '',
-    is_weighted: false,
     price_per_unit: '',
     variants: [{ id: Date.now(), name: '', sku: '', price: '', stock: '', status: 'active' }]
   });
@@ -202,7 +201,6 @@ const Products = () => {
       is_weighted: false,
       status: 'active',
       photo: '',
-      is_weighted: false,
       price_per_unit: '',
       variants: [{ id: Date.now(), name: '', sku: '', price: '', stock: '', status: 'active' }]
     });
@@ -425,9 +423,7 @@ const Products = () => {
         key: 'photo',
         label: 'Image',
         render: (_, row) => {
-          const imageSrc = row.photo 
-            ? `data:image/jpeg;base64,${row.photo}` 
-            : "/placeholder.png";
+          const imageSrc = row.photo || "/placeholder.png";
             
           return (
             <div className="table-thumb">

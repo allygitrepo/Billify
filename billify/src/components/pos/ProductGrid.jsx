@@ -19,7 +19,7 @@ const VariantModal = ({ product, onClose, onSelect }) => {
   };
 
   const variants = getVariants(product);
-  const availableVariants = variants.filter(v => v.status === 'active' && (v.current_stock > 0 || v.stock > 0));
+  const availableVariants = variants.filter(v => v.status === 'active');
 
   const getImageUrl = (p) => {
     if (!p.photo) return "/placeholder.png";
@@ -139,8 +139,6 @@ const ProductGrid = ({ products, categories: allCategories, activeCategory, onCa
     if (p.status !== 'active') return false;
     
     const variants = getVariants(p);
-    const hasActiveVariants = variants.some(v => v.status === 'active' && (v.current_stock > 0 || v.stock > 0));
-    if (!hasActiveVariants) return false;
 
     if (!searchLower) return true;
     
@@ -154,7 +152,7 @@ const ProductGrid = ({ products, categories: allCategories, activeCategory, onCa
 
   const handleCardClick = (product) => {
     const variants = getVariants(product);
-    const available = variants.filter(v => v.status === 'active' && (v.current_stock > 0 || v.stock > 0)) || [];
+    const available = variants.filter(v => v.status === 'active') || [];
     if (available.length === 1) {
       onAddToCart(product, available[0]);
     } else {

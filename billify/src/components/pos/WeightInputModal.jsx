@@ -11,10 +11,18 @@ const WeightInputModal = ({ product, variant, onClose, onAdd }) => {
 
   // Resolve UOM (Matching Mobile Logic)
   const getUomSymbol = (p) => {
-    const rawUom = p.uom;
-    const found = uoms.find(u => u.id === rawUom || u.id === parseInt(rawUom));
+    // Handling for object vs ID (Standardizing for backend parity)
+    const uomData = p.uom;
+    if (uomData && typeof uomData === 'object') {
+      return (uomData.shortCode || uomData.short_code || uomData.name || 'KG').toUpperCase();
+    }
+    
+    // Fallback search in context uoms list if it's just an ID
+    const uomId = p.uom_id || uomData;
+    const found = uoms.find(u => u.id === uomId || u.id === parseInt(uomId));
     if (found) return (found.shortCode || found.name).toUpperCase();
-    return (rawUom || 'KG').toString().toUpperCase();
+    
+    return 'KG';
   };
 
   const baseUom = getUomSymbol(product);

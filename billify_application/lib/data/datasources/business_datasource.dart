@@ -34,8 +34,8 @@ class LocalBusinessDatasource implements BusinessDatasource {
     final businessesJson = jsonEncode(businesses.map((e) => e.toJson()).toList());
     final saved = await _storage.setString(_businessDataKey, businessesJson);
     
-    // If it's the first business, set it as current
-    if (saved && getCurrentBusinessId() == null) {
+    // If it's the first business, set it as current (only if it's a real server-assigned ID)
+    if (saved && getCurrentBusinessId() == null && int.tryParse(business.id) != null) {
       await setCurrentBusinessId(business.id);
     }
     

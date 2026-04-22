@@ -11,11 +11,18 @@ const UserBusiness = require("../modules/users/user_businesses.model");
  */
 const checkPermission = async (user_id, business_id, module_name, action) => {
     try {
+        // Validation: If business_id is not a valid number, it can't be in the database
+        const numericBusinessId = parseInt(business_id);
+        if (isNaN(numericBusinessId)) {
+            console.log(`Check Permission: Invalid business_id provided: ${business_id}`);
+            return false;
+        }
+
         // 1. Fetch role_id from user_businesses
         const mapping = await UserBusiness.findOne({
             where: {
                 user_id,
-                business_id,
+                business_id: numericBusinessId,
                 status: true
             }
         });
@@ -49,18 +56,46 @@ const checkPermission = async (user_id, business_id, module_name, action) => {
 const authorize = (module_name, action) => {
     return async (req, res, next) => {
         try {
-            const user_id = req.user ? req.user.id : null; 
-            const business_id = req.headers['x-business-id'] || req.body.business_id || req.query.business_id;
+            const user_id = req.user ? req.user.id : null;
+            const business_id = req.headers['x-business-id'] || req.params.business_id || (req.body ? req.body.business_id : null) || (req.query ? req.query.business_id : null);
 
-            if (!user_id || !business_id) {
-                return res.status(403).json({ message: "Access denied. User or Business not identified." });
+            if (!user_id) {
+                return res.status(403).json({ message: "Access denied. User not identified." });
             }
 
-            const hasPermission = await checkPermission(user_id, business_id, module_name, action);
+            // Validation: If business_id is provided, it MUST be numeric
+            if (business_id) {
+                const numericBusinessId = parseInt(business_id);
+                if (isNaN(numericBusinessId)) {
+                    return res.status(403).json({ message: "Access denied. Invalid Business ID." });
+                }
+            }
+
+            // 1. Check if user has a Global Admin role (bypass business check)
+            const User = require("../modules/users/users.model");
+            const Role = require("../modules/roles/roles.model");
+            const user = await User.findByPk(user_id, {
+                include: [{ model: Role, as: 'role' }]
+            });
+
+            if (user && user.role && user.role.name === 'Admin' && user.role.business_id === null) {
+                return next();
+            }
+
+            if (!business_id) {
+                return res.status(403).json({ message: "Access denied. Business not identified." });
+            }
+
+            const numericBusinessId = parseInt(business_id);
+            if (isNaN(numericBusinessId)) {
+                return res.status(403).json({ message: "Access denied. Invalid Business ID." });
+            }
+
+            const hasPermission = await checkPermission(user_id, numericBusinessId, module_name, action);
 
             // 3. Fast-pass for Admin role
             const mapping = await UserBusiness.findOne({
-                where: { user_id, business_id, status: true },
+                where: { user_id, business_id: numericBusinessId, status: true },
                 include: [{ model: require("../modules/roles/roles.model"), as: 'role' }]
             });
 

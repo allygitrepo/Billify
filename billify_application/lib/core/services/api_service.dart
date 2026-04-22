@@ -46,7 +46,7 @@ class ApiService {
                 // Get the current business ID using the user-scoped key
                 final businessId = storage.getString(AppConstants.userKey(userId, AppConstants.keyCurrentBusinessId));
                 
-                if (businessId != null) {
+                if (businessId != null && int.tryParse(businessId) != null) {
                     options.headers['x-business-id'] = businessId;
                 }
             } catch (e) {

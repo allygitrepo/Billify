@@ -27,6 +27,7 @@ class AuthState {
   final RoleModel? currentRole;
   final bool isLoggedIn;
   final bool isLoading;
+  final String? loadingMessage;
   final String? error;
   final dynamic errorObject;
 
@@ -35,13 +36,25 @@ class AuthState {
     this.currentRole,
     this.isLoggedIn = false,
     this.isLoading = false,
+    this.loadingMessage,
     this.error,
     this.errorObject,
   });
 
   bool hasPermission(PermissionModule module, PermissionAction action) {
-    if (isLoggedIn && user?.roleId == null)
-      return true; // Owner has all permissions
+    if (!isLoggedIn) return false;
+
+    // 1. Global Admin Check (Role ID '1')
+    // 2. Owner/Initial Setup Check (Role ID null)
+    // 3. Fallback Admin Check (Internal IDs)
+    if (user?.roleId == '1' ||
+        user?.roleId == null ||
+        currentRole?.id == 'owner_admin' ||
+        currentRole?.id == 'fallback_admin') {
+      return true;
+    }
+
+    // 4. Specific Role Check
     return currentRole?.hasPermission(module, action) ?? false;
   }
 
@@ -50,6 +63,7 @@ class AuthState {
     RoleModel? currentRole,
     bool? isLoggedIn,
     bool? isLoading,
+    String? loadingMessage,
     String? error,
     dynamic errorObject,
   }) {
@@ -58,6 +72,7 @@ class AuthState {
       currentRole: currentRole ?? this.currentRole,
       isLoggedIn: isLoggedIn ?? this.isLoggedIn,
       isLoading: isLoading ?? this.isLoading,
+      loadingMessage: loadingMessage ?? this.loadingMessage,
       error: error,
       errorObject: errorObject ?? this.errorObject,
     );
@@ -102,45 +117,46 @@ class AuthNotifier extends Notifier<AuthState> {
     // 1. Determine scoped User ID for key lookups
     final userId = user.businessOwnerId ?? user.email;
 
-    // 2. Resolve Business ID (Storage -> State -> Sync)
+    // 2. Resolve Business ID from Storage only to avoid Circular Dependency
     String? businessId = storage.getString(
       AppConstants.userKey(userId, AppConstants.keyCurrentBusinessId),
     );
 
-    if (businessId == null) {
-      // Fallback to business provider state if storage is empty
-      final businessState = ref.read(businessProvider);
-      businessId = businessState.currentBusinessId;
-    }
+    if (businessId == null || int.tryParse(businessId) == null) {
+      debugPrint("INFO: Business ID is null or non-numeric. Checking for Global Admin role...");
+      
+      // Check if it's a known Global Admin role (ID 1)
+      if (user.roleId == 1) {
+          debugPrint("SUCCESS: Global Admin detected (Role ID: 1). Granting full administrative access.");
+          final fullAccessRole = RoleModel(
+            id: 'global_admin',
+            name: 'Global Admin',
+            permissions: {
+              for (var module in PermissionModule.values)
+                module: [PermissionAction.all],
+            },
+          );
+          state = state.copyWith(currentRole: fullAccessRole, loadingMessage: "Global access granted");
+          return;
+      }
 
-    if (businessId == null) {
-      print(
-        "WARNING: Could not resolve businessId for role loading. Syncing businesses...",
-      );
-      await ref.read(businessProvider.notifier).sync();
-      businessId = ref.read(businessProvider).currentBusinessId;
-    }
-
-    if (businessId == null) {
-      print(
-        "ERROR: Business ID still null after sync. Cannot load permissions for Role ${user.roleId}",
-      );
+      debugPrint("WARNING: No business context found for non-global user ${user.name}. Fallback to setup required.");
       return;
     }
 
-    print(
-      "DEBUG: Loading permissions for Role ${user.roleId} in Business $businessId",
-    );
-    final roles = await repo.getRoles(businessId);
-
+    debugPrint("DEBUG: Retrieving permissions for Role ${user.roleId} in Business $businessId");
+    state = state.copyWith(loadingMessage: "Retrieving role permissions...");
+    
     try {
-      // Comparison using toString() to handle potential int vs String mismatches
-      final role = roles.firstWhere(
-        (r) => r.id.toString() == user.roleId.toString(),
-      );
-      state = state.copyWith(currentRole: role);
-      print("SUCCESS: Permissions loaded for role: ${role.name}");
+        final roles = await repo.getRoles(businessId);
+        // Comparison using toString() to handle potential int vs String mismatches
+        final role = roles.firstWhere(
+            (r) => r.id.toString() == user.roleId.toString(),
+        );
+        state = state.copyWith(currentRole: role, loadingMessage: "Role loaded: ${role.name}");
+        debugPrint("SUCCESS: Permissions loaded for role: ${role.name}");
     } catch (e) {
+        debugPrint("WARNING: Role ${user.roleId} not found in business roles. Granting emergency fallback Admin access.");
       print(
         "WARNING: Specific Role ${user.roleId} not found in business roles table.",
       );
@@ -149,14 +165,14 @@ class AuthNotifier extends Notifier<AuthState> {
       );
 
       final fullAccessRole = RoleModel(
-        id: user.roleId ?? 'fallback_admin',
+        id: 'fallback_admin', // Standardized fallback ID
         name: 'Admin',
         permissions: {
           for (var module in PermissionModule.values)
             module: [PermissionAction.all],
         },
       );
-      state = state.copyWith(currentRole: fullAccessRole);
+      state = state.copyWith(currentRole: fullAccessRole, loadingMessage: "Ready as Administrator");
     }
 
     // Ensure business details are synced (important for branding etc)
@@ -164,28 +180,40 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> login(String email, String password) async {
-    state = state.copyWith(isLoading: true, error: null, errorObject: null);
+    // Reset state to clean slate while loading to ensure no stale data is visible
+    state = AuthState(isLoading: true, loadingMessage: "Verifying credentials with server...");
     try {
       final repo = ref.read(authRepositoryProvider);
       final response = await repo.login(email, password);
       await _handleLoginResponse(response);
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorObject: e, error: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        errorObject: e,
+        error: e.toString(),
+      );
     }
   }
 
   Future<void> loginWithGoogle() async {
     debugPrint('DEBUG: Starting Google Sign-In process...');
-    state = state.copyWith(isLoading: true, error: null, errorObject: null);
+    // Reset state to clean slate while loading to ensure no stale data is visible
+    state = AuthState(isLoading: true, loadingMessage: "Connecting to Google...");
     try {
       final repo = ref.read(authRepositoryProvider);
       final response = await repo.loginWithGoogle();
-      debugPrint('DEBUG: Google Sign-In response received in provider: $response');
+      debugPrint(
+        'DEBUG: Google Sign-In response received in provider: $response',
+      );
       await _handleLoginResponse(response);
     } catch (e, stack) {
       debugPrint('DEBUG: Google Sign-In provider caught error: $e');
       debugPrint('DEBUG: Provider stack trace: $stack');
-      state = state.copyWith(isLoading: false, errorObject: e, error: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        errorObject: e,
+        error: e.toString(),
+      );
     }
   }
 
@@ -195,12 +223,15 @@ class AuthNotifier extends Notifier<AuthState> {
       debugPrint('DEBUG: Auth token found in response. Finalizing login...');
       final user = repo.getUser();
       state = state.copyWith(user: user, isLoggedIn: true);
-      
+
       if (user != null) {
+        state = state.copyWith(loadingMessage: "Detecting user role...");
         await _loadRoleForUser(user);
+        
+        state = state.copyWith(loadingMessage: "Synchronizing business data...");
         await ref.read(businessProvider.notifier).sync();
       }
-      state = state.copyWith(isLoading: false);
+      state = state.copyWith(isLoading: false, loadingMessage: null);
       debugPrint('DEBUG: Login process completed successfully');
     } else {
       debugPrint('DEBUG: Login failed. Error message: ${response['message']}');
@@ -227,7 +258,11 @@ class AuthNotifier extends Notifier<AuthState> {
         );
       }
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorObject: e, error: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        errorObject: e,
+        error: e.toString(),
+      );
     }
   }
 
@@ -273,7 +308,11 @@ class AuthNotifier extends Notifier<AuthState> {
       // 4. Update state
       state = state.copyWith(user: updatedUser, isLoading: false);
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorObject: e, error: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        errorObject: e,
+        error: e.toString(),
+      );
       rethrow;
     }
   }

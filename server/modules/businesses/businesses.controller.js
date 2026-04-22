@@ -9,13 +9,15 @@ const businessController = {
     // ============ Get All Businesses for User ============
     getMyBusinesses: async (req, res) => {
         try {
-            // Assuming req.user is populated by auth middleware
             if (!req.user) {
                 return res.status(401).json({ message: "Unauthorized" });
             }
 
+            const userId = req.user.id;
+            
+            // Fetch only businesses explicitly mapped to this user in user_businesses
             const userBusinesses = await UserBusiness.findAll({
-                where: { user_id: req.user.id, status: true },
+                where: { user_id: userId, status: true },
                 include: [
                     { 
                         model: Business, 

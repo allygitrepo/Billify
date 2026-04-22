@@ -25,13 +25,16 @@ class RemoteBusinessDatasource {
   Future<BusinessModel?> createBusiness(BusinessModel business) async {
     try {
       final response = await _apiService.post(
-        '/businesses/create',
+        '/businesses',
         data: {
           'businessName': business.name,
           'phone': business.phone,
           'gstin': business.gstin,
           'address': business.address,
           'photo': business.business_logo,
+          'taxPercentage': business.tax_percentage,
+          'gstPercentage': business.gst_percentage,
+          'invoicePrefix': business.invoice_prefix,
         },
       );
       if (response.statusCode == 201) {
@@ -47,13 +50,16 @@ class RemoteBusinessDatasource {
   Future<BusinessModel?> updateBusiness(BusinessModel business) async {
     try {
       final response = await _apiService.put(
-        '/businesses/update/${business.id}',
+        '/businesses/${business.id}',
         data: {
           'name': business.name,
           'phone': business.phone,
           'gstin': business.gstin,
           'address': business.address,
           'photo': business.business_logo,
+          'tax': business.tax_percentage,
+          'gst_percentage': business.gst_percentage,
+          'invoice_prefix': business.invoice_prefix,
         },
       );
       if (response.statusCode == 200) {

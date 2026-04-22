@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:billify_application/core/constants/app_constants.dart';
 import 'package:billify_application/data/models/invoice_model.dart';
 import 'package:billify_application/core/services/local_storage_service.dart';
@@ -15,6 +16,10 @@ class InvoiceRepository {
   String get _invoiceDataKey => AppConstants.businessKey(_userId ?? 'guest', _businessId, AppConstants.keyInvoiceData);
 
   Future<void> fetchAndSyncInvoices() async {
+    if (int.tryParse(_businessId) == null) {
+      debugPrint("INFO: Skipping invoice sync for non-numeric business ID: $_businessId");
+      return;
+    }
     try {
       final remoteInvoices = await _remoteDatasource.getInvoices(_businessId);
       final List<String> data = remoteInvoices.map((e) => jsonEncode(e.toJson())).toList();

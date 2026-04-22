@@ -91,8 +91,15 @@ const rolesController = {
     getRolesByBusinessId: async (req, res) => {
         try {
             const { business_id } = req.params;
+
+            // Validation: Ensure business_id is numeric
+            const numericBusinessId = parseInt(business_id);
+            if (isNaN(numericBusinessId)) {
+                return res.status(400).json({ message: "Invalid Business ID format" });
+            }
+
             const roles = await Role.findAll({ 
-                where: { business_id, status: true },
+                where: { business_id: numericBusinessId, status: true },
                 include: [{ model: RolePermission, as: 'permissions' }]
             });
             return res.status(200).json({ roles });

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:billify_application/core/constants/app_constants.dart';
 import 'package:billify_application/core/services/local_storage_service.dart';
 import 'package:billify_application/data/datasources/remote_product_datasource.dart';
@@ -16,6 +17,9 @@ class ProductRepository {
   String get _productDataKey => AppConstants.businessKey(_userId, _businessId, AppConstants.keyProductData);
 
   Future<void> fetchAndSyncProducts() async {
+    if (int.tryParse(_businessId) == null) {
+      return; // Skip sync for temporary or invalid business IDs
+    }
     try {
       final remoteProducts = await _remoteDatasource.getProducts(_businessId);
       await _storage.setString(
@@ -29,6 +33,10 @@ class ProductRepository {
   }
 
   Future<void> saveProduct(ProductModel product) async {
+    if (int.tryParse(_businessId) == null) {
+      print("Skipping remote product save: Business ID is temporary.");
+      return;
+    }
     try {
       ProductModel? savedProduct;
       if (product.id.isEmpty || product.id.contains('-')) {

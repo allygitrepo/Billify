@@ -33,4 +33,7 @@ UserBusiness.belongsTo(Role, { foreignKey: 'role_id', as: 'role' });
 Business.hasOne(Settings, { foreignKey: 'business_id', as: 'settings' });
 Settings.belongsTo(Business, { foreignKey: 'business_id', as: 'business' });
 
+// User <-> Role (Primary Role)
+User.belongsTo(Role, { foreignKey: 'role_id', as: 'role' });
+
 module.exports = UserBusiness;

@@ -4,6 +4,7 @@ import 'package:billify_application/core/services/local_storage_service.dart';
 import 'package:billify_application/data/datasources/remote_category_datasource.dart';
 import 'package:billify_application/data/models/category_model.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class CategoryRepository {
   final LocalStorageService _storage;
@@ -11,29 +12,50 @@ class CategoryRepository {
   final String _userId;
   final String _businessId;
 
-  CategoryRepository(this._storage, this._remoteDatasource, this._userId, this._businessId);
+  CategoryRepository(
+    this._storage,
+    this._remoteDatasource,
+    this._userId,
+    this._businessId,
+  );
 
-  String get _categoryDataKey => AppConstants.businessKey(_userId, _businessId, AppConstants.keyCategoryData);
+  String get _categoryDataKey => AppConstants.businessKey(
+    _userId,
+    _businessId,
+    AppConstants.keyCategoryData,
+  );
 
   Future<void> fetchAndSyncCategories() async {
+    if (int.tryParse(_businessId) == null) {
+      return;
+    }
     try {
-      final remoteCategories = await _remoteDatasource.getCategories(_businessId);
+      final remoteCategories = await _remoteDatasource.getCategories(
+        _businessId,
+      );
       await _storage.setString(
         _categoryDataKey,
         jsonEncode(remoteCategories.map((e) => e.toJson()).toList()),
       );
     } catch (e) {
       // Failed to sync, fallback to local storage
-      print("Error fetching categories: $e");
+      debugPrint("Error fetching categories: $e");
     }
   }
 
   Future<void> saveCategory(CategoryModel category) async {
+    if (int.tryParse(_businessId) == null) {
+      debugPrint("Skipping remote category save: Business ID is temporary.");
+      return;
+    }
     try {
       CategoryModel? savedCategory;
       if (category.id.isEmpty || category.id.contains('-')) {
         // Assume creating new if ID is UUID or empty
-        savedCategory = await _remoteDatasource.createCategory(category, _businessId);
+        savedCategory = await _remoteDatasource.createCategory(
+          category,
+          _businessId,
+        );
       } else {
         // Update existing
         savedCategory = await _remoteDatasource.updateCategory(category);
@@ -41,14 +63,16 @@ class CategoryRepository {
 
       if (savedCategory != null) {
         final categories = getCategories();
-        final index = categories.indexWhere((c) => c.id == category.id || c.id == savedCategory!.id);
-        
+        final index = categories.indexWhere(
+          (c) => c.id == category.id || c.id == savedCategory!.id,
+        );
+
         if (index >= 0) {
           categories[index] = savedCategory;
         } else {
           categories.add(savedCategory);
         }
-        
+
         await _storage.setString(
           _categoryDataKey,
           jsonEncode(categories.map((e) => e.toJson()).toList()),
@@ -58,7 +82,9 @@ class CategoryRepository {
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 409) {
-        throw Exception(e.response?.data['message'] ?? 'Category already exists');
+        throw Exception(
+          e.response?.data['message'] ?? 'Category already exists',
+        );
       }
       throw Exception('Network error while saving category');
     } catch (e) {
@@ -69,7 +95,7 @@ class CategoryRepository {
   List<CategoryModel> getCategories() {
     final data = _storage.getString(_categoryDataKey);
     if (data == null) return [];
-    
+
     final List<dynamic> list = jsonDecode(data);
     return list.map((e) => CategoryModel.fromJson(e)).toList();
   }

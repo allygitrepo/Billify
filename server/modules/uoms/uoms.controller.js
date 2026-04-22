@@ -5,9 +5,14 @@ const uomsController = {
     createUOM: async (req, res) => {
         try {
             const { business_id, name, shortCode } = req.body;
-
+            
             if (!business_id || !name || !shortCode) {
                 return res.status(400).json({ message: "Business ID, Name, and Short Code are required" });
+            }
+
+            // Validation: Ensure business_id is numeric
+            if (isNaN(parseInt(business_id))) {
+                return res.status(400).json({ message: "Invalid Business ID format" });
             }
 
             // Check for collision
@@ -42,6 +47,12 @@ const uomsController = {
     getUOMsByBusinessId: async (req, res) => {
         try {
             const { business_id } = req.params;
+
+            // Validation: Ensure business_id is numeric
+            if (isNaN(parseInt(business_id))) {
+                return res.status(400).json({ message: "Invalid Business ID format" });
+            }
+
             const uoms = await UOM.findAll({ where: { business_id, status: true } });
             return res.status(200).json({ uoms });
         } catch (error) {

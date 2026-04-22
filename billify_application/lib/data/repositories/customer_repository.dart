@@ -17,6 +17,9 @@ class CustomerRepository {
   String get _customerDataKey => AppConstants.businessKey(_userId, _businessId, 'customer_data');
 
   Future<List<Customer>> fetchCustomers({String? search, int page = 1}) async {
+    if (int.tryParse(_businessId) == null) {
+      return getLocalCustomers();
+    }
     try {
       final remoteCustomers = await _remoteDatasource.getCustomers(_businessId, search: search, page: page);
       if (search == null && page == 1) {
@@ -43,6 +46,9 @@ class CustomerRepository {
   }
 
   Future<Customer> saveCustomer(Customer customer) async {
+    if (int.tryParse(_businessId) == null) {
+      throw Exception("Cannot save customer: Business context is temporary.");
+    }
     Customer savedCustomer;
     if (customer.id == null) {
       savedCustomer = await _remoteDatasource.createCustomer(customer);

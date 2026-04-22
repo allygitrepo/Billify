@@ -184,9 +184,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 radius: 60,
                                 backgroundColor: Theme.of(context).cardColor,
                                 backgroundImage: _selectedImagePath != null && _selectedImagePath!.isNotEmpty
-                                    ? (_selectedImagePath!.startsWith('data:image') || _selectedImagePath!.length > 100 
-                                        ? MemoryImage(base64Decode(_selectedImagePath!.split(',').last)) 
-                                        : FileImage(File(_selectedImagePath!)) as ImageProvider)
+                                    ? (_selectedImagePath!.startsWith('http')
+                                        ? NetworkImage(_selectedImagePath!)
+                                        : (_selectedImagePath!.startsWith('data:image') || _selectedImagePath!.length > 100 
+                                            ? MemoryImage(base64Decode(_selectedImagePath!.split(',').last)) 
+                                            : FileImage(File(_selectedImagePath!)) as ImageProvider))
                                     : null,
                                 child: _selectedImagePath == null || _selectedImagePath!.isEmpty
                                     ? Icon(Icons.person, size: 60, color: Colors.grey[400])

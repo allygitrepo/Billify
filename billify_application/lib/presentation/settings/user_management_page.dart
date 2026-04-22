@@ -105,9 +105,11 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
             leading: CircleAvatar(
               backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
               backgroundImage: user.photo != null 
-                ? (user.photo!.startsWith('data:image') || user.photo!.length > 100 
-                    ? MemoryImage(base64Decode(user.photo!.split(',').last)) 
-                    : FileImage(File(user.photo!)) as ImageProvider)
+                ? (user.photo!.startsWith('http')
+                    ? NetworkImage(user.photo!)
+                    : (user.photo!.startsWith('data:image') || user.photo!.length > 100 
+                        ? MemoryImage(base64Decode(user.photo!.split(',').last)) 
+                        : FileImage(File(user.photo!)) as ImageProvider))
                 : null,
               child: user.photo == null ? const Icon(Icons.person, color: AppTheme.primaryTeal) : null,
             ),

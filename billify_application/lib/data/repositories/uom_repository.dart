@@ -15,6 +15,9 @@ class UomRepository {
   String get _uomDataKey => AppConstants.businessKey(_userId, _businessId, AppConstants.keyUomData);
 
   Future<void> fetchAndSyncUoms() async {
+    if (int.tryParse(_businessId) == null) {
+      return; // Skip sync for temporary or invalid business IDs
+    }
     try {
       final remoteUoms = await _remoteDatasource.getUoms(_businessId);
       if (remoteUoms.isNotEmpty) {
@@ -29,6 +32,10 @@ class UomRepository {
   }
 
   Future<void> saveUom(UomModel uom) async {
+    if (int.tryParse(_businessId) == null) {
+      print("Skipping remote UOM save: Business ID is temporary.");
+      return;
+    }
     try {
       // 1. Try remote save
       UomModel? savedUom;

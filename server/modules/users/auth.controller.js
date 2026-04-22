@@ -71,13 +71,13 @@ const authController = {
             });
             console.log("Global Admin role ID resolved:", adminRole.id);
 
-            // 4. Create User assigned to Global Admin role
+            // 4. Create User (No default global role)
             const user = await User.create({
                 name,
                 email,
                 mobile: userMobile,
                 password: hashedPassword,
-                role_id: adminRole.id,
+                role_id: null,
                 photo: userPhoto
             }, { transaction: t });
             console.log("User created:", user.id);
@@ -275,19 +275,11 @@ const authController = {
                 const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
                 // Default role should be "Admin" for the first account creation if we expect them to create a business
-                const [adminRole] = await Role.findOrCreate({
-                    where: { name: 'Admin', business_id: null },
-                    defaults: { 
-                        description: 'System Administrator with full access',
-                        business_id: null 
-                    }
-                });
-
                 user = await User.create({
                     name,
                     email,
                     password: hashedPassword,
-                    role_id: adminRole.id,
+                    role_id: null, // No default global role
                     photo: picture,
                     status: true
                 });

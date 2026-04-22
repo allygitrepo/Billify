@@ -186,8 +186,15 @@ const invoiceController = {
     getInvoicesByBusiness: async (req, res) => {
         try {
             const { business_id } = req.params;
+            
+            // Validation: Ensure business_id is numeric
+            const numericBusinessId = parseInt(business_id);
+            if (isNaN(numericBusinessId)) {
+                return res.status(400).json({ message: "Invalid Business ID format" });
+            }
+
             const invoices = await Invoice.findAll({ 
-                where: { business_id },
+                where: { business_id: numericBusinessId },
                 include: [
                     { 
                         model: InvoiceItem, 

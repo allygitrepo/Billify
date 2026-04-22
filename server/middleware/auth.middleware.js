@@ -16,7 +16,10 @@ const authenticate = (req, res, next) => {
         // Attach business_id from header if present (for multi-tenant support)
         const businessId = req.headers['x-business-id'];
         if (businessId) {
-            req.user.business_id = parseInt(businessId);
+            const parsedId = parseInt(businessId);
+            if (!isNaN(parsedId)) {
+                req.user.business_id = parsedId;
+            }
         }
 
         next();

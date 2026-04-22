@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart' as gsi;
+
 import 'package:billify_application/core/constants/app_constants.dart';
 import 'package:billify_application/core/services/local_storage_service.dart';
 import 'package:billify_application/data/datasources/auth_datasource.dart';
@@ -129,9 +130,8 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
-    await _localDatasource.logout();
-    await _storage.remove(AppConstants.keyToken);
-    await _storage.remove(AppConstants.keyCurrentBusinessId);
+    // Completely clear all local storage to ensure the next login must fetch everything from the DB
+    await _storage.clearAll();
   }
 
   UserModel? getUser() {

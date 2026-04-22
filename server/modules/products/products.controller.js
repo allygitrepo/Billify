@@ -56,8 +56,14 @@ const productsController = {
 
             // Basic Validation
             if (!business_id || !name) {
-                await t.rollback();
+                if (t) await t.rollback();
                 return res.status(400).json({ message: "Business ID and Name are required" });
+            }
+
+            // Validation: Ensure business_id is numeric
+            if (isNaN(parseInt(business_id))) {
+                if (t) await t.rollback();
+                return res.status(400).json({ message: "Invalid Business ID format" });
             }
 
             // Logic Validation
@@ -164,8 +170,15 @@ const productsController = {
     getProductsByBusinessId: async (req, res) => {
         try {
             const { business_id } = req.params;
+
+            // Validation: Ensure business_id is numeric
+            const numericBusinessId = parseInt(business_id);
+            if (isNaN(numericBusinessId)) {
+                return res.status(400).json({ message: "Invalid Business ID format" });
+            }
+
             const products = await Product.findAll({ 
-                where: { business_id, status: 'active' },
+                where: { business_id: numericBusinessId, status: 'active' },
                 include: [
                     { model: Category, as: 'category' },
                     { model: Variant, as: 'variants', where: { status: 'active' }, required: false },

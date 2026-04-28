@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'package:billify_application/data/models/customer_model.dart';
-import 'package:billify_application/providers/business_provider.dart';
-import 'package:billify_application/providers/customer_provider.dart';
-import 'package:billify_application/presentation/customers/add_customer_bottom_sheet.dart';
+import 'package:billify/data/models/customer_model.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/providers/customer_provider.dart';
+import 'package:billify/presentation/customers/add_customer_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -65,9 +65,9 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
           _contacts = [];
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error fetching contacts: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error fetching contacts: $e')));
       }
     }
   }
@@ -91,8 +91,9 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
   @override
   Widget build(BuildContext context) {
     final existingCustomers = ref.watch(customerProvider).value ?? [];
-    final existingPhones =
-        existingCustomers.map((c) => _normalizePhone(c.phoneNumber)).toSet();
+    final existingPhones = existingCustomers
+        .map((c) => _normalizePhone(c.phoneNumber))
+        .toSet();
 
     return Scaffold(
       appBar: AppBar(
@@ -127,28 +128,30 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
                     onChanged: (val) => setState(() => _searchQuery = val),
                   ),
                 ),
-                    CheckboxListTile(
-                      title: const Text('Select All'),
-                      value:
-                          _selectedPhones.length == _filteredContacts.length &&
-                              _filteredContacts.isNotEmpty,
-                      onChanged: (val) {
-                        setState(() {
-                          if (val == true) {
-                            for (final contact in _filteredContacts) {
-                              if (contact.phones.isNotEmpty) {
-                                final phone = _normalizePhone(contact.phones.first.number ?? '');
-                                _selectedPhones.add(phone);
-                              }
-                            }
-                          } else {
-                            _selectedPhones.clear();
-                            // Keep already added ones as effectively selected (though disabled in UI)
-                            _selectedPhones.addAll(existingPhones);
+                CheckboxListTile(
+                  title: const Text('Select All'),
+                  value:
+                      _selectedPhones.length == _filteredContacts.length &&
+                      _filteredContacts.isNotEmpty,
+                  onChanged: (val) {
+                    setState(() {
+                      if (val == true) {
+                        for (final contact in _filteredContacts) {
+                          if (contact.phones.isNotEmpty) {
+                            final phone = _normalizePhone(
+                              contact.phones.first.number ?? '',
+                            );
+                            _selectedPhones.add(phone);
                           }
-                        });
-                      },
-                    ),
+                        }
+                      } else {
+                        _selectedPhones.clear();
+                        // Keep already added ones as effectively selected (though disabled in UI)
+                        _selectedPhones.addAll(existingPhones);
+                      }
+                    });
+                  },
+                ),
                 const Divider(),
                 Expanded(
                   child: _filteredContacts.isEmpty
@@ -158,69 +161,76 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
                       : ListView.builder(
                           itemCount: _filteredContacts.length,
                           itemBuilder: (context, index) {
-                                final contact = _filteredContacts[index];
-                                final phone = contact.phones.isNotEmpty
-                                    ? _normalizePhone(
-                                        contact.phones.first.number ?? '')
-                                    : '';
-                                final isAlreadyAdded =
-                                    existingPhones.contains(phone);
+                            final contact = _filteredContacts[index];
+                            final phone = contact.phones.isNotEmpty
+                                ? _normalizePhone(
+                                    contact.phones.first.number ?? '',
+                                  )
+                                : '';
+                            final isAlreadyAdded = existingPhones.contains(
+                              phone,
+                            );
 
-                                final isSelected =
-                                    _selectedPhones.contains(phone) ||
-                                        isAlreadyAdded;
+                            final isSelected =
+                                _selectedPhones.contains(phone) ||
+                                isAlreadyAdded;
 
-                                final String dName =
-                                    contact.displayName ?? 'No Name';
+                            final String dName =
+                                contact.displayName ?? 'No Name';
 
-                                return CheckboxListTile(
-                                  value: isSelected,
-                                  onChanged: isAlreadyAdded
-                                      ? null // Disable unchecking
-                                      : (val) {
-                                          setState(() {
-                                            if (val == true) {
-                                              _selectedPhones.add(phone);
-                                            } else {
-                                              _selectedPhones.remove(phone);
-                                            }
-                                          });
-                                        },
-                        title: InkWell(
-                          onTap: () => _showAddDetailsBottomSheet(contact),
-                          child: Row(
-                            children: [
-                              Expanded(child: Text(dName)),
-                              const Icon(
-                                Icons.edit_note,
-                                size: 20,
-                                color: Colors.blue,
-                              ),
-                            ],
-                          ),
-                        ),
-                        subtitle: InkWell(
-                          onTap: () => _showAddDetailsBottomSheet(contact),
-                          child: Text(
-                            (contact.phones.isNotEmpty &&
-                                    contact.phones.first.number != null)
-                                ? contact.phones.first.number!
-                                : 'No number',
-                          ),
-                        ),
-                        secondary: (contact.photo != null &&
-                                contact.photo!.thumbnail != null)
-                            ? CircleAvatar(
-                                backgroundImage: MemoryImage(
-                                  contact.photo!.thumbnail!,
+                            return CheckboxListTile(
+                              value: isSelected,
+                              onChanged: isAlreadyAdded
+                                  ? null // Disable unchecking
+                                  : (val) {
+                                      setState(() {
+                                        if (val == true) {
+                                          _selectedPhones.add(phone);
+                                        } else {
+                                          _selectedPhones.remove(phone);
+                                        }
+                                      });
+                                    },
+                              title: InkWell(
+                                onTap: () =>
+                                    _showAddDetailsBottomSheet(contact),
+                                child: Row(
+                                  children: [
+                                    Expanded(child: Text(dName)),
+                                    const Icon(
+                                      Icons.edit_note,
+                                      size: 20,
+                                      color: Colors.blue,
+                                    ),
+                                  ],
                                 ),
-                              )
-                            : CircleAvatar(
-                                child: Text(dName.isNotEmpty ? dName[0] : '?'),
                               ),
-                      );
-                    },
-                  ),
+                              subtitle: InkWell(
+                                onTap: () =>
+                                    _showAddDetailsBottomSheet(contact),
+                                child: Text(
+                                  (contact.phones.isNotEmpty &&
+                                          contact.phones.first.number != null)
+                                      ? contact.phones.first.number!
+                                      : 'No number',
+                                ),
+                              ),
+                              secondary:
+                                  (contact.photo != null &&
+                                      contact.photo!.thumbnail != null)
+                                  ? CircleAvatar(
+                                      backgroundImage: MemoryImage(
+                                        contact.photo!.thumbnail!,
+                                      ),
+                                    )
+                                  : CircleAvatar(
+                                      child: Text(
+                                        dName.isNotEmpty ? dName[0] : '?',
+                                      ),
+                                    ),
+                            );
+                          },
+                        ),
                 ),
               ],
             ),
@@ -272,10 +282,12 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
       for (final phone in _selectedPhones) {
         // Find the first contact in the master list that matches this phone
         final contact = (_contacts ?? []).firstWhere(
-          (c) => c.phones.isNotEmpty && _normalizePhone(c.phones.first.number ?? '') == phone,
+          (c) =>
+              c.phones.isNotEmpty &&
+              _normalizePhone(c.phones.first.number ?? '') == phone,
           orElse: () => Contact(),
         );
-        
+
         if (contact.displayName != null) {
           // Skip if already added
           if (existingPhones.contains(phone)) continue;
@@ -305,8 +317,9 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content:
-                  Text('${toImport.length} new customers imported successfully'),
+              content: Text(
+                '${toImport.length} new customers imported successfully',
+              ),
             ),
           );
         }

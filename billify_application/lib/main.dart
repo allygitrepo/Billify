@@ -1,25 +1,25 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/presentation/auth/login_page.dart';
-import 'package:billify_application/presentation/auth/register_page.dart';
-import 'package:billify_application/presentation/business/business_setup_page.dart';
-import 'package:billify_application/presentation/home/home_page.dart';
-import 'package:billify_application/presentation/billing/invoice_history_page.dart';
-import 'package:billify_application/presentation/billing/scanner_screen.dart';
-import 'package:billify_application/presentation/inventory/stock_management_page.dart';
-import 'package:billify_application/presentation/product/product_management_page.dart';
-import 'package:billify_application/presentation/splash/splash_page.dart';
-import 'package:billify_application/presentation/settings/user_management_page.dart';
-import 'package:billify_application/presentation/settings/profile_page.dart';
-import 'package:billify_application/presentation/customers/customer_list_screen.dart';
-import 'package:billify_application/presentation/payments/add_payment_screen.dart';
-import 'package:billify_application/presentation/analytics/analytics_dashboard_screen.dart';
-import 'package:billify_application/presentation/analytics/report_screens.dart';
-import 'package:billify_application/features/analytics/sales_reports/presentation/sales_reports_screen.dart';
-import 'package:billify_application/features/analytics/profit_reports/presentation/profit_reports_screen.dart';
-import 'package:billify_application/features/analytics/khata_reports/presentation/khata_reports_screen.dart';
-import 'package:billify_application/features/analytics/customer_reports/presentation/customer_reports_screen.dart';
-import 'package:billify_application/providers/storage_provider.dart';
-import 'package:billify_application/providers/theme_provider.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/presentation/auth/login_page.dart';
+import 'package:billify/presentation/auth/register_page.dart';
+import 'package:billify/presentation/business/business_setup_page.dart';
+import 'package:billify/presentation/home/home_page.dart';
+import 'package:billify/presentation/billing/invoice_history_page.dart';
+import 'package:billify/presentation/billing/scanner_screen.dart';
+import 'package:billify/presentation/inventory/stock_management_page.dart';
+import 'package:billify/presentation/product/product_management_page.dart';
+import 'package:billify/presentation/splash/splash_page.dart';
+import 'package:billify/presentation/settings/user_management_page.dart';
+import 'package:billify/presentation/settings/profile_page.dart';
+import 'package:billify/presentation/customers/customer_list_screen.dart';
+import 'package:billify/presentation/payments/add_payment_screen.dart';
+import 'package:billify/presentation/analytics/analytics_dashboard_screen.dart';
+import 'package:billify/presentation/analytics/report_screens.dart';
+import 'package:billify/features/analytics/sales_reports/presentation/sales_reports_screen.dart';
+import 'package:billify/features/analytics/profit_reports/presentation/profit_reports_screen.dart';
+import 'package:billify/features/analytics/khata_reports/presentation/khata_reports_screen.dart';
+import 'package:billify/features/analytics/customer_reports/presentation/customer_reports_screen.dart';
+import 'package:billify/providers/storage_provider.dart';
+import 'package:billify/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -66,7 +66,8 @@ class BillifyApp extends ConsumerWidget {
           }
           return const ProductManagementPage();
         },
-        '/add-product': (context) => const ProductManagementPage(), // Alias for compatibility
+        '/add-product': (context) =>
+            const ProductManagementPage(), // Alias for compatibility
         '/invoice-history': (context) => const InvoiceHistoryPage(),
         '/stock-management': (context) => const StockManagementPage(),
         '/user-management': (context) => const UserManagementPage(),
@@ -74,7 +75,8 @@ class BillifyApp extends ConsumerWidget {
         '/customers': (context) => const CustomerListScreen(),
         '/add-payment': (context) {
           final args =
-              ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+              ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
           if (args != null && args.containsKey('customerId')) {
             return AddPaymentScreen(customerId: args['customerId'] as int);
           }

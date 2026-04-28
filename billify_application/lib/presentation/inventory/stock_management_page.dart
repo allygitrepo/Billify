@@ -1,23 +1,23 @@
-import 'package:billify_application/core/enums/stock_mode.dart';
+import 'package:billify/core/enums/stock_mode.dart';
 import 'dart:convert';
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/core/utils/image_utils.dart';
-import 'package:billify_application/data/models/product_model.dart';
-import 'package:billify_application/data/models/product_variant_model.dart';
-import 'package:billify_application/data/models/stock_history_model.dart';
-import 'package:billify_application/presentation/widgets/custom_button.dart';
-import 'package:billify_application/presentation/widgets/section_card.dart';
-import 'package:billify_application/providers/product_provider.dart';
-import 'package:billify_application/providers/stock_history_provider.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/image_utils.dart';
+import 'package:billify/data/models/product_model.dart';
+import 'package:billify/data/models/product_variant_model.dart';
+import 'package:billify/data/models/stock_history_model.dart';
+import 'package:billify/presentation/widgets/custom_button.dart';
+import 'package:billify/presentation/widgets/section_card.dart';
+import 'package:billify/providers/product_provider.dart';
+import 'package:billify/providers/stock_history_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:intl/intl.dart';
-import 'package:billify_application/data/models/user_permission.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/presentation/billing/widgets/weight_input_sheet.dart';
-import 'package:billify_application/providers/uom_provider.dart';
-import 'package:billify_application/presentation/widgets/error_handler.dart';
+import 'package:billify/data/models/user_permission.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/presentation/billing/widgets/weight_input_sheet.dart';
+import 'package:billify/providers/uom_provider.dart';
+import 'package:billify/presentation/widgets/error_handler.dart';
 
 class StockManagementPage extends ConsumerStatefulWidget {
   const StockManagementPage({super.key});
@@ -72,7 +72,10 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
     // Stock Out Validation
     if (_mode == StockMode.outMode) {
       if (product.stock <= 0) {
-        ErrorHandler.showErrorSnackBar(context, 'Cannot remove stock from an out-of-stock item');
+        ErrorHandler.showErrorSnackBar(
+          context,
+          'Cannot remove stock from an out-of-stock item',
+        );
         return;
       }
     }
@@ -103,13 +106,14 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
             final key = product.selectedVariantId != null
                 ? '${product.id}:${product.selectedVariantId}'
                 : product.id;
-            
+
             if (initialQuantity != null) {
               // If editing, replace quantity
               _transactionItems[key] = quantity;
             } else {
               // If adding new, increment
-              _transactionItems[key] = (_transactionItems[key] ?? 0.0) + quantity;
+              _transactionItems[key] =
+                  (_transactionItems[key] ?? 0.0) + quantity;
             }
           });
         },
@@ -600,9 +604,9 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                         final productId = parts[0];
                         final variantId = parts.length > 1 ? parts[1] : null;
 
-                        final p = allProducts.where(
-                          (p) => p.id == productId,
-                        ).firstOrNull;
+                        final p = allProducts
+                            .where((p) => p.id == productId)
+                            .firstOrNull;
 
                         if (p == null) return const SizedBox.shrink();
 
@@ -761,8 +765,7 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                       _searchQuery,
                     );
                     final matchesVariant = p.variants.any(
-                      (v) =>
-                          v.name.toLowerCase().contains(_searchQuery)
+                      (v) => v.name.toLowerCase().contains(_searchQuery),
                     );
 
                     if (!matchesName && !matchesVariant) {
@@ -1219,7 +1222,9 @@ class _StockItemTile extends StatelessWidget {
     double currentStock = product.stock;
 
     if (variantId != null) {
-      final variant = product.variants.where((v) => v.id == variantId).firstOrNull;
+      final variant = product.variants
+          .where((v) => v.id == variantId)
+          .firstOrNull;
       if (variant != null) {
         name = '${product.name} (${variant.name})';
         barcode = variant.sku;
@@ -1254,9 +1259,9 @@ class _StockItemTile extends StatelessWidget {
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
                                     const Icon(
-                                  Icons.image_not_supported_outlined,
-                                  size: 18,
-                                ),
+                                      Icons.image_not_supported_outlined,
+                                      size: 18,
+                                    ),
                               );
                             } catch (e) {
                               return const Icon(
@@ -1301,9 +1306,10 @@ class _StockItemTile extends StatelessWidget {
                       onPressed: () {
                         if (product.is_weighted) {
                           // Allow editing with weight screen
-                          final parent = context.findAncestorStateOfType<
-                            _StockManagementPageState
-                          >();
+                          final parent = context
+                              .findAncestorStateOfType<
+                                _StockManagementPageState
+                              >();
                           parent?._showWeightInputSheet(
                             product,
                             initialQuantity: quantity,
@@ -1318,9 +1324,10 @@ class _StockItemTile extends StatelessWidget {
                     InkWell(
                       onTap: () {
                         if (product.is_weighted) {
-                          final parent = context.findAncestorStateOfType<
-                            _StockManagementPageState
-                          >();
+                          final parent = context
+                              .findAncestorStateOfType<
+                                _StockManagementPageState
+                              >();
                           parent?._showWeightInputSheet(
                             product,
                             initialQuantity: quantity,
@@ -1354,9 +1361,10 @@ class _StockItemTile extends StatelessWidget {
                       icon: const Icon(Icons.add_circle_outline, size: 20),
                       onPressed: () {
                         if (product.is_weighted) {
-                          final parent = context.findAncestorStateOfType<
-                            _StockManagementPageState
-                          >();
+                          final parent = context
+                              .findAncestorStateOfType<
+                                _StockManagementPageState
+                              >();
                           parent?._showWeightInputSheet(
                             product,
                             initialQuantity: quantity,
@@ -1449,7 +1457,9 @@ class _InventoryProductTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final uoms = ref.watch(uomProvider);
-    final resolvedUom = uoms.where((u) => u.id == product.uom).firstOrNull?.shortCode ?? product.uom;
+    final resolvedUom =
+        uoms.where((u) => u.id == product.uom).firstOrNull?.shortCode ??
+        product.uom;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -1488,10 +1498,16 @@ class _InventoryProductTile extends ConsumerWidget {
                         ImageUtils.decodeBase64(product.photo!),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.image_not_supported_outlined, size: 20),
+                            const Icon(
+                              Icons.image_not_supported_outlined,
+                              size: 20,
+                            ),
                       );
                     } catch (e) {
-                      return const Icon(Icons.image_not_supported_outlined, size: 20);
+                      return const Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 20,
+                      );
                     }
                   },
                 )
@@ -1521,16 +1537,19 @@ class _InventoryProductTile extends ConsumerWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: (product.stock <= 0
-                          ? Colors.red
-                          : (product.stock > 10
-                                ? Colors.green
-                                : Colors.orange))
-                      .withOpacity(0.1),
+                  color:
+                      (product.stock <= 0
+                              ? Colors.red
+                              : (product.stock > 10
+                                    ? Colors.green
+                                    : Colors.orange))
+                          .withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  product.stock <= 0 ? 'OUT OF STOCK' : '${product.stock} $resolvedUom',
+                  product.stock <= 0
+                      ? 'OUT OF STOCK'
+                      : '${product.stock} $resolvedUom',
                   style: TextStyle(
                     color: product.stock <= 0
                         ? Colors.red

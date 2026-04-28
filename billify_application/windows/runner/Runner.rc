@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "billify_application" "\0"
+            VALUE "CompanyName", "Ally Soft Solutions" "\0"
+            VALUE "FileDescription", "Billify" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "billify_application" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
+            VALUE "InternalName", "Billify" "\0"
+            VALUE "LegalCopyright", "Copyright © 2026 Ally Soft Solutions" "\0"
             VALUE "OriginalFilename", "billify_application.exe" "\0"
-            VALUE "ProductName", "billify_application" "\0"
+            VALUE "ProductName", "Billify" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

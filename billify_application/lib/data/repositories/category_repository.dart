@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'package:billify_application/core/constants/app_constants.dart';
-import 'package:billify_application/core/services/local_storage_service.dart';
-import 'package:billify_application/data/datasources/remote_category_datasource.dart';
-import 'package:billify_application/data/models/category_model.dart';
+import 'package:billify/core/constants/app_constants.dart';
+import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/data/datasources/remote_category_datasource.dart';
+import 'package:billify/data/models/category_model.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 

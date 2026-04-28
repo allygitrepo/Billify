@@ -1,5 +1,5 @@
-import 'package:billify_application/core/constants/app_constants.dart';
-import 'package:billify_application/providers/storage_provider.dart';
+import 'package:billify/core/constants/app_constants.dart';
+import 'package:billify/providers/storage_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

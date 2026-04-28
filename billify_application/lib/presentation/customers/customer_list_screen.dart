@@ -1,10 +1,10 @@
 import 'dart:convert';
-import 'package:billify_application/core/utils/image_utils.dart';
-import 'package:billify_application/data/models/customer_model.dart';
-import 'package:billify_application/providers/customer_provider.dart';
-import 'package:billify_application/presentation/customers/add_customer_bottom_sheet.dart';
-import 'package:billify_application/presentation/customers/contacts_import_screen.dart';
-import 'package:billify_application/presentation/customers/customer_detail_screen.dart';
+import 'package:billify/core/utils/image_utils.dart';
+import 'package:billify/data/models/customer_model.dart';
+import 'package:billify/providers/customer_provider.dart';
+import 'package:billify/presentation/customers/add_customer_bottom_sheet.dart';
+import 'package:billify/presentation/customers/contacts_import_screen.dart';
+import 'package:billify/presentation/customers/customer_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -26,14 +26,18 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.showOnlyOutstanding ? 'Khata (Ledger)' : 'Customers & Khata'),
+        title: Text(
+          widget.showOnlyOutstanding ? 'Khata (Ledger)' : 'Customers & Khata',
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.import_contacts),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ContactsImportScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const ContactsImportScreen(),
+                ),
               );
             },
             tooltip: 'Import from Contacts',
@@ -79,15 +83,19 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
           Expanded(
             child: customersAsync.when(
               data: (allCustomers) {
-                final customers = widget.showOnlyOutstanding 
-                  ? allCustomers.where((c) => c.remainingBalance != 0).toList()
-                  : allCustomers;
-                  
+                final customers = widget.showOnlyOutstanding
+                    ? allCustomers
+                          .where((c) => c.remainingBalance != 0)
+                          .toList()
+                    : allCustomers;
+
                 if (customers.isEmpty) {
                   return Center(
-                    child: Text(widget.showOnlyOutstanding 
-                      ? 'No outstanding balances found.' 
-                      : 'No customers found.'),
+                    child: Text(
+                      widget.showOnlyOutstanding
+                          ? 'No outstanding balances found.'
+                          : 'No customers found.',
+                    ),
                   );
                 }
                 return ListView.builder(
@@ -98,22 +106,28 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                     final bool isSettled = customer.remainingBalance == 0;
 
                     return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       child: ListTile(
-                        leading: customer.photo != null &&
-                                customer.photo!.isNotEmpty
+                        leading:
+                            customer.photo != null && customer.photo!.isNotEmpty
                             ? CircleAvatar(
                                 backgroundImage: MemoryImage(
                                   ImageUtils.decodeBase64(customer.photo!),
                                 ),
                               )
                             : CircleAvatar(
-                                backgroundColor: Theme.of(context)
-                                    .primaryColor
-                                    .withOpacity(0.1),
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).primaryColor.withOpacity(0.1),
                                 child: Text(customer.name[0].toUpperCase()),
                               ),
-                        title: Text(customer.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        title: Text(
+                          customer.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         subtitle: Text(customer.phoneNumber),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -131,7 +145,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Could not launch dialer'),
+                                        content: Text(
+                                          'Could not launch dialer',
+                                        ),
                                       ),
                                     );
                                   }
@@ -151,16 +167,16 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                                     color: isSettled
                                         ? Colors.grey
                                         : owesMoney
-                                            ? Colors.red
-                                            : Colors.green,
+                                        ? Colors.red
+                                        : Colors.green,
                                   ),
                                 ),
                                 Text(
                                   isSettled
                                       ? 'Settled'
                                       : owesMoney
-                                          ? 'You get'
-                                          : 'You give',
+                                      ? 'You get'
+                                      : 'You give',
                                   style: const TextStyle(fontSize: 10),
                                 ),
                               ],
@@ -171,7 +187,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => CustomerDetailScreen(customerId: customer.id!),
+                              builder: (context) => CustomerDetailScreen(
+                                customerId: customer.id!,
+                              ),
                             ),
                           );
                         },

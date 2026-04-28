@@ -1,21 +1,21 @@
 import 'dart:convert';
-import 'package:billify_application/core/utils/image_utils.dart';
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/presentation/billing/scanner_screen.dart';
-import 'package:billify_application/presentation/business/business_setup_page.dart';
-import 'package:billify_application/presentation/home/widgets/dashboard_components.dart';
-import 'package:billify_application/presentation/settings/category_management_page.dart';
-import 'package:billify_application/presentation/settings/settings_page.dart';
-import 'package:billify_application/presentation/settings/uom_management_page.dart';
-import 'package:billify_application/presentation/widgets/full_screen_image_viewer.dart';
-import 'package:billify_application/presentation/khata/khata_dashboard_screen.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/business_provider.dart';
-import 'package:billify_application/providers/feature_settings_provider.dart';
-import 'package:billify_application/providers/invoice_provider.dart';
-import 'package:billify_application/providers/product_provider.dart';
-import 'package:billify_application/data/models/user_permission.dart';
-import 'package:billify_application/presentation/analytics/analytics_dashboard_screen.dart';
+import 'package:billify/core/utils/image_utils.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/presentation/billing/scanner_screen.dart';
+import 'package:billify/presentation/business/business_setup_page.dart';
+import 'package:billify/presentation/home/widgets/dashboard_components.dart';
+import 'package:billify/presentation/settings/category_management_page.dart';
+import 'package:billify/presentation/settings/settings_page.dart';
+import 'package:billify/presentation/settings/uom_management_page.dart';
+import 'package:billify/presentation/widgets/full_screen_image_viewer.dart';
+import 'package:billify/presentation/khata/khata_dashboard_screen.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/providers/feature_settings_provider.dart';
+import 'package:billify/providers/invoice_provider.dart';
+import 'package:billify/providers/product_provider.dart';
+import 'package:billify/data/models/user_permission.dart';
+import 'package:billify/presentation/analytics/analytics_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -727,11 +727,12 @@ class _HomeHeader extends StatelessWidget {
                       ? (user!.photo!.startsWith('http')
                             ? NetworkImage(user!.photo!)
                             : (user!.photo!.startsWith('data:image') ||
-                                    user!.photo!.length > 100
-                                ? MemoryImage(
-                                    ImageUtils.decodeBase64(user!.photo!),
-                                  )
-                                : FileImage(File(user!.photo!)) as ImageProvider))
+                                      user!.photo!.length > 100
+                                  ? MemoryImage(
+                                      ImageUtils.decodeBase64(user!.photo!),
+                                    )
+                                  : FileImage(File(user!.photo!))
+                                        as ImageProvider))
                       : null,
                   child: user?.photo == null || user!.photo!.isEmpty
                       ? const Icon(

@@ -1,23 +1,23 @@
 import 'dart:convert';
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/core/utils/image_utils.dart';
-import 'package:billify_application/presentation/billing/thermal_invoice_dialog.dart';
-import 'package:billify_application/presentation/product/product_management_page.dart';
-import 'package:billify_application/providers/billing_provider.dart';
-import 'package:billify_application/providers/business_provider.dart';
-import 'package:billify_application/data/models/product_model.dart';
-import 'package:billify_application/data/models/cart_item_model.dart';
-import 'package:billify_application/providers/product_provider.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/image_utils.dart';
+import 'package:billify/presentation/billing/thermal_invoice_dialog.dart';
+import 'package:billify/presentation/product/product_management_page.dart';
+import 'package:billify/providers/billing_provider.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/data/models/product_model.dart';
+import 'package:billify/data/models/cart_item_model.dart';
+import 'package:billify/providers/product_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:billify_application/data/models/user_permission.dart';
-import 'package:billify_application/providers/customer_provider.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/invoice_provider.dart';
-import 'package:billify_application/presentation/billing/widgets/weight_input_sheet.dart';
-import 'package:billify_application/presentation/widgets/error_handler.dart';
+import 'package:billify/data/models/user_permission.dart';
+import 'package:billify/providers/customer_provider.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/invoice_provider.dart';
+import 'package:billify/presentation/billing/widgets/weight_input_sheet.dart';
+import 'package:billify/presentation/widgets/error_handler.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
   const ScannerScreen({super.key});
@@ -54,7 +54,10 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   void _handleScan(BarcodeCapture capture) {
     if (_isProcessing) return;
 
-    final barcode = capture.barcodes.first.rawValue;
+    final barcodes = capture.barcodes;
+    if (barcodes.isEmpty) return;
+    
+    final barcode = barcodes.first.rawValue;
     if (barcode == null || barcode.isEmpty) return;
 
     // Debounce: Prevent duplicate scans within 1.5 seconds
@@ -167,12 +170,12 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _CustomerSelectorSheet(
+      builder: (sheetContext) => _CustomerSelectorSheet(
         onSelected: (customerId, customerType) {
           ref
               .read(billingProvider.notifier)
               .setCustomer(customerId, customerType);
-          Navigator.pop(context);
+          Navigator.pop(sheetContext);
           _showInvoice(ref, context);
         },
       ),
@@ -319,7 +322,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                 MobileScanner(
                   controller: _controller,
                   onDetect: _handleScan,
-                  errorBuilder: (context, error, child) {
+                  errorBuilder: (context, error) {
                     return Container(
                       color: Colors.black,
                       child: Center(
@@ -333,7 +336,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'Scanner Error: ${error.errorCode}',
+                              'Scanner Error: ${error.errorCode.name}',
                               style: const TextStyle(color: Colors.white),
                             ),
                             const SizedBox(height: 8),
@@ -375,7 +378,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           // Scrollable List Below
           Expanded(
             child: Container(
-              color: Theme.of(context).colorScheme.background.withOpacity(0.8),
+              color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
               child: Column(
                 children: [
                   Padding(
@@ -765,7 +768,7 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
                   borderSide: BorderSide(color: Theme.of(context).dividerColor),
                 ),
                 filled: true,
-                fillColor: Theme.of(context).colorScheme.background,
+                fillColor: Theme.of(context).colorScheme.surface,
               ),
               onChanged: _filterProducts,
             ),
@@ -943,7 +946,7 @@ class _ProductListTile extends ConsumerWidget {
                 ))
               Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.background,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -1085,7 +1088,7 @@ class _PanelItemTile extends ConsumerWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.background,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(8),
               ),
               clipBehavior: Clip.antiAlias,
@@ -1137,7 +1140,7 @@ class _PanelItemTile extends ConsumerWidget {
                 ))
               Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.background,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(

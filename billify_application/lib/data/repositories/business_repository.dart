@@ -1,6 +1,6 @@
-import 'package:billify_application/data/datasources/business_datasource.dart';
-import 'package:billify_application/data/datasources/remote_business_datasource.dart';
-import 'package:billify_application/data/models/business_model.dart';
+import 'package:billify/data/datasources/business_datasource.dart';
+import 'package:billify/data/datasources/remote_business_datasource.dart';
+import 'package:billify/data/models/business_model.dart';
 
 class BusinessRepository {
   final BusinessDatasource _datasource;
@@ -27,7 +27,7 @@ class BusinessRepository {
     } catch (e) {
       print("Error during remote business save: $e");
     }
-    
+
     return true;
   }
 

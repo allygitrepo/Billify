@@ -1,13 +1,14 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/data/models/customer_model.dart';
-import 'package:billify_application/providers/customer_provider.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/data/models/customer_model.dart';
+import 'package:billify/providers/customer_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 class AddPaymentScreen extends ConsumerStatefulWidget {
   final Customer customer;
-  final bool isCredit; // true: I Gave (Customer owes), false: I Got (Customer paid)
+  final bool
+  isCredit; // true: I Gave (Customer owes), false: I Got (Customer paid)
 
   const AddPaymentScreen({
     super.key,
@@ -40,7 +41,9 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
     setState(() => _isLoading = true);
     try {
       final amount = double.parse(_amountController.text);
-      await ref.read(customerProvider.notifier).recordPayment(
+      await ref
+          .read(customerProvider.notifier)
+          .recordPayment(
             customerId: widget.customer.id!,
             amount: amount,
             isCredit: widget.isCredit,
@@ -155,7 +158,9 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.calendar_today, color: color),
                 title: const Text('Date'),
-                subtitle: Text(DateFormat('dd MMM, yyyy').format(_selectedDate)),
+                subtitle: Text(
+                  DateFormat('dd MMM, yyyy').format(_selectedDate),
+                ),
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: context,
@@ -176,9 +181,10 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
                 subtitle: Text(_paymentMethod),
                 trailing: PopupMenuButton<String>(
                   onSelected: (val) => setState(() => _paymentMethod = val),
-                  itemBuilder: (context) => ['Cash', 'Online / UPI', 'Bank Transfer', 'Other']
-                      .map((m) => PopupMenuItem(value: m, child: Text(m)))
-                      .toList(),
+                  itemBuilder: (context) =>
+                      ['Cash', 'Online / UPI', 'Bank Transfer', 'Other']
+                          .map((m) => PopupMenuItem(value: m, child: Text(m)))
+                          .toList(),
                 ),
               ),
               const SizedBox(height: 48),

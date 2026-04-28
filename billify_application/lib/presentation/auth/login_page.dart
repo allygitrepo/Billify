@@ -1,10 +1,10 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/core/utils/validators.dart';
-import 'package:billify_application/presentation/widgets/custom_button.dart';
-import 'package:billify_application/presentation/widgets/custom_text_field.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/business_provider.dart';
-import 'package:billify_application/presentation/widgets/error_handler.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/validators.dart';
+import 'package:billify/presentation/widgets/custom_button.dart';
+import 'package:billify/presentation/widgets/custom_text_field.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/presentation/widgets/error_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -45,7 +45,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           Navigator.pushReplacementNamed(context, '/home');
         }
       } else if (authState.error != null) {
-        ErrorHandler.showErrorSnackBar(context, authState.errorObject ?? authState.error);
+        ErrorHandler.showErrorSnackBar(
+          context,
+          authState.errorObject ?? authState.error,
+        );
       }
     }
   }
@@ -68,7 +71,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   const SizedBox(height: 48),
                   Hero(
                     tag: 'logo',
-                    child: Image.asset('assets/billify.png', width: 90, height: 90),
+                    child: Image.asset(
+                      'assets/billify.png',
+                      width: 90,
+                      height: 90,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   const Text(
@@ -170,9 +177,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             const SizedBox(height: 32),
                             Row(
                               children: [
-                                Expanded(child: Divider(color: Colors.grey[300])),
+                                Expanded(
+                                  child: Divider(color: Colors.grey[300]),
+                                ),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
                                   child: Text(
                                     'OR',
                                     style: TextStyle(
@@ -182,26 +193,41 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                     ),
                                   ),
                                 ),
-                                Expanded(child: Divider(color: Colors.grey[300])),
+                                Expanded(
+                                  child: Divider(color: Colors.grey[300]),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 32),
                             GestureDetector(
                               onTap: () async {
-                                await ref.read(authProvider.notifier).loginWithGoogle();
+                                await ref
+                                    .read(authProvider.notifier)
+                                    .loginWithGoogle();
                                 if (!mounted) return;
 
                                 final authState = ref.read(authProvider);
                                 if (authState.isLoggedIn) {
                                   ref.invalidate(businessProvider);
-                                  final businessState = ref.read(businessProvider);
+                                  final businessState = ref.read(
+                                    businessProvider,
+                                  );
                                   if (businessState.currentBusiness == null) {
-                                    Navigator.pushReplacementNamed(context, '/business-setup');
+                                    Navigator.pushReplacementNamed(
+                                      context,
+                                      '/business-setup',
+                                    );
                                   } else {
-                                    Navigator.pushReplacementNamed(context, '/home');
+                                    Navigator.pushReplacementNamed(
+                                      context,
+                                      '/home',
+                                    );
                                   }
                                 } else if (authState.error != null) {
-                                  ErrorHandler.showErrorSnackBar(context, authState.errorObject ?? authState.error);
+                                  ErrorHandler.showErrorSnackBar(
+                                    context,
+                                    authState.errorObject ?? authState.error,
+                                  );
                                 }
                               },
                               child: Container(
@@ -213,22 +239,28 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   'assets/sign_in_with_google.webp',
                                   fit: BoxFit.contain,
                                   height: 52, // Standard height for better UI
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    height: 52,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey[300]!),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: const Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.login, size: 20),
-                                        SizedBox(width: 12),
-                                        Text('Sign in with Google'),
-                                      ],
-                                    ),
-                                  ),
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                        height: 52,
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                            color: Colors.grey[300]!,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: const Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.login, size: 20),
+                                            SizedBox(width: 12),
+                                            Text('Sign in with Google'),
+                                          ],
+                                        ),
+                                      ),
                                 ),
                               ),
                             ),

@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:billify_application/core/constants/app_constants.dart';
-import 'package:billify_application/core/services/local_storage_service.dart';
-import 'package:billify_application/data/models/user_model.dart';
+import 'package:billify/core/constants/app_constants.dart';
+import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/data/models/user_model.dart';
 
 abstract class AuthDatasource {
   Future<bool> register(UserModel user);

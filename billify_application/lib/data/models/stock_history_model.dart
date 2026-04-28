@@ -1,4 +1,4 @@
-import 'package:billify_application/core/enums/stock_mode.dart';
+import 'package:billify/core/enums/stock_mode.dart';
 
 class StockHistoryModel {
   final String id;
@@ -22,14 +22,22 @@ class StockHistoryModel {
   });
 
   factory StockHistoryModel.fromJson(Map<String, dynamic> json) {
-    final typeString = (json['change_type'] ?? json['type'])?.toString().toUpperCase();
+    final typeString = (json['change_type'] ?? json['type'])
+        ?.toString()
+        .toUpperCase();
     return StockHistoryModel(
       id: json['id'].toString(),
-      product_id: json['product_id']?.toString() ?? json['productId']?.toString() ?? '',
+      product_id:
+          json['product_id']?.toString() ?? json['productId']?.toString() ?? '',
       variant_name: json['variant_name'] ?? json['product']?['name'] ?? '',
-      quantity_change: (json['quantity_change'] as num?)?.toDouble() ?? (json['quantity'] as num?)?.toDouble() ?? 0.0,
+      quantity_change:
+          (json['quantity_change'] as num?)?.toDouble() ??
+          (json['quantity'] as num?)?.toDouble() ??
+          0.0,
       change_type: typeString == 'IN' ? StockMode.inMode : StockMode.outMode,
-      createdAt: DateTime.tryParse(json['createdAt'] ?? json['timestamp'] ?? '') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(json['createdAt'] ?? json['timestamp'] ?? '') ??
+          DateTime.now(),
       reason: json['reason'] ?? 'Manual Adjustment',
       source: json['source'] ?? 'manual',
     );
@@ -48,4 +56,3 @@ class StockHistoryModel {
     };
   }
 }
-

@@ -1,8 +1,8 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/core/utils/image_utils.dart';
-import 'package:billify_application/presentation/widgets/full_screen_image_viewer.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/presentation/widgets/error_handler.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/image_utils.dart';
+import 'package:billify/presentation/widgets/full_screen_image_viewer.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/presentation/widgets/error_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -25,19 +25,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   String? _selectedImagePath;
   bool _isObscured = true;
 
-
   @override
   void initState() {
     super.initState();
     final user = ref.read(authProvider).user;
-    debugPrint('Initializing ProfilePage with user: ${user?.name}, mobile: ${user?.mobile}');
+    debugPrint(
+      'Initializing ProfilePage with user: ${user?.name}, mobile: ${user?.mobile}',
+    );
     _nameController = TextEditingController(text: user?.name ?? '');
     _phoneController = TextEditingController(text: user?.mobile ?? '');
-    _passwordController = TextEditingController(text: ''); // Leave empty for change
-    _roleController = TextEditingController(text: ref.read(authProvider).currentRole?.name ?? 'Admin / Owner');
+    _passwordController = TextEditingController(
+      text: '',
+    ); // Leave empty for change
+    _roleController = TextEditingController(
+      text: ref.read(authProvider).currentRole?.name ?? 'Admin / Owner',
+    );
     _selectedImagePath = user?.photo;
   }
-
 
   @override
   void dispose() {
@@ -48,7 +52,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     super.dispose();
   }
 
-
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final image = await picker.pickImage(
@@ -58,7 +61,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     if (image != null) {
       final bytes = await image.readAsBytes();
       final base64String = base64Encode(bytes);
-      setState(() => _selectedImagePath = 'data:image/jpeg;base64,$base64String');
+      setState(
+        () => _selectedImagePath = 'data:image/jpeg;base64,$base64String',
+      );
     }
   }
 
@@ -86,14 +91,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         newPassword = _passwordController.text;
       }
 
-      await ref.read(authProvider.notifier).updateProfile(
-        updatedUser, 
-        oldPassword: oldPassword, 
-        newPassword: newPassword
-      );
+      await ref
+          .read(authProvider.notifier)
+          .updateProfile(
+            updatedUser,
+            oldPassword: oldPassword,
+            newPassword: newPassword,
+          );
 
       if (mounted) {
-        ErrorHandler.showSuccessSnackBar(context, 'Profile updated successfully!');
+        ErrorHandler.showSuccessSnackBar(
+          context,
+          'Profile updated successfully!',
+        );
         Navigator.pop(context);
       }
     } catch (e) {
@@ -112,7 +122,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Please enter your CURRENT password to confirm changes.'),
+            const Text(
+              'Please enter your CURRENT password to confirm changes.',
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: controller,
@@ -122,7 +134,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, controller.text),
             child: const Text('CONFIRM'),
@@ -139,12 +154,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'My Profile',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         elevation: 0,
         centerTitle: true,
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryTeal))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.primaryTeal),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Form(
@@ -172,7 +192,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               height: 120,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                border: Border.all(color: AppTheme.primaryTeal, width: 2),
+                                border: Border.all(
+                                  color: AppTheme.primaryTeal,
+                                  width: 2,
+                                ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withOpacity(0.1),
@@ -184,15 +207,36 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               child: CircleAvatar(
                                 radius: 60,
                                 backgroundColor: Theme.of(context).cardColor,
-                                backgroundImage: _selectedImagePath != null && _selectedImagePath!.isNotEmpty
+                                backgroundImage:
+                                    _selectedImagePath != null &&
+                                        _selectedImagePath!.isNotEmpty
                                     ? (_selectedImagePath!.startsWith('http')
-                                        ? NetworkImage(_selectedImagePath!)
-                                        : (_selectedImagePath!.startsWith('data:image') || _selectedImagePath!.length > 100 
-                                        ? MemoryImage(ImageUtils.decodeBase64(_selectedImagePath!)) 
-                                        : FileImage(File(_selectedImagePath!)) as ImageProvider))
+                                          ? NetworkImage(_selectedImagePath!)
+                                          : (_selectedImagePath!.startsWith(
+                                                      'data:image',
+                                                    ) ||
+                                                    _selectedImagePath!.length >
+                                                        100
+                                                ? MemoryImage(
+                                                    ImageUtils.decodeBase64(
+                                                      _selectedImagePath!,
+                                                    ),
+                                                  )
+                                                : FileImage(
+                                                        File(
+                                                          _selectedImagePath!,
+                                                        ),
+                                                      )
+                                                      as ImageProvider))
                                     : null,
-                                child: _selectedImagePath == null || _selectedImagePath!.isEmpty
-                                    ? Icon(Icons.person, size: 60, color: Colors.grey[400])
+                                child:
+                                    _selectedImagePath == null ||
+                                        _selectedImagePath!.isEmpty
+                                    ? Icon(
+                                        Icons.person,
+                                        size: 60,
+                                        color: Colors.grey[400],
+                                      )
                                     : null,
                               ),
                             ),
@@ -209,7 +253,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 color: AppTheme.primaryTeal,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
                           ),
                         ),
@@ -221,26 +269,33 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       decoration: InputDecoration(
                         labelText: 'Full Name',
                         prefixIcon: const Icon(Icons.person_outline),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      validator: (val) => val == null || val.isEmpty ? 'Please enter your name' : null,
+                      validator: (val) => val == null || val.isEmpty
+                          ? 'Please enter your name'
+                          : null,
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
                       initialValue: user?.email,
                       enabled: false,
                       style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark 
-                            ? Colors.white70 
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
                             : Colors.black54,
                       ),
                       decoration: InputDecoration(
                         labelText: 'Email Address (Cannot be changed)',
                         prefixIcon: const Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         filled: true,
-                        fillColor: Theme.of(context).brightness == Brightness.dark 
-                            ? Colors.grey[900] 
+                        fillColor:
+                            Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[900]
                             : Colors.grey[100],
                       ),
                     ),
@@ -250,17 +305,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       enabled: false,
 
                       style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark 
-                            ? Colors.white70 
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
                             : Colors.black54,
                       ),
                       decoration: InputDecoration(
                         labelText: 'Assigned Role',
                         prefixIcon: const Icon(Icons.badge_outlined),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         filled: true,
-                        fillColor: Theme.of(context).brightness == Brightness.dark 
-                            ? Colors.grey[900] 
+                        fillColor:
+                            Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[900]
                             : Colors.grey[100],
                       ),
                     ),
@@ -271,9 +329,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       decoration: InputDecoration(
                         labelText: 'Mobile Number',
                         prefixIcon: const Icon(Icons.phone_outlined),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      validator: (val) => val == null || val.isEmpty ? 'Please enter your phone number' : null,
+                      validator: (val) => val == null || val.isEmpty
+                          ? 'Please enter your phone number'
+                          : null,
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
@@ -284,10 +346,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         hintText: 'Leave blank to keep current',
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
-                          icon: Icon(_isObscured ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () => setState(() => _isObscured = !_isObscured),
+                          icon: Icon(
+                            _isObscured
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () =>
+                              setState(() => _isObscured = !_isObscured),
                         ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 40),
@@ -298,12 +367,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         onPressed: _updateProfile,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryTeal,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                           elevation: 2,
                         ),
                         child: const Text(
                           'Update Profile',
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),

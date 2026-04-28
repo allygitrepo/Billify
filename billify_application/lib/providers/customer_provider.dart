@@ -1,16 +1,18 @@
-import 'package:billify_application/core/services/api_service.dart';
-import 'package:billify_application/core/services/local_storage_service.dart';
-import 'package:billify_application/data/datasources/remote_customer_datasource.dart';
-import 'package:billify_application/data/models/customer_model.dart';
-import 'package:billify_application/data/models/ledger_model.dart';
-import 'package:billify_application/data/models/payment_model.dart';
-import 'package:billify_application/data/repositories/customer_repository.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/business_provider.dart';
-import 'package:billify_application/providers/storage_provider.dart';
+import 'package:billify/core/services/api_service.dart';
+import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/data/datasources/remote_customer_datasource.dart';
+import 'package:billify/data/models/customer_model.dart';
+import 'package:billify/data/models/ledger_model.dart';
+import 'package:billify/data/models/payment_model.dart';
+import 'package:billify/data/repositories/customer_repository.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/providers/storage_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final remoteCustomerDatasourceProvider = Provider<RemoteCustomerDatasource>((ref) {
+final remoteCustomerDatasourceProvider = Provider<RemoteCustomerDatasource>((
+  ref,
+) {
   final apiService = ref.watch(apiServiceProvider);
   return RemoteCustomerDatasource(apiService);
 });
@@ -69,7 +71,9 @@ class CustomerNotifier extends AsyncNotifier<List<Customer>> {
     DateTime? date,
     String method = 'Cash',
   }) async {
-    print('DEBUG: Recording Payment - ID: $customerId, Amount: $amount, isCredit: $isCredit, Note: $note');
+    print(
+      'DEBUG: Recording Payment - ID: $customerId, Amount: $amount, isCredit: $isCredit, Note: $note',
+    );
     final repo = ref.read(customerRepositoryProvider);
     final data = {
       'customer_id': customerId,
@@ -99,16 +103,25 @@ class CustomerNotifier extends AsyncNotifier<List<Customer>> {
   }
 }
 
-final customerProvider = AsyncNotifierProvider<CustomerNotifier, List<Customer>>(CustomerNotifier.new);
+final customerProvider =
+    AsyncNotifierProvider<CustomerNotifier, List<Customer>>(
+      CustomerNotifier.new,
+    );
 
 // Detail / Ledger Provider
-final customerLedgerProvider = FutureProvider.family<CustomerLedger, int>((ref, id) async {
+final customerLedgerProvider = FutureProvider.family<CustomerLedger, int>((
+  ref,
+  id,
+) async {
   final repo = ref.watch(customerRepositoryProvider);
   return await repo.getCustomerLedger(id);
 });
 
 // Payments Provider
-final paymentsProvider = FutureProvider.family<List<Payment>, int?>((ref, customerId) async {
+final paymentsProvider = FutureProvider.family<List<Payment>, int?>((
+  ref,
+  customerId,
+) async {
   final repo = ref.watch(customerRepositoryProvider);
   return await repo.getPayments(customerId: customerId);
 });

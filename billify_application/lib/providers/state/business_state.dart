@@ -1,4 +1,4 @@
-import 'package:billify_application/data/models/business_model.dart';
+import 'package:billify/data/models/business_model.dart';
 
 class BusinessState {
   final List<BusinessModel> businesses;

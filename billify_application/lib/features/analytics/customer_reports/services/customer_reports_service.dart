@@ -1,5 +1,5 @@
-import 'package:billify_application/core/constants/api_endpoints.dart';
-import 'package:billify_application/core/services/api_service.dart';
+import 'package:billify/core/constants/api_endpoints.dart';
+import 'package:billify/core/services/api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final customerReportsServiceProvider = Provider<CustomerReportsService>((ref) {
@@ -12,7 +12,10 @@ class CustomerReportsService {
 
   CustomerReportsService(this._apiService);
 
-  Future<Map<String, dynamic>> fetchCustomerAnalytics(String businessId, {String? search}) async {
+  Future<Map<String, dynamic>> fetchCustomerAnalytics(
+    String businessId, {
+    String? search,
+  }) async {
     final queryParams = <String, dynamic>{};
     if (search != null && search.isNotEmpty) {
       queryParams['search'] = search;
@@ -27,8 +30,13 @@ class CustomerReportsService {
       return response.data;
     }
     return {
-      'summary': {'totalCustomers': 0, 'totalReceivable': 0, 'totalPayable': 0, 'netBalance': 0},
-      'customers': []
+      'summary': {
+        'totalCustomers': 0,
+        'totalReceivable': 0,
+        'totalPayable': 0,
+        'netBalance': 0,
+      },
+      'customers': [],
     };
   }
 }

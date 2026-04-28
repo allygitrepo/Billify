@@ -1,8 +1,9 @@
-import 'package:billify_application/data/models/invoice_model.dart';
-import 'package:billify_application/features/analytics/sales_reports/models/sales_models.dart';
-import 'package:billify_application/features/analytics/sales_reports/services/sales_reports_service.dart';
-import 'package:billify_application/providers/business_provider.dart';
+import 'package:billify/data/models/invoice_model.dart';
+import 'package:billify/features/analytics/sales_reports/models/sales_models.dart';
+import 'package:billify/features/analytics/sales_reports/services/sales_reports_service.dart';
+import 'package:billify/providers/business_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 class SalesReportsState {
   final SalesSummaryModel summary;
@@ -70,23 +71,37 @@ class SalesReportsState {
       paymentMethods: [],
       invoices: [],
       isLoading: false,
-      startDate: DateTime(thirtyDaysAgo.year, thirtyDaysAgo.month, thirtyDaysAgo.day), // Start of 30 days ago
-      endDate: DateTime(now.year, now.month, now.day, 23, 59, 59), // End of today
+      startDate: DateTime(
+        thirtyDaysAgo.year,
+        thirtyDaysAgo.month,
+        thirtyDaysAgo.day,
+      ), // Start of 30 days ago
+      endDate: DateTime(
+        now.year,
+        now.month,
+        now.day,
+        23,
+        59,
+        59,
+      ), // End of today
     );
   }
 }
 
-final salesReportsProvider = StateNotifierProvider<SalesReportsNotifier, SalesReportsState>((ref) {
-  final service = ref.watch(salesReportsServiceProvider);
-  final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
-  return SalesReportsNotifier(service, businessId);
-});
+final salesReportsProvider =
+    StateNotifierProvider<SalesReportsNotifier, SalesReportsState>((ref) {
+      final service = ref.watch(salesReportsServiceProvider);
+      final businessId =
+          ref.watch(businessProvider).currentBusinessId ?? 'default';
+      return SalesReportsNotifier(service, businessId);
+    });
 
 class SalesReportsNotifier extends StateNotifier<SalesReportsState> {
   final SalesReportsService _service;
   final String _businessId;
 
-  SalesReportsNotifier(this._service, this._businessId) : super(SalesReportsState.initial()) {
+  SalesReportsNotifier(this._service, this._businessId)
+    : super(SalesReportsState.initial()) {
     refresh();
   }
 
@@ -98,12 +113,12 @@ class SalesReportsNotifier extends StateNotifier<SalesReportsState> {
     // Normalize start to 00:00 and end to 23:59
     DateTime? normalizedStart;
     if (start != null) {
-       normalizedStart = DateTime(start.year, start.month, start.day);
+      normalizedStart = DateTime(start.year, start.month, start.day);
     }
-    
+
     DateTime? normalizedEnd;
     if (end != null) {
-       normalizedEnd = DateTime(end.year, end.month, end.day, 23, 59, 59);
+      normalizedEnd = DateTime(end.year, end.month, end.day, 23, 59, 59);
     }
 
     state = state.copyWith(
@@ -120,12 +135,43 @@ class SalesReportsNotifier extends StateNotifier<SalesReportsState> {
 
     try {
       final summaryList = await Future.wait([
-         _service.getSalesSummary(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
-         _service.getSalesTrend(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
-         _service.getTopProducts(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
-         _service.getCategorySales(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
-         _service.getPaymentSummary(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
-         _service.getSalesList(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId, page: 1),
+        _service.getSalesSummary(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
+        _service.getSalesTrend(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
+        _service.getTopProducts(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
+        _service.getCategorySales(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
+        _service.getPaymentSummary(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
+        _service.getSalesList(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+          page: 1,
+        ),
       ]);
 
       state = state.copyWith(
@@ -144,15 +190,21 @@ class SalesReportsNotifier extends StateNotifier<SalesReportsState> {
 
   // Methods for individual fetching if needed later
   Future<void> fetchInvoices({int page = 1}) async {
-     try {
-       final list = await _service.getSalesList(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId, page: page);
-       if (page == 1) {
-         state = state.copyWith(invoices: list);
-       } else {
-         state = state.copyWith(invoices: [...state.invoices, ...list]);
-       }
-     } catch (e) {
-       print("Error fetching invoices: $e");
-     }
+    try {
+      final list = await _service.getSalesList(
+        _businessId,
+        startDate: state.startDate,
+        endDate: state.endDate,
+        branchId: state.branchId,
+        page: page,
+      );
+      if (page == 1) {
+        state = state.copyWith(invoices: list);
+      } else {
+        state = state.copyWith(invoices: [...state.invoices, ...list]);
+      }
+    } catch (e) {
+      print("Error fetching invoices: $e");
+    }
   }
 }

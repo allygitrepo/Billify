@@ -1,5 +1,5 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/features/analytics/sales_reports/models/sales_models.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/features/analytics/sales_reports/models/sales_models.dart';
 import 'package:flutter/material.dart';
 
 class SalesByCategoryChart extends StatelessWidget {
@@ -31,8 +31,17 @@ class _CategoryRow extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(category.category, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              Text('₹${category.sales.toStringAsFixed(0)}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+              Text(
+                category.category,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+              Text(
+                '₹${category.sales.toStringAsFixed(0)}',
+                style: const TextStyle(color: Colors.grey, fontSize: 11),
+              ),
             ],
           ),
           const SizedBox(height: 6),

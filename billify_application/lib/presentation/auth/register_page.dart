@@ -1,9 +1,9 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/core/utils/validators.dart';
-import 'package:billify_application/presentation/widgets/custom_button.dart';
-import 'package:billify_application/presentation/widgets/custom_text_field.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/registration_provider.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/validators.dart';
+import 'package:billify/presentation/widgets/custom_button.dart';
+import 'package:billify/presentation/widgets/custom_text_field.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/registration_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -36,15 +36,21 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   Future<void> _handleRegister() async {
     if (_formKey.currentState!.validate()) {
-      await ref.read(registrationProvider.notifier).updateUserStep(
-        name: _nameController.text,
-        email: _emailController.text,
-        password: _passwordController.text,
-        phone: _phoneController.text,
-      );
+      await ref
+          .read(registrationProvider.notifier)
+          .updateUserStep(
+            name: _nameController.text,
+            email: _emailController.text,
+            password: _passwordController.text,
+            phone: _phoneController.text,
+          );
 
       if (mounted) {
-        Navigator.pushNamed(context, '/business-setup', arguments: {'isRegistration': true});
+        Navigator.pushNamed(
+          context,
+          '/business-setup',
+          arguments: {'isRegistration': true},
+        );
       }
     }
   }
@@ -67,7 +73,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -110,7 +119,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     ],
                   ),
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: 40,
+                    ),
                     child: Column(
                       children: [
                         Form(
@@ -122,7 +134,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                 label: 'Full Name',
                                 hint: 'Enter your full name',
                                 prefixIcon: Icons.person_outline,
-                                validator: (v) => Validators.validateRequired(v, 'Full Name'),
+                                validator: (v) =>
+                                    Validators.validateRequired(v, 'Full Name'),
                               ),
                               const SizedBox(height: 20),
                               CustomTextField(
@@ -167,7 +180,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             Text(
                               'Already have an account? ',
                               style: TextStyle(
-                                color: Theme.of(context).textTheme.bodySmall?.color,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.color,
                               ),
                             ),
                             GestureDetector(

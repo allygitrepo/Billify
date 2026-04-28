@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:billify_application/data/models/feature_settings_model.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/storage_provider.dart';
+import 'package:billify/data/models/feature_settings_model.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/storage_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class FeatureSettingsNotifier extends Notifier<FeatureSettingsModel> {
@@ -42,5 +42,5 @@ class FeatureSettingsNotifier extends Notifier<FeatureSettingsModel> {
 
 final featureSettingsProvider =
     NotifierProvider<FeatureSettingsNotifier, FeatureSettingsModel>(() {
-  return FeatureSettingsNotifier();
-});
+      return FeatureSettingsNotifier();
+    });

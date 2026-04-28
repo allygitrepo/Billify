@@ -1,10 +1,10 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/presentation/widgets/section_card.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/business_provider.dart';
-import 'package:billify_application/providers/theme_provider.dart';
-import 'package:billify_application/providers/feature_settings_provider.dart';
-import 'package:billify_application/data/models/user_permission.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/presentation/widgets/section_card.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/providers/theme_provider.dart';
+import 'package:billify/providers/feature_settings_provider.dart';
+import 'package:billify/data/models/user_permission.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

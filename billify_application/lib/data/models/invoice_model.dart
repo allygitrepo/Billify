@@ -1,5 +1,5 @@
-import 'package:billify_application/data/models/business_model.dart';
-import 'package:billify_application/data/models/cart_item_model.dart';
+import 'package:billify/data/models/business_model.dart';
+import 'package:billify/data/models/cart_item_model.dart';
 
 class InvoiceModel {
   final String id;
@@ -41,32 +41,69 @@ class InvoiceModel {
   factory InvoiceModel.fromJson(Map<String, dynamic> json) {
     return InvoiceModel(
       id: json['invoice_number']?.toString() ?? json['id']?.toString() ?? '',
-      date: DateTime.tryParse(
-        json['createdAt']?.toString() ?? 
-        json['created_at']?.toString() ?? 
-        json['date']?.toString() ?? 
-        ''
-      ) ?? DateTime.now(),
-      business: json['business'] != null ? BusinessModel.fromJson(json['business']) : BusinessModel(
-        id: json['business_id']?.toString() ?? '',
-        name: 'Business',
-        phone: '',
-        tax_percentage: 0.0,
-        gst_percentage: 0.0,
-      ), // Fallback if backend omits business
-      items: json['items'] != null ? (json['items'] as List).map((e) => CartItemModel.fromJson(e)).toList() : [],
-      total_amount: double.tryParse(json['total_amount']?.toString() ?? json['subtotal']?.toString() ?? '') ?? 0.0,
-      tax_amount: double.tryParse(json['tax_amount']?.toString() ?? json['taxAmount']?.toString() ?? '') ?? 0.0,
-      gst_amount: double.tryParse(json['gst_amount']?.toString() ?? json['gstAmount']?.toString() ?? '') ?? 0.0,
-      final_amount: double.tryParse(json['final_amount']?.toString() ?? json['total']?.toString() ?? '') ?? 0.0,
-      staff_name: (json['user'] != null && json['user']['name'] != null) 
-          ? json['user']['name'] 
+      date:
+          DateTime.tryParse(
+            json['createdAt']?.toString() ??
+                json['created_at']?.toString() ??
+                json['date']?.toString() ??
+                '',
+          ) ??
+          DateTime.now(),
+      business: json['business'] != null
+          ? BusinessModel.fromJson(json['business'])
+          : BusinessModel(
+              id: json['business_id']?.toString() ?? '',
+              name: 'Business',
+              phone: '',
+              tax_percentage: 0.0,
+              gst_percentage: 0.0,
+            ), // Fallback if backend omits business
+      items: json['items'] != null
+          ? (json['items'] as List)
+                .map((e) => CartItemModel.fromJson(e))
+                .toList()
+          : [],
+      total_amount:
+          double.tryParse(
+            json['total_amount']?.toString() ??
+                json['subtotal']?.toString() ??
+                '',
+          ) ??
+          0.0,
+      tax_amount:
+          double.tryParse(
+            json['tax_amount']?.toString() ??
+                json['taxAmount']?.toString() ??
+                '',
+          ) ??
+          0.0,
+      gst_amount:
+          double.tryParse(
+            json['gst_amount']?.toString() ??
+                json['gstAmount']?.toString() ??
+                '',
+          ) ??
+          0.0,
+      final_amount:
+          double.tryParse(
+            json['final_amount']?.toString() ?? json['total']?.toString() ?? '',
+          ) ??
+          0.0,
+      staff_name: (json['user'] != null && json['user']['name'] != null)
+          ? json['user']['name']
           : (json['staff_name'] ?? json['staffName'] ?? 'Owner'),
       customer_id: json['customer_id'],
       customer_type: json['customer_type'] ?? 'WALKIN',
-      customer_name: json['customer']?['name'] ?? json['customer_name'] ?? json['customerName'],
-      customer_phone: json['customer']?['phone_number'] ?? json['customer_phone'] ?? json['customerPhone'],
-      paid_amount: double.tryParse(json['paid_amount']?.toString() ?? '') ?? 0.0,
+      customer_name:
+          json['customer']?['name'] ??
+          json['customer_name'] ??
+          json['customerName'],
+      customer_phone:
+          json['customer']?['phone_number'] ??
+          json['customer_phone'] ??
+          json['customerPhone'],
+      paid_amount:
+          double.tryParse(json['paid_amount']?.toString() ?? '') ?? 0.0,
       payment_mode: json['payment_mode'] ?? 'Cash',
       status: json['status'] ?? 'Paid',
     );
@@ -131,4 +168,3 @@ class InvoiceModel {
     );
   }
 }
-

@@ -1,11 +1,11 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/core/utils/image_utils.dart';
-import 'package:billify_application/data/models/role_model.dart';
-import 'package:billify_application/data/models/user_model.dart';
-import 'package:billify_application/presentation/settings/widgets/permission_matrix_widget.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/user_management_provider.dart';
-import 'package:billify_application/data/models/user_permission.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/image_utils.dart';
+import 'package:billify/data/models/role_model.dart';
+import 'package:billify/data/models/user_model.dart';
+import 'package:billify/presentation/settings/widgets/permission_matrix_widget.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/user_management_provider.dart';
+import 'package:billify/data/models/user_permission.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -20,7 +20,8 @@ class UserManagementPage extends ConsumerStatefulWidget {
   ConsumerState<UserManagementPage> createState() => _UserManagementPageState();
 }
 
-class _UserManagementPageState extends ConsumerState<UserManagementPage> with SingleTickerProviderStateMixin {
+class _UserManagementPageState extends ConsumerState<UserManagementPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   RoleModel? _selectedRole;
 
@@ -37,13 +38,18 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('User Management', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'User Management',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         elevation: 0,
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppTheme.primaryTeal,
-          unselectedLabelColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[600] : Colors.grey[400],
+          unselectedLabelColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey[600]
+              : Colors.grey[400],
           indicatorColor: AppTheme.primaryTeal,
           indicatorWeight: 3,
           tabs: const [
@@ -52,8 +58,10 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
           ],
         ),
       ),
-      body: state.isLoading 
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryTeal))
+      body: state.isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.primaryTeal),
+            )
           : TabBarView(
               controller: _tabController,
               children: [
@@ -61,7 +69,13 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                 _buildRolesAndPermissions(state.roles),
               ],
             ),
-      floatingActionButton: ref.watch(authProvider).hasPermission(PermissionModule.userManagement, PermissionAction.add)
+      floatingActionButton:
+          ref
+              .watch(authProvider)
+              .hasPermission(
+                PermissionModule.userManagement,
+                PermissionAction.add,
+              )
           ? FloatingActionButton.extended(
               onPressed: () {
                 if (_tabController.index == 0) {
@@ -72,7 +86,10 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
               },
               backgroundColor: AppTheme.primaryTeal,
               icon: const Icon(Icons.add, color: Colors.white),
-              label: Text(_tabController.index == 0 ? 'Add User' : 'Create Role', style: const TextStyle(color: Colors.white)),
+              label: Text(
+                _tabController.index == 0 ? 'Add User' : 'Create Role',
+                style: const TextStyle(color: Colors.white),
+              ),
             )
           : null,
     );
@@ -84,9 +101,18 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.people_outline, size: 64, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.grey[200]),
+            Icon(
+              Icons.people_outline,
+              size: 64,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey[800]
+                  : Colors.grey[200],
+            ),
             const SizedBox(height: 16),
-            Text('No staff members added yet', style: TextStyle(color: Theme.of(context).hintColor)),
+            Text(
+              'No staff members added yet',
+              style: TextStyle(color: Theme.of(context).hintColor),
+            ),
           ],
         ),
       );
@@ -97,53 +123,91 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
       itemCount: users.length,
       itemBuilder: (context, index) {
         final user = users[index];
-        final role = roles.firstWhere((r) => r.id == user.roleId, orElse: () => roles.first);
+        final role = roles.firstWhere(
+          (r) => r.id == user.roleId,
+          orElse: () => roles.first,
+        );
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             leading: CircleAvatar(
               backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
-              backgroundImage: user.photo != null 
-                ? (user.photo!.startsWith('http')
-                    ? NetworkImage(user.photo!)
-                    : (user.photo!.startsWith('data:image') || user.photo!.length > 100 
-                        ? MemoryImage(ImageUtils.decodeBase64(user.photo!)) 
-                        : FileImage(File(user.photo!)) as ImageProvider))
-                : null,
-              child: user.photo == null ? const Icon(Icons.person, color: AppTheme.primaryTeal) : null,
+              backgroundImage: user.photo != null
+                  ? (user.photo!.startsWith('http')
+                        ? NetworkImage(user.photo!)
+                        : (user.photo!.startsWith('data:image') ||
+                                  user.photo!.length > 100
+                              ? MemoryImage(
+                                  ImageUtils.decodeBase64(user.photo!),
+                                )
+                              : FileImage(File(user.photo!)) as ImageProvider))
+                  : null,
+              child: user.photo == null
+                  ? const Icon(Icons.person, color: AppTheme.primaryTeal)
+                  : null,
             ),
-            title: Text(user.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Text(
+              user.name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(user.email, style: const TextStyle(fontSize: 12)),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.primaryTeal.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(role.name, style: const TextStyle(color: AppTheme.primaryTeal, fontSize: 10, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    role.name,
+                    style: const TextStyle(
+                      color: AppTheme.primaryTeal,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (ref.watch(authProvider).hasPermission(PermissionModule.userManagement, PermissionAction.update))
+                if (ref
+                    .watch(authProvider)
+                    .hasPermission(
+                      PermissionModule.userManagement,
+                      PermissionAction.update,
+                    ))
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 20),
                     onPressed: () => _showUserBottomSheet(user),
                   ),
-                if (ref.watch(authProvider).hasPermission(PermissionModule.userManagement, PermissionAction.update))
+                if (ref
+                    .watch(authProvider)
+                    .hasPermission(
+                      PermissionModule.userManagement,
+                      PermissionAction.update,
+                    ))
                   Switch(
                     value: user.status,
                     activeColor: AppTheme.primaryTeal,
                     onChanged: (val) {
-                      ref.read(userManagementProvider.notifier).updateUser(user.copyWith(status: val));
+                      ref
+                          .read(userManagementProvider.notifier)
+                          .updateUser(user.copyWith(status: val));
                     },
                   ),
               ],
@@ -156,12 +220,18 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
 
   Widget _buildRolesAndPermissions(List<RoleModel> roles) {
     if (roles.isEmpty) return const SizedBox.shrink();
-    
+
     // Always sync _selectedRole with the latest version from the provider state
     if (_selectedRole != null) {
-      _selectedRole = roles.firstWhere((r) => r.id == _selectedRole!.id, orElse: () => roles.first);
+      _selectedRole = roles.firstWhere(
+        (r) => r.id == _selectedRole!.id,
+        orElse: () => roles.first,
+      );
     } else {
-      _selectedRole = roles.firstWhere((r) => r.id == 'admin', orElse: () => roles.first);
+      _selectedRole = roles.firstWhere(
+        (r) => r.id == 'admin',
+        orElse: () => roles.first,
+      );
     }
 
     return Column(
@@ -172,7 +242,10 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Select Role to Manage', style: TextStyle(color: Colors.grey, fontSize: 14)),
+              const Text(
+                'Select Role to Manage',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -186,7 +259,12 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                     dropdownColor: Theme.of(context).colorScheme.surface,
                     value: _selectedRole,
                     isExpanded: true,
-                    items: roles.map((r) => DropdownMenuItem(value: r, child: Text(r.name))).toList(),
+                    items: roles
+                        .map(
+                          (r) =>
+                              DropdownMenuItem(value: r, child: Text(r.name)),
+                        )
+                        .toList(),
                     onChanged: (val) => setState(() => _selectedRole = val),
                   ),
                 ),
@@ -200,11 +278,23 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
             key: ValueKey(_selectedRole?.id),
             initialPermissions: _selectedRole?.permissions ?? {},
             onPermissionsChanged: (newPermissions) {
-              if (_selectedRole != null && ref.read(authProvider).hasPermission(PermissionModule.userManagement, PermissionAction.update)) {
-                ref.read(userManagementProvider.notifier).updateRole(_selectedRole!.copyWith(permissions: newPermissions));
+              if (_selectedRole != null &&
+                  ref
+                      .read(authProvider)
+                      .hasPermission(
+                        PermissionModule.userManagement,
+                        PermissionAction.update,
+                      )) {
+                ref
+                    .read(userManagementProvider.notifier)
+                    .updateRole(
+                      _selectedRole!.copyWith(permissions: newPermissions),
+                    );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('You do not have permission to update roles')),
+                  const SnackBar(
+                    content: Text('You do not have permission to update roles'),
+                  ),
                 );
               }
             },
@@ -222,8 +312,14 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
     final phoneController = TextEditingController(text: user?.mobile);
     final passwordController = TextEditingController();
     String? base64Image = user?.photo;
-    RoleModel? userRole = user != null 
-        ? ref.read(userManagementProvider).roles.firstWhere((r) => r.id == user.roleId, orElse: () => ref.read(userManagementProvider).roles.first)
+    RoleModel? userRole = user != null
+        ? ref
+              .read(userManagementProvider)
+              .roles
+              .firstWhere(
+                (r) => r.id == user.roleId,
+                orElse: () => ref.read(userManagementProvider).roles.first,
+              )
         : null;
 
     showModalBottomSheet(
@@ -260,13 +356,21 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                   const SizedBox(height: 24),
                   Text(
                     isEditing ? 'Edit Staff Member' : 'Add New Staff Member',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   GestureDetector(
                     onTap: () async {
                       final picker = ImagePicker();
-                      final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 512, maxHeight: 512, imageQuality: 70);
+                      final image = await picker.pickImage(
+                        source: ImageSource.gallery,
+                        maxWidth: 512,
+                        maxHeight: 512,
+                        imageQuality: 70,
+                      );
                       if (image != null) {
                         final bytes = await image.readAsBytes();
                         setSheetState(() => base64Image = base64Encode(bytes));
@@ -276,12 +380,20 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                       children: [
                         CircleAvatar(
                           radius: 50,
-                          backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
-                          backgroundImage: base64Image != null 
-                          ? MemoryImage(ImageUtils.decodeBase64(base64Image!)) 
-                          : null,
-                          child: base64Image == null 
-                              ? const Icon(Icons.person_outline, color: AppTheme.primaryTeal, size: 40)
+                          backgroundColor: AppTheme.primaryTeal.withOpacity(
+                            0.1,
+                          ),
+                          backgroundImage: base64Image != null
+                              ? MemoryImage(
+                                  ImageUtils.decodeBase64(base64Image!),
+                                )
+                              : null,
+                          child: base64Image == null
+                              ? const Icon(
+                                  Icons.person_outline,
+                                  color: AppTheme.primaryTeal,
+                                  size: 40,
+                                )
                               : null,
                         ),
                         Positioned(
@@ -289,8 +401,15 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                           right: 0,
                           child: Container(
                             padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(color: AppTheme.primaryTeal, shape: BoxShape.circle),
-                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                            decoration: const BoxDecoration(
+                              color: AppTheme.primaryTeal,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 16,
+                            ),
                           ),
                         ),
                       ],
@@ -302,23 +421,32 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                     decoration: InputDecoration(
                       labelText: 'Full Name',
                       prefixIcon: const Icon(Icons.person_outline),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    validator: (val) => val == null || val.isEmpty ? 'Name is required' : null,
+                    validator: (val) =>
+                        val == null || val.isEmpty ? 'Name is required' : null,
                   ),
                   const SizedBox(height: 20),
                   TextFormField(
-                    controller: emailController, 
+                    controller: emailController,
                     decoration: InputDecoration(
                       labelText: 'Email Address',
                       prefixIcon: const Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     enabled: !isEditing,
                     keyboardType: TextInputType.emailAddress,
                     validator: (val) {
-                      if (val == null || val.isEmpty) return 'Email is required';
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(val)) return 'Enter a valid email';
+                      if (val == null || val.isEmpty)
+                        return 'Email is required';
+                      if (!RegExp(
+                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                      ).hasMatch(val))
+                        return 'Enter a valid email';
                       return null;
                     },
                   ),
@@ -328,12 +456,16 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                     decoration: InputDecoration(
                       labelText: 'Mobile Number',
                       prefixIcon: const Icon(Icons.phone_outlined),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     keyboardType: TextInputType.phone,
                     validator: (val) {
-                      if (val == null || val.isEmpty) return 'Mobile is required';
-                      if (val.length < 10) return 'Enter a valid 10-digit number';
+                      if (val == null || val.isEmpty)
+                        return 'Mobile is required';
+                      if (val.length < 10)
+                        return 'Enter a valid 10-digit number';
                       return null;
                     },
                   ),
@@ -341,15 +473,23 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                   TextFormField(
                     controller: passwordController,
                     decoration: InputDecoration(
-                      labelText: isEditing ? 'New Password (Optional)' : 'Password',
+                      labelText: isEditing
+                          ? 'New Password (Optional)'
+                          : 'Password',
                       prefixIcon: const Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      hintText: isEditing ? 'Leave blank to keep current' : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      hintText: isEditing
+                          ? 'Leave blank to keep current'
+                          : null,
                     ),
                     obscureText: true,
                     validator: (val) {
-                      if (!isEditing && (val == null || val.isEmpty)) return 'Password is required';
-                      if (val != null && val.isNotEmpty && val.length < 6) return 'Password must be at least 6 chars';
+                      if (!isEditing && (val == null || val.isEmpty))
+                        return 'Password is required';
+                      if (val != null && val.isNotEmpty && val.length < 6)
+                        return 'Password must be at least 6 chars';
                       return null;
                     },
                   ),
@@ -359,9 +499,18 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                     decoration: InputDecoration(
                       labelText: 'Assign Role',
                       prefixIcon: const Icon(Icons.badge_outlined),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    items: ref.read(userManagementProvider).roles.map((r) => DropdownMenuItem(value: r, child: Text(r.name))).toList(),
+                    items: ref
+                        .read(userManagementProvider)
+                        .roles
+                        .map(
+                          (r) =>
+                              DropdownMenuItem(value: r, child: Text(r.name)),
+                        )
+                        .toList(),
                     onChanged: (val) => setSheetState(() => userRole = val),
                     validator: (val) => val == null ? 'Role is required' : null,
                   ),
@@ -371,34 +520,49 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                     height: 55,
                     child: ElevatedButton(
                       onPressed: () {
-                        if (!formKey.currentState!.validate() || userRole == null) return;
-                        
+                        if (!formKey.currentState!.validate() ||
+                            userRole == null)
+                          return;
+
                         final updatedUser = UserModel(
                           id: user?.id,
                           name: nameController.text.trim(),
                           email: emailController.text.trim(),
                           mobile: phoneController.text.trim(),
-                          password: passwordController.text.isNotEmpty ? passwordController.text : null,
+                          password: passwordController.text.isNotEmpty
+                              ? passwordController.text
+                              : null,
                           roleId: userRole!.id,
                           photo: base64Image,
-                          businessOwnerId: ref.read(authProvider).user?.businessOwnerId ?? ref.read(authProvider).user?.email,
+                          businessOwnerId:
+                              ref.read(authProvider).user?.businessOwnerId ??
+                              ref.read(authProvider).user?.email,
                           status: user?.status ?? true,
                         );
-                        
+
                         if (isEditing) {
-                          ref.read(userManagementProvider.notifier).updateUser(updatedUser);
+                          ref
+                              .read(userManagementProvider.notifier)
+                              .updateUser(updatedUser);
                         } else {
-                          ref.read(userManagementProvider.notifier).addUser(updatedUser);
+                          ref
+                              .read(userManagementProvider.notifier)
+                              .addUser(updatedUser);
                         }
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryTeal,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                       child: Text(
                         isEditing ? 'UPDATE STAFF' : 'CREATE STAFF',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -415,7 +579,7 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
   void _showRoleBottomSheet() {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController();
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -445,7 +609,10 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                 ),
               ),
               const SizedBox(height: 24),
-              const Text('Create New Role', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text(
+                'Create New Role',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 32),
               TextFormField(
                 controller: nameController,
@@ -453,9 +620,12 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                   labelText: 'Role Name',
                   hintText: 'e.g. Sales Executive',
                   prefixIcon: const Icon(Icons.work_outline),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                validator: (val) => val == null || val.isEmpty ? 'Role name is required' : null,
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Role name is required' : null,
               ),
               const SizedBox(height: 40),
               SizedBox(
@@ -474,9 +644,17 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryTeal,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  child: const Text('CREATE ROLE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'CREATE ROLE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 32),

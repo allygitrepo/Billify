@@ -1,5 +1,5 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/features/analytics/sales_reports/models/sales_models.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/features/analytics/sales_reports/models/sales_models.dart';
 import 'package:flutter/material.dart';
 
 class TopProductsList extends StatelessWidget {
@@ -31,7 +31,10 @@ class _ProductRow extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(product.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(
+                product.name,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
               Text(
                 '₹${product.revenue.toStringAsFixed(0)} (${product.quantity})',
                 style: const TextStyle(color: Colors.grey, fontSize: 12),

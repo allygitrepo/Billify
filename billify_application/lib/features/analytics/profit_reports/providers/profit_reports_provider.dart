@@ -1,7 +1,8 @@
-import 'package:billify_application/features/analytics/profit_reports/models/profit_report_model.dart';
-import 'package:billify_application/features/analytics/profit_reports/services/profit_reports_service.dart';
-import 'package:billify_application/providers/business_provider.dart';
+import 'package:billify/features/analytics/profit_reports/models/profit_report_model.dart';
+import 'package:billify/features/analytics/profit_reports/services/profit_reports_service.dart';
+import 'package:billify/providers/business_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 class ProfitReportsState {
   final ProfitSummaryModel summary;
@@ -59,23 +60,30 @@ class ProfitReportsState {
       topProducts: [],
       categorySales: [],
       isLoading: false,
-      startDate: DateTime(thirtyDaysAgo.year, thirtyDaysAgo.month, thirtyDaysAgo.day),
+      startDate: DateTime(
+        thirtyDaysAgo.year,
+        thirtyDaysAgo.month,
+        thirtyDaysAgo.day,
+      ),
       endDate: DateTime(now.year, now.month, now.day, 23, 59, 59),
     );
   }
 }
 
-final profitReportsProvider = StateNotifierProvider<ProfitReportsNotifier, ProfitReportsState>((ref) {
-  final service = ref.watch(profitReportsServiceProvider);
-  final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
-  return ProfitReportsNotifier(service, businessId);
-});
+final profitReportsProvider =
+    StateNotifierProvider<ProfitReportsNotifier, ProfitReportsState>((ref) {
+      final service = ref.watch(profitReportsServiceProvider);
+      final businessId =
+          ref.watch(businessProvider).currentBusinessId ?? 'default';
+      return ProfitReportsNotifier(service, businessId);
+    });
 
 class ProfitReportsNotifier extends StateNotifier<ProfitReportsState> {
   final ProfitReportsService _service;
   final String _businessId;
 
-  ProfitReportsNotifier(this._service, this._businessId) : super(ProfitReportsState.initial()) {
+  ProfitReportsNotifier(this._service, this._businessId)
+    : super(ProfitReportsState.initial()) {
     refresh();
   }
 
@@ -86,12 +94,12 @@ class ProfitReportsNotifier extends StateNotifier<ProfitReportsState> {
   void updateFilters({DateTime? start, DateTime? end, String? branch}) {
     DateTime? normalizedStart;
     if (start != null) {
-       normalizedStart = DateTime(start.year, start.month, start.day);
+      normalizedStart = DateTime(start.year, start.month, start.day);
     }
-    
+
     DateTime? normalizedEnd;
     if (end != null) {
-       normalizedEnd = DateTime(end.year, end.month, end.day, 23, 59, 59);
+      normalizedEnd = DateTime(end.year, end.month, end.day, 23, 59, 59);
     }
 
     state = state.copyWith(
@@ -108,10 +116,30 @@ class ProfitReportsNotifier extends StateNotifier<ProfitReportsState> {
 
     try {
       final results = await Future.wait([
-         _service.getProfitSummary(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
-         _service.getProfitTrend(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
-         _service.getProfitByProducts(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
-         _service.getProfitByCategories(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
+        _service.getProfitSummary(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
+        _service.getProfitTrend(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
+        _service.getProfitByProducts(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
+        _service.getProfitByCategories(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
       ]);
 
       state = state.copyWith(

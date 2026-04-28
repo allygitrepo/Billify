@@ -1,9 +1,11 @@
-import 'package:billify_application/core/constants/api_endpoints.dart';
-import 'package:billify_application/core/services/api_service.dart';
-import 'package:billify_application/data/models/category_model.dart';
+import 'package:billify/core/constants/api_endpoints.dart';
+import 'package:billify/core/services/api_service.dart';
+import 'package:billify/data/models/category_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final remoteCategoryDatasourceProvider = Provider<RemoteCategoryDatasource>((ref) {
+final remoteCategoryDatasourceProvider = Provider<RemoteCategoryDatasource>((
+  ref,
+) {
   final apiService = ref.read(apiServiceProvider);
   return RemoteCategoryDatasource(apiService);
 });
@@ -14,7 +16,9 @@ class RemoteCategoryDatasource {
   RemoteCategoryDatasource(this._apiService);
 
   Future<List<CategoryModel>> getCategories(String businessId) async {
-    final response = await _apiService.get(ApiEndpoints.getCategories(businessId));
+    final response = await _apiService.get(
+      ApiEndpoints.getCategories(businessId),
+    );
     if (response.statusCode == 200) {
       final data = response.data['categories'] as List;
       return data.map((json) => CategoryModel.fromJson(json)).toList();
@@ -22,7 +26,10 @@ class RemoteCategoryDatasource {
     return [];
   }
 
-  Future<CategoryModel?> createCategory(CategoryModel category, String businessId) async {
+  Future<CategoryModel?> createCategory(
+    CategoryModel category,
+    String businessId,
+  ) async {
     final response = await _apiService.post(
       ApiEndpoints.createCategory,
       data: {

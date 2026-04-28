@@ -1,13 +1,14 @@
-import 'package:billify_application/core/constants/api_endpoints.dart';
-import 'package:billify_application/core/services/api_service.dart';
-import 'package:billify_application/data/models/role_model.dart';
-import 'package:billify_application/data/models/user_model.dart';
-import 'package:billify_application/data/models/user_permission.dart';
+import 'package:billify/core/constants/api_endpoints.dart';
+import 'package:billify/core/services/api_service.dart';
+import 'package:billify/data/models/role_model.dart';
+import 'package:billify/data/models/user_model.dart';
+import 'package:billify/data/models/user_permission.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final remoteUserManagementDatasourceProvider = Provider<RemoteUserManagementDatasource>((ref) {
-  return RemoteUserManagementDatasource(ref);
-});
+final remoteUserManagementDatasourceProvider =
+    Provider<RemoteUserManagementDatasource>((ref) {
+      return RemoteUserManagementDatasource(ref);
+    });
 
 class RemoteUserManagementDatasource {
   final Ref _ref;
@@ -20,7 +21,9 @@ class RemoteUserManagementDatasource {
 
   Future<List<UserModel>> getUsers(String businessId) async {
     try {
-      final response = await _apiService.get(ApiEndpoints.getUsersByBusiness(businessId));
+      final response = await _apiService.get(
+        ApiEndpoints.getUsersByBusiness(businessId),
+      );
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['users'];
         return data.map((e) => UserModel.fromJson(e)).toList();
@@ -36,10 +39,7 @@ class RemoteUserManagementDatasource {
     try {
       final response = await _apiService.post(
         ApiEndpoints.createUser,
-        data: {
-          ...user.toJson(),
-          'business_id': int.tryParse(businessId),
-        },
+        data: {...user.toJson(), 'business_id': int.tryParse(businessId)},
       );
       if (response.statusCode == 201) {
         return UserModel.fromJson(response.data['user']);
@@ -55,10 +55,7 @@ class RemoteUserManagementDatasource {
     try {
       final response = await _apiService.put(
         ApiEndpoints.updateUser(user.id!),
-        data: {
-          ...user.toJson(),
-          'business_id': int.tryParse(businessId),
-        },
+        data: {...user.toJson(), 'business_id': int.tryParse(businessId)},
       );
       return response.statusCode == 200;
     } catch (e) {
@@ -84,10 +81,12 @@ class RemoteUserManagementDatasource {
 
   Future<List<RoleModel>> getRoles(String businessId) async {
     try {
-      final response = await _apiService.get(ApiEndpoints.getRolesByBusiness(businessId));
+      final response = await _apiService.get(
+        ApiEndpoints.getRolesByBusiness(businessId),
+      );
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['roles'];
-        
+
         final List<RoleModel> roles = [];
         for (var roleJson in data) {
           final role = RoleModel.fromJson(roleJson);
@@ -104,9 +103,13 @@ class RemoteUserManagementDatasource {
     }
   }
 
-  Future<Map<PermissionModule, List<PermissionAction>>> getPermissionsForRole(String roleId) async {
+  Future<Map<PermissionModule, List<PermissionAction>>> getPermissionsForRole(
+    String roleId,
+  ) async {
     try {
-      final response = await _apiService.get(ApiEndpoints.getPermissionsByRole(roleId));
+      final response = await _apiService.get(
+        ApiEndpoints.getPermissionsByRole(roleId),
+      );
       if (response.statusCode == 200) {
         return RoleModel.parsePermissions(response.data);
       }
@@ -121,10 +124,7 @@ class RemoteUserManagementDatasource {
     try {
       final response = await _apiService.post(
         ApiEndpoints.createRole,
-        data: {
-          'name': role.name,
-          'business_id': int.tryParse(businessId),
-        },
+        data: {'name': role.name, 'business_id': int.tryParse(businessId)},
       );
       if (response.statusCode == 201) {
         final newRole = RoleModel.fromJson(response.data['role']);
@@ -143,9 +143,7 @@ class RemoteUserManagementDatasource {
     try {
       final response = await _apiService.put(
         ApiEndpoints.updateRole(role.id),
-        data: {
-          'name': role.name,
-        },
+        data: {'name': role.name},
       );
       if (response.statusCode == 200) {
         return await saveRolePermissions(role.id, role);
@@ -179,11 +177,7 @@ class RemoteUserManagementDatasource {
     try {
       final response = await _apiService.put(
         ApiEndpoints.updateProfile,
-        data: {
-          'name': user.name,
-          'mobile': user.mobile,
-          'photo': user.photo,
-        },
+        data: {'name': user.name, 'mobile': user.mobile, 'photo': user.photo},
       );
       return response.statusCode == 200;
     } catch (e) {
@@ -196,10 +190,7 @@ class RemoteUserManagementDatasource {
     try {
       final response = await _apiService.post(
         ApiEndpoints.changePassword,
-        data: {
-          'oldPassword': oldPassword,
-          'newPassword': newPassword,
-        },
+        data: {'oldPassword': oldPassword, 'newPassword': newPassword},
       );
       return response.statusCode == 200;
     } catch (e) {

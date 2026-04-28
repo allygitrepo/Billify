@@ -1,9 +1,9 @@
-import 'package:billify_application/data/datasources/remote_inventory_datasource.dart';
-import 'package:billify_application/data/models/stock_history_model.dart';
-import 'package:billify_application/data/repositories/stock_history_repository.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/business_provider.dart';
-import 'package:billify_application/providers/storage_provider.dart';
+import 'package:billify/data/datasources/remote_inventory_datasource.dart';
+import 'package:billify/data/models/stock_history_model.dart';
+import 'package:billify/data/repositories/stock_history_repository.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/providers/storage_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final stockHistoryRepositoryProvider = Provider<StockHistoryRepository>((ref) {
@@ -36,4 +36,7 @@ class StockHistoryNotifier extends Notifier<List<StockHistoryModel>> {
   }
 }
 
-final stockHistoryProvider = NotifierProvider<StockHistoryNotifier, List<StockHistoryModel>>(StockHistoryNotifier.new);
+final stockHistoryProvider =
+    NotifierProvider<StockHistoryNotifier, List<StockHistoryModel>>(
+      StockHistoryNotifier.new,
+    );

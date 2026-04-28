@@ -1,24 +1,27 @@
-import 'package:billify_application/data/models/invoice_model.dart';
-import 'package:billify_application/data/datasources/remote_invoice_datasource.dart';
-import 'package:billify_application/data/repositories/invoice_repository.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/business_provider.dart';
-import 'package:billify_application/providers/storage_provider.dart';
+import 'package:billify/data/models/invoice_model.dart';
+import 'package:billify/data/datasources/remote_invoice_datasource.dart';
+import 'package:billify/data/repositories/invoice_repository.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/providers/storage_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 final invoiceRepositoryProvider = Provider<InvoiceRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
   final remoteDatasource = ref.watch(remoteInvoiceDatasourceProvider);
   final user = ref.watch(authProvider).user;
-  final userId = user?.id; // Allow null for user_id to prevent Postgres INTEGER cast errors
+  final userId = user
+      ?.id; // Allow null for user_id to prevent Postgres INTEGER cast errors
   final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
   return InvoiceRepository(storage, remoteDatasource, userId, businessId);
 });
 
-final invoiceProvider = StateNotifierProvider<InvoiceNotifier, List<InvoiceModel>>((ref) {
-  final repo = ref.watch(invoiceRepositoryProvider);
-  return InvoiceNotifier(repo);
-});
+final invoiceProvider =
+    StateNotifierProvider<InvoiceNotifier, List<InvoiceModel>>((ref) {
+      final repo = ref.watch(invoiceRepositoryProvider);
+      return InvoiceNotifier(repo);
+    });
 
 class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
   final InvoiceRepository _repo;
@@ -65,8 +68,8 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
         .where((e) {
           final localDate = e.date.toLocal();
           return localDate.year == now.year &&
-                 localDate.month == now.month &&
-                 localDate.day == now.day;
+              localDate.month == now.month &&
+              localDate.day == now.day;
         })
         .fold(0, (sum, e) => sum + e.final_amount);
   }
@@ -76,45 +79,49 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
     return state.where((e) {
       final localDate = e.date.toLocal();
       return localDate.year == now.year &&
-             localDate.month == now.month &&
-             localDate.day == now.day;
+          localDate.month == now.month &&
+          localDate.day == now.day;
     }).length;
   }
 
   double getMonthlyRevenue() {
     final now = DateTime.now();
-    return state.where((e) {
-      final localDate = e.date.toLocal();
-      return localDate.year == now.year && localDate.month == now.month;
-    }).fold(0, (sum, e) => sum + e.final_amount);
+    return state
+        .where((e) {
+          final localDate = e.date.toLocal();
+          return localDate.year == now.year && localDate.month == now.month;
+        })
+        .fold(0, (sum, e) => sum + e.final_amount);
   }
 
   Map<String, double> getTopSellingProducts(int count) {
     final Map<String, double> productSales = {};
     for (var invoice in state) {
       for (var item in invoice.items) {
-        productSales[item.name] = (productSales[item.name] ?? 0) + item.subtotal;
+        productSales[item.name] =
+            (productSales[item.name] ?? 0) + item.subtotal;
       }
     }
-    
-    final sortedEntries = productSales.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+
+    final sortedEntries = productSales.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
     return Map.fromEntries(sortedEntries.take(count));
   }
 
   List<double> getWeeklySalesData() {
     final now = DateTime.now();
     final List<double> dailyTotals = List.filled(7, 0.0);
-    
+
     for (int i = 0; i < 7; i++) {
-        final date = now.subtract(Duration(days: 6 - i));
-        dailyTotals[i] = state
-            .where((e) {
-              final localDate = e.date.toLocal();
-              return localDate.year == date.year &&
-                     localDate.month == date.month &&
-                     localDate.day == date.day;
-            })
-            .fold(0.0, (sum, e) => sum + e.final_amount);
+      final date = now.subtract(Duration(days: 6 - i));
+      dailyTotals[i] = state
+          .where((e) {
+            final localDate = e.date.toLocal();
+            return localDate.year == date.year &&
+                localDate.month == date.month &&
+                localDate.day == date.day;
+          })
+          .fold(0.0, (sum, e) => sum + e.final_amount);
     }
     return dailyTotals;
   }
@@ -123,10 +130,10 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
     final now = DateTime.now();
     final List<String> labels = [];
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    
+
     for (int i = 0; i < 7; i++) {
-        final date = now.subtract(Duration(days: 6 - i));
-        labels.add(days[date.weekday - 1]);
+      final date = now.subtract(Duration(days: 6 - i));
+      labels.add(days[date.weekday - 1]);
     }
     return labels;
   }
@@ -134,25 +141,40 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
   List<double> getMonthlySalesData() {
     final now = DateTime.now();
     final List<double> monthlyTotals = List.filled(12, 0.0);
-    
+
     for (int i = 0; i < 12; i++) {
-        monthlyTotals[i] = state
-            .where((e) {
-              final localDate = e.date.toLocal();
-              return localDate.year == now.year && localDate.month == (i + 1);
-            })
-            .fold(0.0, (sum, e) => sum + e.final_amount);
+      monthlyTotals[i] = state
+          .where((e) {
+            final localDate = e.date.toLocal();
+            return localDate.year == now.year && localDate.month == (i + 1);
+          })
+          .fold(0.0, (sum, e) => sum + e.final_amount);
     }
     return monthlyTotals;
   }
 
   List<String> getMonthlyLabels() {
-    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
   }
 
   Future<InvoiceModel?> getInvoiceById(String id) async {
     // 1. Check local state first
-    final local = state.where((e) => e.id == id || e.id.toUpperCase() == id.toUpperCase()).firstOrNull;
+    final local = state
+        .where((e) => e.id == id || e.id.toUpperCase() == id.toUpperCase())
+        .firstOrNull;
     if (local != null) return local;
 
     // 2. Fetch from remote

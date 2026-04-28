@@ -1,9 +1,9 @@
-import 'package:billify_application/data/models/category_model.dart';
-import 'package:billify_application/data/datasources/remote_category_datasource.dart';
-import 'package:billify_application/data/repositories/category_repository.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/business_provider.dart';
-import 'package:billify_application/providers/storage_provider.dart';
+import 'package:billify/data/models/category_model.dart';
+import 'package:billify/data/datasources/remote_category_datasource.dart';
+import 'package:billify/data/repositories/category_repository.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/providers/storage_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
@@ -40,4 +40,7 @@ class CategoryNotifier extends Notifier<List<CategoryModel>> {
   }
 }
 
-final categoryProvider = NotifierProvider<CategoryNotifier, List<CategoryModel>>(CategoryNotifier.new);
+final categoryProvider =
+    NotifierProvider<CategoryNotifier, List<CategoryModel>>(
+      CategoryNotifier.new,
+    );

@@ -1,5 +1,5 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/data/models/analytics_models.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/data/models/analytics_models.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
@@ -69,16 +69,23 @@ class AnalyticsCard extends StatelessWidget {
                       ),
                       if (trend != null)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: trend! >= 0 ? Colors.white.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+                            color: trend! >= 0
+                                ? Colors.white.withOpacity(0.2)
+                                : Colors.red.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                trend! >= 0 ? Icons.trending_up : Icons.trending_down,
+                                trend! >= 0
+                                    ? Icons.trending_up
+                                    : Icons.trending_down,
                                 color: Colors.white,
                                 size: 12,
                               ),
@@ -179,10 +186,7 @@ class ReportGridCard extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
           ],
         ),
@@ -195,11 +199,7 @@ class AnalyticsSection extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const AnalyticsSection({
-    super.key,
-    required this.title,
-    required this.child,
-  });
+  const AnalyticsSection({super.key, required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -210,10 +210,7 @@ class AnalyticsSection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Text(
             title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
         child,
@@ -226,11 +223,7 @@ class ChartContainer extends StatelessWidget {
   final String title;
   final Widget chart;
 
-  const ChartContainer({
-    super.key,
-    required this.title,
-    required this.chart,
-  });
+  const ChartContainer({super.key, required this.title, required this.chart});
 
   @override
   Widget build(BuildContext context) {
@@ -242,8 +235,8 @@ class ChartContainer extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).brightness == Brightness.light 
-                ? Colors.black.withOpacity(0.05) 
+            color: Theme.of(context).brightness == Brightness.light
+                ? Colors.black.withOpacity(0.05)
                 : Colors.black.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
@@ -265,7 +258,6 @@ class ChartContainer extends StatelessWidget {
   }
 }
 
-
 class PaymentMethodPieChart extends StatelessWidget {
   final List<PaymentMethodData> data;
 
@@ -276,27 +268,33 @@ class PaymentMethodPieChart extends StatelessWidget {
     if (data.isEmpty) return const Center(child: Text('No data'));
     return Row(
       children: [
-        Expanded(
-          child: CustomPaint(
-            painter: _PieChartPainter(data),
-          ),
-        ),
+        Expanded(child: CustomPaint(painter: _PieChartPainter(data))),
         const SizedBox(width: 16),
         Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: data.take(4).map((e) => _LegendItem(
-            label: e.method,
-            percent: e.percentage.toStringAsFixed(1),
-            color: _getColor(data.indexOf(e)),
-          )).toList(),
+          children: data
+              .take(4)
+              .map(
+                (e) => _LegendItem(
+                  label: e.method,
+                  percent: e.percentage.toStringAsFixed(1),
+                  color: _getColor(data.indexOf(e)),
+                ),
+              )
+              .toList(),
         ),
       ],
     );
   }
-  
+
   Color _getColor(int i) {
-    final colors = [AppTheme.primaryTeal, Colors.orange, Colors.purple, Colors.blue];
+    final colors = [
+      AppTheme.primaryTeal,
+      Colors.orange,
+      Colors.purple,
+      Colors.blue,
+    ];
     return colors[i % colors.length];
   }
 }
@@ -310,28 +308,33 @@ class _PieChartPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = math.min(size.width, size.height) / 2;
-    
+
     var startAngle = -math.pi / 2;
     for (var i = 0; i < data.length; i++) {
-        final sweepAngle = (data[i].percentage / 100) * 2 * math.pi;
-        final paint = Paint()
-          ..color = _getColor(i)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 20;
+      final sweepAngle = (data[i].percentage / 100) * 2 * math.pi;
+      final paint = Paint()
+        ..color = _getColor(i)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 20;
 
-        canvas.drawArc(
-          Rect.fromCircle(center: center, radius: radius - 10),
-          startAngle,
-          sweepAngle,
-          false,
-          paint,
-        );
-        startAngle += sweepAngle;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius - 10),
+        startAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
+      startAngle += sweepAngle;
     }
   }
 
   Color _getColor(int i) {
-    final colors = [AppTheme.primaryTeal, Colors.orange, Colors.purple, Colors.blue];
+    final colors = [
+      AppTheme.primaryTeal,
+      Colors.orange,
+      Colors.purple,
+      Colors.blue,
+    ];
     return colors[i % colors.length];
   }
 
@@ -344,7 +347,11 @@ class _LegendItem extends StatelessWidget {
   final String percent;
   final Color color;
 
-  const _LegendItem({required this.label, required this.percent, required this.color});
+  const _LegendItem({
+    required this.label,
+    required this.percent,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -354,7 +361,10 @@ class _LegendItem extends StatelessWidget {
         children: [
           Container(width: 8, height: 8, color: color),
           const SizedBox(width: 8),
-          Text('$label ($percent%)', style: TextStyle(fontSize: 10, color: Theme.of(context).hintColor)),
+          Text(
+            '$label ($percent%)',
+            style: TextStyle(fontSize: 10, color: Theme.of(context).hintColor),
+          ),
         ],
       ),
     );
@@ -373,41 +383,61 @@ class CategorySalesHorizontalChart extends StatelessWidget {
 
     return Column(
       children: data.take(5).map((e) {
-         final percent = maxVal == 0 ? 0.0 : e.sales / maxVal;
-         return Padding(
-           padding: const EdgeInsets.only(bottom: 12),
-           child: Column(
-             crossAxisAlignment: CrossAxisAlignment.start,
-             children: [
-               Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                 children: [
-                   Expanded(
-                     child: Text(
-                       e.category, 
-                       maxLines: 1, 
-                       overflow: TextOverflow.ellipsis, 
-                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)
-                     ),
-                   ),
-                   const SizedBox(width: 8),
-                   Text('₹${e.sales.toStringAsFixed(0)}', style: TextStyle(fontSize: 10, color: Theme.of(context).hintColor)),
-                 ],
-               ),
-               const SizedBox(height: 4),
-               Stack(
-                 children: [
-                   Container(height: 6, decoration: BoxDecoration(color: Theme.of(context).dividerColor.withOpacity(0.1), borderRadius: BorderRadius.circular(3))),
-                   LayoutBuilder(builder: (c, constraints) => Container(
-                     height: 6,
-                     width: constraints.maxWidth * percent,
-                     decoration: BoxDecoration(color: AppTheme.primaryTeal, borderRadius: BorderRadius.circular(3)),
-                   )),
-                 ],
-               ),
-             ],
-           ),
-         );
+        final percent = maxVal == 0 ? 0.0 : e.sales / maxVal;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      e.category,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '₹${e.sales.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(context).hintColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Stack(
+                children: [
+                  Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).dividerColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                  LayoutBuilder(
+                    builder: (c, constraints) => Container(
+                      height: 6,
+                      width: constraints.maxWidth * percent,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryTeal,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
       }).toList(),
     );
   }

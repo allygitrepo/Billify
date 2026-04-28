@@ -1,10 +1,10 @@
-import 'package:billify_application/data/datasources/business_datasource.dart';
-import 'package:billify_application/data/models/business_model.dart';
-import 'package:billify_application/data/repositories/business_repository.dart';
-import 'package:billify_application/data/datasources/remote_business_datasource.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/storage_provider.dart';
-import 'package:billify_application/providers/state/business_state.dart';
+import 'package:billify/data/datasources/business_datasource.dart';
+import 'package:billify/data/models/business_model.dart';
+import 'package:billify/data/repositories/business_repository.dart';
+import 'package:billify/data/datasources/remote_business_datasource.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/storage_provider.dart';
+import 'package:billify/providers/state/business_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final businessRepositoryProvider = Provider<BusinessRepository>((ref) {
@@ -24,7 +24,8 @@ class BusinessNotifier extends Notifier<BusinessState> {
     final currentId = repo.getCurrentBusinessId();
     return BusinessState(
       businesses: businesses,
-      currentBusinessId: currentId ?? (businesses.isNotEmpty ? businesses.first.id : null),
+      currentBusinessId:
+          currentId ?? (businesses.isNotEmpty ? businesses.first.id : null),
     );
   }
 
@@ -33,7 +34,7 @@ class BusinessNotifier extends Notifier<BusinessState> {
     try {
       final repo = ref.read(businessRepositoryProvider);
       await repo.saveBusiness(business);
-      
+
       final businesses = repo.getBusinesses();
       state = state.copyWith(
         businesses: businesses,
@@ -62,7 +63,7 @@ class BusinessNotifier extends Notifier<BusinessState> {
     try {
       final repo = ref.read(businessRepositoryProvider);
       final remaining = state.businesses.where((b) => b.id != id).toList();
-      
+
       await repo.clearAll();
       for (final b in remaining) {
         await repo.saveBusiness(b);
@@ -74,10 +75,7 @@ class BusinessNotifier extends Notifier<BusinessState> {
         await repo.setCurrentBusinessId(nextId);
       }
 
-      state = BusinessState(
-        businesses: remaining,
-        currentBusinessId: nextId,
-      );
+      state = BusinessState(businesses: remaining, currentBusinessId: nextId);
     } catch (e) {
       state = state.copyWith(error: e.toString(), errorObject: e);
       rethrow;
@@ -89,7 +87,7 @@ class BusinessNotifier extends Notifier<BusinessState> {
     try {
       final repo = ref.read(businessRepositoryProvider);
       await repo.saveBusiness(business);
-      
+
       final businesses = repo.getBusinesses();
       state = state.copyWith(businesses: businesses);
     } catch (e) {
@@ -103,13 +101,14 @@ class BusinessNotifier extends Notifier<BusinessState> {
     try {
       final repo = ref.read(businessRepositoryProvider);
       await repo.syncBusinesses();
-      
+
       final businesses = repo.getBusinesses();
       final currentId = repo.getCurrentBusinessId();
-      
+
       state = state.copyWith(
         businesses: businesses,
-        currentBusinessId: currentId ?? (businesses.isNotEmpty ? businesses.first.id : null),
+        currentBusinessId:
+            currentId ?? (businesses.isNotEmpty ? businesses.first.id : null),
       );
     } catch (e) {
       state = state.copyWith(error: e.toString(), errorObject: e);

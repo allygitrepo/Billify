@@ -1,5 +1,5 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/features/analytics/sales_reports/providers/sales_reports_provider.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/features/analytics/sales_reports/providers/sales_reports_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,14 +18,24 @@ class SalesFilterBar extends ConsumerWidget {
         children: [
           _QuickFilterChip(
             label: 'Today',
-            isSelected: _isSameDay(state.startDate, DateTime.now()) && _isSameDay(state.endDate, DateTime.now()),
-            onTap: () => notifier.updateFilters(start: DateTime.now(), end: DateTime.now()),
+            isSelected:
+                _isSameDay(state.startDate, DateTime.now()) &&
+                _isSameDay(state.endDate, DateTime.now()),
+            onTap: () => notifier.updateFilters(
+              start: DateTime.now(),
+              end: DateTime.now(),
+            ),
           ),
           _QuickFilterChip(
             label: 'Yesterday',
-            isSelected: _isSameDay(state.startDate, DateTime.now().subtract(const Duration(days: 1))),
+            isSelected: _isSameDay(
+              state.startDate,
+              DateTime.now().subtract(const Duration(days: 1)),
+            ),
             onTap: () {
-              final yesterday = DateTime.now().subtract(const Duration(days: 1));
+              final yesterday = DateTime.now().subtract(
+                const Duration(days: 1),
+              );
               notifier.updateFilters(start: yesterday, end: yesterday);
             },
           ),
@@ -40,7 +50,9 @@ class SalesFilterBar extends ConsumerWidget {
           ),
           _QuickFilterChip(
             label: 'This Month',
-            isSelected: state.startDate?.month == DateTime.now().month && state.startDate?.year == DateTime.now().year,
+            isSelected:
+                state.startDate?.month == DateTime.now().month &&
+                state.startDate?.year == DateTime.now().year,
             onTap: () {
               final now = DateTime.now();
               final start = DateTime(now.year, now.month, 1);
@@ -83,7 +95,11 @@ class _QuickFilterChip extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _QuickFilterChip({required this.label, required this.isSelected, required this.onTap});
+  const _QuickFilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +111,9 @@ class _QuickFilterChip extends StatelessWidget {
         onSelected: (_) => onTap(),
         selectedColor: AppTheme.primaryTeal.withOpacity(0.2),
         labelStyle: TextStyle(
-          color: isSelected ? AppTheme.primaryTeal : Theme.of(context).hintColor,
+          color: isSelected
+              ? AppTheme.primaryTeal
+              : Theme.of(context).hintColor,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

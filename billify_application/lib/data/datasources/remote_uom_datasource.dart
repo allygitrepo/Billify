@@ -1,6 +1,6 @@
-import 'package:billify_application/core/constants/api_endpoints.dart';
-import 'package:billify_application/core/services/api_service.dart';
-import 'package:billify_application/data/models/uom_model.dart';
+import 'package:billify/core/constants/api_endpoints.dart';
+import 'package:billify/core/services/api_service.dart';
+import 'package:billify/data/models/uom_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final remoteUomDatasourceProvider = Provider<RemoteUomDatasource>((ref) {
@@ -52,10 +52,7 @@ class RemoteUomDatasource {
     try {
       final response = await _apiService.put(
         ApiEndpoints.updateUom(uom.id),
-        data: {
-          'name': uom.name,
-          'shortCode': uom.shortCode,
-        },
+        data: {'name': uom.name, 'shortCode': uom.shortCode},
       );
       if (response.statusCode == 200) {
         return UomModel.fromJson(response.data['uom']);

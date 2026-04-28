@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'package:billify_application/core/services/local_storage_service.dart';
-import 'package:billify_application/data/models/registration_model.dart';
-import 'package:billify_application/providers/storage_provider.dart';
+import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/data/models/registration_model.dart';
+import 'package:billify/providers/storage_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 class RegistrationNotifier extends StateNotifier<RegistrationModel?> {
   final LocalStorageService _storage;
@@ -28,8 +29,12 @@ class RegistrationNotifier extends StateNotifier<RegistrationModel?> {
           businessPhone: json['phone'],
           gstin: json['gstin'],
           address: json['address'],
-          taxPercentage: double.tryParse(json['taxPercentage']?.toString() ?? ''),
-          gstPercentage: double.tryParse(json['gstPercentage']?.toString() ?? ''),
+          taxPercentage: double.tryParse(
+            json['taxPercentage']?.toString() ?? '',
+          ),
+          gstPercentage: double.tryParse(
+            json['gstPercentage']?.toString() ?? '',
+          ),
           currency: json['currency'],
           invoicePrefix: json['invoicePrefix'],
           startingNumber: json['startingNumber'],
@@ -48,17 +53,20 @@ class RegistrationNotifier extends StateNotifier<RegistrationModel?> {
     required String password,
     String? phone,
   }) async {
-    final newState = (state ?? RegistrationModel(
-      name: name,
-      email: email,
-      password: password,
-      businessName: '',
-    )).copyWith(
-      name: name,
-      email: email,
-      password: password,
-      phone: phone,
-    );
+    final newState =
+        (state ??
+                RegistrationModel(
+                  name: name,
+                  email: email,
+                  password: password,
+                  businessName: '',
+                ))
+            .copyWith(
+              name: name,
+              email: email,
+              password: password,
+              phone: phone,
+            );
     state = newState;
     await _storage.setString(_storageKey, jsonEncode(newState.toJson()));
   }
@@ -75,7 +83,7 @@ class RegistrationNotifier extends StateNotifier<RegistrationModel?> {
     int? startingNumber,
   }) async {
     if (state == null) return;
-    
+
     final newState = state!.copyWith(
       businessName: businessName,
       businessPhone: businessPhone,
@@ -97,7 +105,8 @@ class RegistrationNotifier extends StateNotifier<RegistrationModel?> {
   }
 }
 
-final registrationProvider = StateNotifierProvider<RegistrationNotifier, RegistrationModel?>((ref) {
-  final storage = ref.watch(localStorageServiceProvider);
-  return RegistrationNotifier(storage);
-});
+final registrationProvider =
+    StateNotifierProvider<RegistrationNotifier, RegistrationModel?>((ref) {
+      final storage = ref.watch(localStorageServiceProvider);
+      return RegistrationNotifier(storage);
+    });

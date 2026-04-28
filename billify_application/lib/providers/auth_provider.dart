@@ -1,19 +1,19 @@
 import 'package:flutter/foundation.dart';
-import 'package:billify_application/data/datasources/auth_datasource.dart';
-import 'package:billify_application/data/models/user_model.dart';
-import 'package:billify_application/data/repositories/auth_repository.dart';
-import 'package:billify_application/providers/storage_provider.dart';
+import 'package:billify/data/datasources/auth_datasource.dart';
+import 'package:billify/data/models/user_model.dart';
+import 'package:billify/data/repositories/auth_repository.dart';
+import 'package:billify/providers/storage_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:billify_application/providers/user_management_provider.dart';
-import 'package:billify_application/data/models/role_model.dart';
-import 'package:billify_application/data/models/user_permission.dart';
-import 'package:billify_application/core/constants/app_constants.dart';
-import 'package:billify_application/data/datasources/business_datasource.dart';
-import 'package:billify_application/data/repositories/business_repository.dart';
-import 'package:billify_application/providers/business_provider.dart';
+import 'package:billify/providers/user_management_provider.dart';
+import 'package:billify/data/models/role_model.dart';
+import 'package:billify/data/models/user_permission.dart';
+import 'package:billify/core/constants/app_constants.dart';
+import 'package:billify/data/datasources/business_datasource.dart';
+import 'package:billify/data/repositories/business_repository.dart';
+import 'package:billify/providers/business_provider.dart';
 
-import 'package:billify_application/data/datasources/remote_auth_datasource.dart';
+import 'package:billify/data/datasources/remote_auth_datasource.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
@@ -123,40 +123,56 @@ class AuthNotifier extends Notifier<AuthState> {
     );
 
     if (businessId == null || int.tryParse(businessId) == null) {
-      debugPrint("INFO: Business ID is null or non-numeric. Checking for Global Admin role...");
-      
+      debugPrint(
+        "INFO: Business ID is null or non-numeric. Checking for Global Admin role...",
+      );
+
       // Check if it's a known Global Admin role (ID 1)
       if (user.roleId == 1) {
-          debugPrint("SUCCESS: Global Admin detected (Role ID: 1). Granting full administrative access.");
-          final fullAccessRole = RoleModel(
-            id: 'global_admin',
-            name: 'Global Admin',
-            permissions: {
-              for (var module in PermissionModule.values)
-                module: [PermissionAction.all],
-            },
-          );
-          state = state.copyWith(currentRole: fullAccessRole, loadingMessage: "Global access granted");
-          return;
+        debugPrint(
+          "SUCCESS: Global Admin detected (Role ID: 1). Granting full administrative access.",
+        );
+        final fullAccessRole = RoleModel(
+          id: 'global_admin',
+          name: 'Global Admin',
+          permissions: {
+            for (var module in PermissionModule.values)
+              module: [PermissionAction.all],
+          },
+        );
+        state = state.copyWith(
+          currentRole: fullAccessRole,
+          loadingMessage: "Global access granted",
+        );
+        return;
       }
 
-      debugPrint("WARNING: No business context found for non-global user ${user.name}. Fallback to setup required.");
+      debugPrint(
+        "WARNING: No business context found for non-global user ${user.name}. Fallback to setup required.",
+      );
       return;
     }
 
-    debugPrint("DEBUG: Retrieving permissions for Role ${user.roleId} in Business $businessId");
+    debugPrint(
+      "DEBUG: Retrieving permissions for Role ${user.roleId} in Business $businessId",
+    );
     state = state.copyWith(loadingMessage: "Retrieving role permissions...");
-    
+
     try {
-        final roles = await repo.getRoles(businessId);
-        // Comparison using toString() to handle potential int vs String mismatches
-        final role = roles.firstWhere(
-            (r) => r.id.toString() == user.roleId.toString(),
-        );
-        state = state.copyWith(currentRole: role, loadingMessage: "Role loaded: ${role.name}");
-        debugPrint("SUCCESS: Permissions loaded for role: ${role.name}");
+      final roles = await repo.getRoles(businessId);
+      // Comparison using toString() to handle potential int vs String mismatches
+      final role = roles.firstWhere(
+        (r) => r.id.toString() == user.roleId.toString(),
+      );
+      state = state.copyWith(
+        currentRole: role,
+        loadingMessage: "Role loaded: ${role.name}",
+      );
+      debugPrint("SUCCESS: Permissions loaded for role: ${role.name}");
     } catch (e) {
-        debugPrint("WARNING: Role ${user.roleId} not found in business roles. Granting emergency fallback Admin access.");
+      debugPrint(
+        "WARNING: Role ${user.roleId} not found in business roles. Granting emergency fallback Admin access.",
+      );
       print(
         "WARNING: Specific Role ${user.roleId} not found in business roles table.",
       );
@@ -172,7 +188,10 @@ class AuthNotifier extends Notifier<AuthState> {
             module: [PermissionAction.all],
         },
       );
-      state = state.copyWith(currentRole: fullAccessRole, loadingMessage: "Ready as Administrator");
+      state = state.copyWith(
+        currentRole: fullAccessRole,
+        loadingMessage: "Ready as Administrator",
+      );
     }
 
     // Ensure business details are synced (important for branding etc)
@@ -181,7 +200,10 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> login(String email, String password) async {
     // Reset state to clean slate while loading to ensure no stale data is visible
-    state = AuthState(isLoading: true, loadingMessage: "Verifying credentials with server...");
+    state = AuthState(
+      isLoading: true,
+      loadingMessage: "Verifying credentials with server...",
+    );
     try {
       final repo = ref.read(authRepositoryProvider);
       final response = await repo.login(email, password);
@@ -198,7 +220,10 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> loginWithGoogle() async {
     debugPrint('DEBUG: Starting Google Sign-In process...');
     // Reset state to clean slate while loading to ensure no stale data is visible
-    state = AuthState(isLoading: true, loadingMessage: "Connecting to Google...");
+    state = AuthState(
+      isLoading: true,
+      loadingMessage: "Connecting to Google...",
+    );
     try {
       final repo = ref.read(authRepositoryProvider);
       final response = await repo.loginWithGoogle();
@@ -227,8 +252,10 @@ class AuthNotifier extends Notifier<AuthState> {
       if (user != null) {
         state = state.copyWith(loadingMessage: "Detecting user role...");
         await _loadRoleForUser(user);
-        
-        state = state.copyWith(loadingMessage: "Synchronizing business data...");
+
+        state = state.copyWith(
+          loadingMessage: "Synchronizing business data...",
+        );
         await ref.read(businessProvider.notifier).sync();
       }
       state = state.copyWith(isLoading: false, loadingMessage: null);

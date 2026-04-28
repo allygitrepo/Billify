@@ -1,15 +1,19 @@
-import 'package:billify_application/core/constants/api_endpoints.dart';
-import 'package:billify_application/core/services/api_service.dart';
-import 'package:billify_application/data/models/customer_model.dart';
-import 'package:billify_application/data/models/ledger_model.dart';
-import 'package:billify_application/data/models/payment_model.dart';
+import 'package:billify/core/constants/api_endpoints.dart';
+import 'package:billify/core/services/api_service.dart';
+import 'package:billify/data/models/customer_model.dart';
+import 'package:billify/data/models/ledger_model.dart';
+import 'package:billify/data/models/payment_model.dart';
 
 class RemoteCustomerDatasource {
   final ApiService _apiService;
 
   RemoteCustomerDatasource(this._apiService);
 
-  Future<List<Customer>> getCustomers(String businessId, {String? search, int page = 1}) async {
+  Future<List<Customer>> getCustomers(
+    String businessId, {
+    String? search,
+    int page = 1,
+  }) async {
     final response = await _apiService.get(
       ApiEndpoints.getCustomers,
       queryParameters: {
@@ -45,12 +49,16 @@ class RemoteCustomerDatasource {
   }
 
   Future<bool> deleteCustomer(int id) async {
-    final response = await _apiService.delete(ApiEndpoints.deleteCustomer(id.toString()));
+    final response = await _apiService.delete(
+      ApiEndpoints.deleteCustomer(id.toString()),
+    );
     return response.data['success'];
   }
 
   Future<CustomerLedger> getCustomerLedger(int id) async {
-    final response = await _apiService.get(ApiEndpoints.getCustomerLedger(id.toString()));
+    final response = await _apiService.get(
+      ApiEndpoints.getCustomerLedger(id.toString()),
+    );
     return CustomerLedger.fromJson(response.data['data']);
   }
 
@@ -63,12 +71,18 @@ class RemoteCustomerDatasource {
 
   // Payments
   Future<Payment> receivePayment(Map<String, dynamic> data) async {
-    final response = await _apiService.post(ApiEndpoints.receivePayment, data: data);
+    final response = await _apiService.post(
+      ApiEndpoints.receivePayment,
+      data: data,
+    );
     return Payment.fromJson(response.data['data']);
   }
 
   Future<Payment> givePayment(Map<String, dynamic> data) async {
-    final response = await _apiService.post(ApiEndpoints.givePayment, data: data);
+    final response = await _apiService.post(
+      ApiEndpoints.givePayment,
+      data: data,
+    );
     return Payment.fromJson(response.data['data']);
   }
 

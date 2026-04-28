@@ -1,6 +1,6 @@
-import 'package:billify_application/core/constants/api_endpoints.dart';
-import 'package:billify_application/core/services/api_service.dart';
-import 'package:billify_application/data/models/product_model.dart';
+import 'package:billify/core/constants/api_endpoints.dart';
+import 'package:billify/core/services/api_service.dart';
+import 'package:billify/data/models/product_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final remoteProductDatasourceProvider = Provider<RemoteProductDatasource>((
@@ -31,7 +31,8 @@ class RemoteProductDatasource {
     String businessId,
   ) async {
     final Map<String, dynamic> payload = product.toJson();
-    payload['business_id'] = businessId; // Explicitly ensure business_id is sent
+    payload['business_id'] =
+        businessId; // Explicitly ensure business_id is sent
 
     final response = await _apiService.post(
       ApiEndpoints.createProduct,

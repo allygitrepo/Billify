@@ -1,5 +1,5 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/data/models/product_model.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/data/models/product_model.dart';
 import 'package:flutter/material.dart';
 
 class StatCard extends StatelessWidget {
@@ -113,19 +113,19 @@ class _PremiumRevenueGraphState extends State<PremiumRevenueGraph> {
               builder: (context, constraints) {
                 return GestureDetector(
                   onTapUp: (details) {
-                     if (widget.data.isEmpty) return;
-                     final slotWidth = constraints.maxWidth / widget.data.length;
-                     int index = (details.localPosition.dx / slotWidth).floor();
-                     if (index >= 0 && index < widget.data.length) {
-                       setState(() => _tappedIndex = index);
-                     }
+                    if (widget.data.isEmpty) return;
+                    final slotWidth = constraints.maxWidth / widget.data.length;
+                    int index = (details.localPosition.dx / slotWidth).floor();
+                    if (index >= 0 && index < widget.data.length) {
+                      setState(() => _tappedIndex = index);
+                    }
                   },
                   child: CustomPaint(
                     size: Size(constraints.maxWidth, constraints.maxHeight),
                     painter: _BarChartPainter(widget.data, _tappedIndex),
                   ),
                 );
-              }
+              },
             ),
           ),
           const SizedBox(height: 12),
@@ -170,7 +170,7 @@ class _BarChartPainter extends CustomPainter {
       final isTapped = tappedIndex == i;
       final paint = Paint()
         ..shader = LinearGradient(
-          colors: isTapped 
+          colors: isTapped
               ? [AppTheme.primaryTeal, AppTheme.primaryTeal.withOpacity(0.8)]
               : [AppTheme.primaryTeal.withOpacity(0.4), AppTheme.primaryTeal],
           begin: Alignment.bottomCenter,
@@ -192,15 +192,15 @@ class _BarChartPainter extends CustomPainter {
       canvas.drawRRect(rect, paint);
 
       // Always draw the number, but make it bold/larger if tapped
-      final valFormatted = data[i] >= 1000 
-          ? '${(data[i]/1000).toStringAsFixed(1)}k' 
+      final valFormatted = data[i] >= 1000
+          ? '${(data[i] / 1000).toStringAsFixed(1)}k'
           : data[i].toStringAsFixed(0);
-          
+
       final textPainter = TextPainter(
         text: TextSpan(
           text: valFormatted,
           style: TextStyle(
-            color: isTapped ? AppTheme.primaryTeal : Colors.grey, 
+            color: isTapped ? AppTheme.primaryTeal : Colors.grey,
             fontSize: isTapped ? 12 : 9,
             fontWeight: isTapped ? FontWeight.bold : FontWeight.normal,
           ),

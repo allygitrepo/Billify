@@ -1,20 +1,20 @@
 import 'dart:convert';
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/core/utils/image_utils.dart';
-import 'package:billify_application/core/utils/validators.dart';
-import 'package:billify_application/data/models/product_model.dart';
-import 'package:billify_application/data/models/product_variant_model.dart';
-import 'package:billify_application/data/models/uom_model.dart';
-import 'package:billify_application/presentation/widgets/custom_button.dart';
-import 'package:billify_application/presentation/widgets/custom_text_field.dart';
-import 'package:billify_application/providers/category_provider.dart';
-import 'package:billify_application/providers/feature_settings_provider.dart';
-import 'package:billify_application/providers/product_provider.dart';
-import 'package:billify_application/providers/uom_provider.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/image_utils.dart';
+import 'package:billify/core/utils/validators.dart';
+import 'package:billify/data/models/product_model.dart';
+import 'package:billify/data/models/product_variant_model.dart';
+import 'package:billify/data/models/uom_model.dart';
+import 'package:billify/presentation/widgets/custom_button.dart';
+import 'package:billify/presentation/widgets/custom_text_field.dart';
+import 'package:billify/providers/category_provider.dart';
+import 'package:billify/providers/feature_settings_provider.dart';
+import 'package:billify/providers/product_provider.dart';
+import 'package:billify/providers/uom_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:billify_application/data/models/user_permission.dart';
-import 'package:billify_application/providers/auth_provider.dart';
+import 'package:billify/data/models/user_permission.dart';
+import 'package:billify/providers/auth_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:uuid/uuid.dart';
@@ -325,7 +325,9 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
                                 0.1,
                               ),
                               backgroundImage: base64Image != null
-                                  ? MemoryImage(ImageUtils.decodeBase64(base64Image!))
+                                  ? MemoryImage(
+                                      ImageUtils.decodeBase64(base64Image!),
+                                    )
                                   : null,
                               child: base64Image == null
                                   ? const Icon(

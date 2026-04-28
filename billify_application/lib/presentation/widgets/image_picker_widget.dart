@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:billify_application/core/constants/app_constants.dart';
-import 'package:billify_application/core/utils/image_utils.dart';
+import 'package:billify/core/constants/app_constants.dart';
+import 'package:billify/core/utils/image_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -56,10 +56,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
       children: [
         Text(
           widget.label,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         ),
         const SizedBox(height: 8),
         GestureDetector(
@@ -77,7 +74,9 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
             ),
             child: _base64String != null
                 ? ClipRRect(
-                    borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                    borderRadius: BorderRadius.circular(
+                      AppConstants.borderRadius,
+                    ),
                     child: Image.memory(
                       ImageUtils.decodeBase64(_base64String!),
                       fit: BoxFit.cover,
@@ -94,10 +93,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
                       const SizedBox(height: 8),
                       const Text(
                         'Select Business Logo',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Colors.grey, fontSize: 14),
                       ),
                     ],
                   ),

@@ -1,17 +1,17 @@
 import 'dart:convert';
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/core/utils/image_utils.dart';
-import 'package:billify_application/core/utils/validators.dart';
-import 'package:billify_application/providers/state/business_state.dart';
-import 'package:billify_application/data/models/business_model.dart';
-import 'package:billify_application/presentation/widgets/custom_button.dart';
-import 'package:billify_application/presentation/widgets/custom_text_field.dart';
-import 'package:billify_application/presentation/widgets/image_picker_widget.dart';
-import 'package:billify_application/presentation/widgets/section_card.dart';
-import 'package:billify_application/providers/business_provider.dart';
-import 'package:billify_application/providers/registration_provider.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/presentation/widgets/error_handler.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/image_utils.dart';
+import 'package:billify/core/utils/validators.dart';
+import 'package:billify/providers/state/business_state.dart';
+import 'package:billify/data/models/business_model.dart';
+import 'package:billify/presentation/widgets/custom_button.dart';
+import 'package:billify/presentation/widgets/custom_text_field.dart';
+import 'package:billify/presentation/widgets/image_picker_widget.dart';
+import 'package:billify/presentation/widgets/section_card.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/providers/registration_provider.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/presentation/widgets/error_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -116,14 +116,20 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
           final authState = ref.read(authProvider);
           if (authState.error == null && mounted) {
             await ref.read(registrationProvider.notifier).clear();
-            ErrorHandler.showSuccessSnackBar(context, 'Registration successful! Please login.');
+            ErrorHandler.showSuccessSnackBar(
+              context,
+              'Registration successful! Please login.',
+            );
             Navigator.pushNamedAndRemoveUntil(
               context,
               '/login',
               (route) => false,
             );
           } else if (authState.error != null && mounted) {
-            ErrorHandler.showErrorSnackBar(context, authState.errorObject ?? authState.error);
+            ErrorHandler.showErrorSnackBar(
+              context,
+              authState.errorObject ?? authState.error,
+            );
           }
         }
       } else {

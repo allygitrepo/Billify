@@ -1,9 +1,11 @@
-import 'package:billify_application/core/constants/api_endpoints.dart';
-import 'package:billify_application/core/services/api_service.dart';
-import 'package:billify_application/data/models/stock_history_model.dart';
+import 'package:billify/core/constants/api_endpoints.dart';
+import 'package:billify/core/services/api_service.dart';
+import 'package:billify/data/models/stock_history_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final remoteInventoryDatasourceProvider = Provider<RemoteInventoryDatasource>((ref) {
+final remoteInventoryDatasourceProvider = Provider<RemoteInventoryDatasource>((
+  ref,
+) {
   return RemoteInventoryDatasource(ref);
 });
 
@@ -16,7 +18,9 @@ class RemoteInventoryDatasource {
 
   Future<List<StockHistoryModel>> getInventoryLog(String businessId) async {
     try {
-      final response = await _apiService.get(ApiEndpoints.getInventoryLog(businessId));
+      final response = await _apiService.get(
+        ApiEndpoints.getInventoryLog(businessId),
+      );
       if (response.statusCode == 200) {
         final List<dynamic> logs = response.data['logs'];
         return logs.map((e) => StockHistoryModel.fromJson(e)).toList();

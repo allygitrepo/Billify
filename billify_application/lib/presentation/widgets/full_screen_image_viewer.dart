@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
-import 'package:billify_application/core/utils/image_utils.dart';
+import 'package:billify/core/utils/image_utils.dart';
 import 'package:flutter/material.dart';
 
 class FullScreenImageViewer extends StatelessWidget {
@@ -31,27 +31,28 @@ class FullScreenImageViewer extends StatelessWidget {
             maxScale: 4,
             child: imagePath != null && imagePath!.isNotEmpty
                 ? (imagePath!.startsWith('data:image') ||
-                        imagePath!.length > 100
-                    ? Image.memory(
-                      ImageUtils.decodeBase64(imagePath!),
-                      fit: BoxFit.contain,
-                    )
-                    : Image.file(
-                      File(imagePath!),
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        padding: const EdgeInsets.all(40),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[900],
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.person,
-                          size: 200,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ))
+                          imagePath!.length > 100
+                      ? Image.memory(
+                          ImageUtils.decodeBase64(imagePath!),
+                          fit: BoxFit.contain,
+                        )
+                      : Image.file(
+                          File(imagePath!),
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                padding: const EdgeInsets.all(40),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[900],
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.person,
+                                  size: 200,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                        ))
                 : Container(
                     padding: const EdgeInsets.all(40),
                     decoration: BoxDecoration(

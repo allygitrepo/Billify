@@ -1,9 +1,9 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/data/models/uom_model.dart';
-import 'package:billify_application/presentation/widgets/custom_text_field.dart';
-import 'package:billify_application/providers/uom_provider.dart';
-import 'package:billify_application/data/models/user_permission.dart';
-import 'package:billify_application/providers/auth_provider.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/data/models/uom_model.dart';
+import 'package:billify/presentation/widgets/custom_text_field.dart';
+import 'package:billify/providers/uom_provider.dart';
+import 'package:billify/data/models/user_permission.dart';
+import 'package:billify/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -16,9 +16,7 @@ class UomManagementPage extends ConsumerWidget {
     final uoms = ref.watch(uomProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Unit of Measure Management'),
-      ),
+      appBar: AppBar(title: const Text('Unit of Measure Management')),
       body: uoms.isEmpty
           ? Center(
               child: Column(
@@ -26,7 +24,10 @@ class UomManagementPage extends ConsumerWidget {
                 children: [
                   Icon(Icons.straighten, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
-                  const Text('No UOMs added yet', style: TextStyle(color: Colors.grey)),
+                  const Text(
+                    'No UOMs added yet',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             )
@@ -37,21 +38,42 @@ class UomManagementPage extends ConsumerWidget {
                 final uom = uoms[index];
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: ListTile(
-                    title: Text(uom.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(
+                      uom.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (ref.watch(authProvider).hasPermission(PermissionModule.uom, PermissionAction.update))
+                        if (ref
+                            .watch(authProvider)
+                            .hasPermission(
+                              PermissionModule.uom,
+                              PermissionAction.update,
+                            ))
                           IconButton(
                             icon: const Icon(Icons.edit_outlined, size: 20),
-                            onPressed: () => _showAddEditBottomSheet(context, ref, uom),
+                            onPressed: () =>
+                                _showAddEditBottomSheet(context, ref, uom),
                           ),
-                        if (ref.watch(authProvider).hasPermission(PermissionModule.uom, PermissionAction.delete))
+                        if (ref
+                            .watch(authProvider)
+                            .hasPermission(
+                              PermissionModule.uom,
+                              PermissionAction.delete,
+                            ))
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                            onPressed: () => _showDeleteDialog(context, ref, uom),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 20,
+                              color: Colors.red,
+                            ),
+                            onPressed: () =>
+                                _showDeleteDialog(context, ref, uom),
                           ),
                       ],
                     ),
@@ -59,7 +81,10 @@ class UomManagementPage extends ConsumerWidget {
                 );
               },
             ),
-      floatingActionButton: ref.watch(authProvider).hasPermission(PermissionModule.uom, PermissionAction.add)
+      floatingActionButton:
+          ref
+              .watch(authProvider)
+              .hasPermission(PermissionModule.uom, PermissionAction.add)
           ? FloatingActionButton(
               onPressed: () => _showAddEditBottomSheet(context, ref),
               backgroundColor: AppTheme.primaryTeal,
@@ -69,7 +94,11 @@ class UomManagementPage extends ConsumerWidget {
     );
   }
 
-  void _showAddEditBottomSheet(BuildContext context, WidgetRef ref, [UomModel? uom]) {
+  void _showAddEditBottomSheet(
+    BuildContext context,
+    WidgetRef ref, [
+    UomModel? uom,
+  ]) {
     final nameController = TextEditingController(text: uom?.name);
     final shortCodeController = TextEditingController(text: uom?.shortCode);
 
@@ -105,7 +134,10 @@ class UomManagementPage extends ConsumerWidget {
                 const SizedBox(height: 24),
                 Text(
                   uom == null ? 'Add Unit' : 'Edit Unit',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 CustomTextField(
@@ -133,11 +165,14 @@ class UomManagementPage extends ConsumerWidget {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          if (nameController.text.isNotEmpty && shortCodeController.text.isNotEmpty) {
+                          if (nameController.text.isNotEmpty &&
+                              shortCodeController.text.isNotEmpty) {
                             final newUom = UomModel(
                               id: uom?.id ?? const Uuid().v4(),
                               name: nameController.text.trim(),
-                              shortCode: shortCodeController.text.trim().toLowerCase(),
+                              shortCode: shortCodeController.text
+                                  .trim()
+                                  .toLowerCase(),
                             );
                             ref.read(uomProvider.notifier).saveUom(newUom);
                             Navigator.pop(context);
@@ -147,7 +182,9 @@ class UomManagementPage extends ConsumerWidget {
                           backgroundColor: AppTheme.primaryTeal,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: Text(uom == null ? 'ADD' : 'SAVE'),
                       ),
@@ -168,9 +205,14 @@ class UomManagementPage extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete UOM'),
-        content: Text('Are you sure you want to delete "${uom.name}"? Products using this UOM will default back to Pcs.'),
+        content: Text(
+          'Are you sure you want to delete "${uom.name}"? Products using this UOM will default back to Pcs.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
           TextButton(
             onPressed: () {
               ref.read(uomProvider.notifier).deleteUom(uom.id);

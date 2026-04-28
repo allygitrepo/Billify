@@ -1,6 +1,6 @@
-import 'package:billify_application/core/constants/api_endpoints.dart';
-import 'package:billify_application/core/services/api_service.dart';
-import 'package:billify_application/features/analytics/profit_reports/models/profit_report_model.dart';
+import 'package:billify/core/constants/api_endpoints.dart';
+import 'package:billify/core/services/api_service.dart';
+import 'package:billify/features/analytics/profit_reports/models/profit_report_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final profitReportsServiceProvider = Provider<ProfitReportsService>((ref) {
@@ -13,7 +13,12 @@ class ProfitReportsService {
 
   ProfitReportsService(this._apiService);
 
-  Map<String, dynamic> _buildParams(String businessId, {DateTime? startDate, DateTime? endDate, String? branchId}) {
+  Map<String, dynamic> _buildParams(
+    String businessId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    String? branchId,
+  }) {
     return {
       'business_id': businessId,
       if (startDate != null) 'start_date': startDate.toIso8601String(),
@@ -22,10 +27,20 @@ class ProfitReportsService {
     };
   }
 
-  Future<ProfitSummaryModel> getProfitSummary(String businessId, {DateTime? startDate, DateTime? endDate, String? branchId}) async {
+  Future<ProfitSummaryModel> getProfitSummary(
+    String businessId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    String? branchId,
+  }) async {
     final response = await _apiService.get(
       ApiEndpoints.getProfitSummary(businessId),
-      queryParameters: _buildParams(businessId, startDate: startDate, endDate: endDate, branchId: branchId),
+      queryParameters: _buildParams(
+        businessId,
+        startDate: startDate,
+        endDate: endDate,
+        branchId: branchId,
+      ),
     );
     if (response.statusCode == 200 && response.data != null) {
       return ProfitSummaryModel.fromJson(response.data['summary'] ?? {});
@@ -33,10 +48,22 @@ class ProfitReportsService {
     return ProfitSummaryModel.empty();
   }
 
-  Future<List<ProfitChartData>> getProfitTrend(String businessId, {DateTime? startDate, DateTime? endDate, String? branchId}) async {
+  Future<List<ProfitChartData>> getProfitTrend(
+    String businessId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    String? branchId,
+  }) async {
     final response = await _apiService.get(
-      ApiEndpoints.getProfitSummary(businessId), // Trend data usually comes from summary or specialized trend endpoint, matching sales pattern
-      queryParameters: _buildParams(businessId, startDate: startDate, endDate: endDate, branchId: branchId),
+      ApiEndpoints.getProfitSummary(
+        businessId,
+      ), // Trend data usually comes from summary or specialized trend endpoint, matching sales pattern
+      queryParameters: _buildParams(
+        businessId,
+        startDate: startDate,
+        endDate: endDate,
+        branchId: branchId,
+      ),
     );
     if (response.statusCode == 200 && response.data != null) {
       final data = response.data['chartData'] as List? ?? [];
@@ -45,10 +72,20 @@ class ProfitReportsService {
     return [];
   }
 
-  Future<List<ProductProfitData>> getProfitByProducts(String businessId, {DateTime? startDate, DateTime? endDate, String? branchId}) async {
+  Future<List<ProductProfitData>> getProfitByProducts(
+    String businessId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    String? branchId,
+  }) async {
     final response = await _apiService.get(
       ApiEndpoints.getProfitByProducts(businessId),
-      queryParameters: _buildParams(businessId, startDate: startDate, endDate: endDate, branchId: branchId),
+      queryParameters: _buildParams(
+        businessId,
+        startDate: startDate,
+        endDate: endDate,
+        branchId: branchId,
+      ),
     );
     if (response.statusCode == 200 && response.data != null) {
       final data = response.data['topProducts'] as List? ?? [];
@@ -57,10 +94,20 @@ class ProfitReportsService {
     return [];
   }
 
-  Future<List<CategoryProfitData>> getProfitByCategories(String businessId, {DateTime? startDate, DateTime? endDate, String? branchId}) async {
+  Future<List<CategoryProfitData>> getProfitByCategories(
+    String businessId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    String? branchId,
+  }) async {
     final response = await _apiService.get(
       ApiEndpoints.getProfitByCategories(businessId),
-      queryParameters: _buildParams(businessId, startDate: startDate, endDate: endDate, branchId: branchId),
+      queryParameters: _buildParams(
+        businessId,
+        startDate: startDate,
+        endDate: endDate,
+        branchId: branchId,
+      ),
     );
     if (response.statusCode == 200 && response.data != null) {
       final data = response.data['topCategories'] as List? ?? [];

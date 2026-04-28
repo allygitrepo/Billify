@@ -1,4 +1,4 @@
-import 'package:billify_application/features/analytics/khata_reports/models/khata_report_model.dart';
+import 'package:billify/features/analytics/khata_reports/models/khata_report_model.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
@@ -9,11 +9,15 @@ class KhataDueTrendsChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (points.isEmpty) return const Center(child: Text('No trend data available'));
+    if (points.isEmpty)
+      return const Center(child: Text('No trend data available'));
 
     return CustomPaint(
       size: const Size(double.infinity, 200),
-      painter: _KhataLineChartPainter(points, Theme.of(context).brightness == Brightness.dark),
+      painter: _KhataLineChartPainter(
+        points,
+        Theme.of(context).brightness == Brightness.dark,
+      ),
     );
   }
 }
@@ -29,9 +33,12 @@ class _KhataLineChartPainter extends CustomPainter {
     if (data.isEmpty) return;
 
     final maxVal = data.map((e) => e.value).reduce(math.max);
-    final normalized = data.map((e) => maxVal == 0 ? 0.0 : e.value / maxVal).toList();
-    
-    final xStep = size.width / (normalized.length > 1 ? normalized.length - 1 : 1);
+    final normalized = data
+        .map((e) => maxVal == 0 ? 0.0 : e.value / maxVal)
+        .toList();
+
+    final xStep =
+        size.width / (normalized.length > 1 ? normalized.length - 1 : 1);
     final paint = Paint()
       ..color = Colors.redAccent
       ..strokeWidth = 3
@@ -40,22 +47,22 @@ class _KhataLineChartPainter extends CustomPainter {
 
     final path = Path();
     for (var i = 0; i < normalized.length; i++) {
-       final x = i * xStep;
-       final y = size.height - (normalized[i] * size.height * 0.8);
-       if (i == 0) {
-         path.moveTo(x, y);
-       } else {
-         path.lineTo(x, y);
-       }
+      final x = i * xStep;
+      final y = size.height - (normalized[i] * size.height * 0.8);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
     }
-    
+
     canvas.drawPath(path, paint);
-    
+
     final fillPath = Path.from(path);
     fillPath.lineTo(size.width, size.height);
     fillPath.lineTo(0, size.height);
     fillPath.close();
-    
+
     final fillPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
@@ -66,7 +73,7 @@ class _KhataLineChartPainter extends CustomPainter {
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
       ..style = PaintingStyle.fill;
-      
+
     canvas.drawPath(fillPath, fillPaint);
   }
 
@@ -85,7 +92,10 @@ class KhataTopDueChart extends StatelessWidget {
 
     return CustomPaint(
       size: const Size(double.infinity, 200),
-      painter: _KhataBarChartPainter(customers, Theme.of(context).brightness == Brightness.dark),
+      painter: _KhataBarChartPainter(
+        customers,
+        Theme.of(context).brightness == Brightness.dark,
+      ),
     );
   }
 }
@@ -132,7 +142,11 @@ class KhataPaidDuePieChart extends StatelessWidget {
   final double paid;
   final double due;
 
-  const KhataPaidDuePieChart({super.key, required this.paid, required this.due});
+  const KhataPaidDuePieChart({
+    super.key,
+    required this.paid,
+    required this.due,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -158,8 +172,13 @@ class KhataPaidDuePieChart extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('${(percentage * 100).toStringAsFixed(0)}%', 
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(
+                '${(percentage * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
               const Text('Paid', style: TextStyle(fontSize: 10)),
             ],
           ),

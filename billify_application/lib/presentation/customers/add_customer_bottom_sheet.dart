@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'package:billify_application/core/utils/image_utils.dart';
-import 'package:billify_application/data/models/customer_model.dart';
-import 'package:billify_application/providers/customer_provider.dart';
-import 'package:billify_application/providers/business_provider.dart';
-import 'package:billify_application/presentation/customers/contacts_import_screen.dart';
+import 'package:billify/core/utils/image_utils.dart';
+import 'package:billify/data/models/customer_model.dart';
+import 'package:billify/providers/customer_provider.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/presentation/customers/contacts_import_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,10 +12,12 @@ class AddCustomerBottomSheet extends ConsumerStatefulWidget {
   const AddCustomerBottomSheet({super.key, this.initialCustomer});
 
   @override
-  ConsumerState<AddCustomerBottomSheet> createState() => _AddCustomerBottomSheetState();
+  ConsumerState<AddCustomerBottomSheet> createState() =>
+      _AddCustomerBottomSheetState();
 }
 
-class _AddCustomerBottomSheetState extends ConsumerState<AddCustomerBottomSheet> {
+class _AddCustomerBottomSheetState
+    extends ConsumerState<AddCustomerBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
@@ -28,7 +30,9 @@ class _AddCustomerBottomSheetState extends ConsumerState<AddCustomerBottomSheet>
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.initialCustomer?.name);
-    _phoneController = TextEditingController(text: widget.initialCustomer?.phoneNumber);
+    _phoneController = TextEditingController(
+      text: widget.initialCustomer?.phoneNumber,
+    );
     _openingBalanceController = TextEditingController(
       text: widget.initialCustomer?.openingBalance.toString() ?? '0.0',
     );
@@ -63,7 +67,9 @@ class _AddCustomerBottomSheetState extends ConsumerState<AddCustomerBottomSheet>
             children: [
               Text(
                 isEditing ? 'Edit Customer Details' : 'Add New Customer',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 10),
               if (!isEditing)
@@ -73,7 +79,8 @@ class _AddCustomerBottomSheetState extends ConsumerState<AddCustomerBottomSheet>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const ContactsImportScreen()),
+                        builder: (context) => const ContactsImportScreen(),
+                      ),
                     );
                   },
                   icon: const Icon(Icons.import_contacts),
@@ -81,7 +88,8 @@ class _AddCustomerBottomSheetState extends ConsumerState<AddCustomerBottomSheet>
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
               if (widget.initialCustomer?.photo != null &&
@@ -105,7 +113,8 @@ class _AddCustomerBottomSheetState extends ConsumerState<AddCustomerBottomSheet>
                   prefixIcon: Icon(Icons.person),
                   border: OutlineInputBorder(),
                 ),
-                validator: (val) => (val == null || val.isEmpty) ? 'Name is required' : null,
+                validator: (val) =>
+                    (val == null || val.isEmpty) ? 'Name is required' : null,
               ),
               const SizedBox(height: 15),
               TextFormField(
@@ -116,16 +125,20 @@ class _AddCustomerBottomSheetState extends ConsumerState<AddCustomerBottomSheet>
                   prefixIcon: Icon(Icons.phone),
                   border: OutlineInputBorder(),
                 ),
-                validator: (val) => (val == null || val.isEmpty) ? 'Phone is required' : null,
+                validator: (val) =>
+                    (val == null || val.isEmpty) ? 'Phone is required' : null,
               ),
               const SizedBox(height: 15),
               TextFormField(
                 controller: _openingBalanceController,
                 keyboardType: TextInputType.number,
-                enabled: !isEditing, // Typically opening balance shouldn't be edited directly here
+                enabled:
+                    !isEditing, // Typically opening balance shouldn't be edited directly here
                 decoration: InputDecoration(
                   labelText: 'Opening Balance (Khata)',
-                  helperText: isEditing ? 'Edit from Ledger for adjustments' : 'Positive = Customer owes you (+), Negative = You owe (-)',
+                  helperText: isEditing
+                      ? 'Edit from Ledger for adjustments'
+                      : 'Positive = Customer owes you (+), Negative = You owe (-)',
                   prefixIcon: const Icon(Icons.account_balance_wallet),
                   border: const OutlineInputBorder(),
                 ),
@@ -143,12 +156,24 @@ class _AddCustomerBottomSheetState extends ConsumerState<AddCustomerBottomSheet>
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: _isSaving ? null : _saveCustomer,
                 child: _isSaving
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(isEditing ? 'Update Customer' : 'Save Customer', style: const TextStyle(fontSize: 16)),
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        isEditing ? 'Update Customer' : 'Save Customer',
+                        style: const TextStyle(fontSize: 16),
+                      ),
               ),
               const SizedBox(height: 20),
             ],
@@ -165,14 +190,16 @@ class _AddCustomerBottomSheetState extends ConsumerState<AddCustomerBottomSheet>
     try {
       final businessIdString = ref.read(businessProvider).currentBusinessId;
       final int businessId = int.parse(businessIdString ?? '0');
-      
+
       final customer = Customer(
         id: widget.initialCustomer?.id, // Preserve ID if editing
         businessId: businessId,
         name: _nameController.text,
         phoneNumber: _phoneController.text,
         openingBalance: double.tryParse(_openingBalanceController.text) ?? 0.0,
-        remainingBalance: widget.initialCustomer?.remainingBalance ?? 0.0, // Fail-safe: don't wipe out balance on edit!
+        remainingBalance:
+            widget.initialCustomer?.remainingBalance ??
+            0.0, // Fail-safe: don't wipe out balance on edit!
         city: _cityController.text,
         photo: widget.initialCustomer?.photo, // Preserve photo
         status: widget.initialCustomer?.status ?? 'active',
@@ -182,11 +209,20 @@ class _AddCustomerBottomSheetState extends ConsumerState<AddCustomerBottomSheet>
       if (mounted) {
         Navigator.pop(context, true); // Return true to indicate change
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.initialCustomer != null ? 'Customer updated successfully' : 'Customer saved successfully'))
+          SnackBar(
+            content: Text(
+              widget.initialCustomer != null
+                  ? 'Customer updated successfully'
+                  : 'Customer saved successfully',
+            ),
+          ),
         );
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

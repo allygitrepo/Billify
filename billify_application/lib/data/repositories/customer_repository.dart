@@ -1,10 +1,10 @@
 import 'dart:convert';
-import 'package:billify_application/core/constants/app_constants.dart';
-import 'package:billify_application/core/services/local_storage_service.dart';
-import 'package:billify_application/data/datasources/remote_customer_datasource.dart';
-import 'package:billify_application/data/models/customer_model.dart';
-import 'package:billify_application/data/models/ledger_model.dart';
-import 'package:billify_application/data/models/payment_model.dart';
+import 'package:billify/core/constants/app_constants.dart';
+import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/data/datasources/remote_customer_datasource.dart';
+import 'package:billify/data/models/customer_model.dart';
+import 'package:billify/data/models/ledger_model.dart';
+import 'package:billify/data/models/payment_model.dart';
 
 class CustomerRepository {
   final LocalStorageService _storage;
@@ -12,16 +12,26 @@ class CustomerRepository {
   final String _userId;
   final String _businessId;
 
-  CustomerRepository(this._storage, this._remoteDatasource, this._userId, this._businessId);
+  CustomerRepository(
+    this._storage,
+    this._remoteDatasource,
+    this._userId,
+    this._businessId,
+  );
 
-  String get _customerDataKey => AppConstants.businessKey(_userId, _businessId, 'customer_data');
+  String get _customerDataKey =>
+      AppConstants.businessKey(_userId, _businessId, 'customer_data');
 
   Future<List<Customer>> fetchCustomers({String? search, int page = 1}) async {
     if (int.tryParse(_businessId) == null) {
       return getLocalCustomers();
     }
     try {
-      final remoteCustomers = await _remoteDatasource.getCustomers(_businessId, search: search, page: page);
+      final remoteCustomers = await _remoteDatasource.getCustomers(
+        _businessId,
+        search: search,
+        page: page,
+      );
       if (search == null && page == 1) {
         await _storage.setString(
           _customerDataKey,

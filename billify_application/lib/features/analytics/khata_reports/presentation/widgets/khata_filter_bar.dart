@@ -1,5 +1,5 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/features/analytics/khata_reports/providers/khata_reports_provider.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/features/analytics/khata_reports/providers/khata_reports_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,19 +19,31 @@ class KhataFilterBar extends ConsumerWidget {
           _DateChip(
             label: 'Today',
             isSelected: _isSameDay(state.startDate, DateTime.now()),
-            onTap: () => notifier.updateFilters(start: DateTime.now(), end: DateTime.now()),
+            onTap: () => notifier.updateFilters(
+              start: DateTime.now(),
+              end: DateTime.now(),
+            ),
           ),
           _DateChip(
             label: 'Last 7 Days',
-            isSelected: _isSameDay(state.startDate, DateTime.now().subtract(const Duration(days: 7))),
-            onTap: () => notifier.updateFilters(start: DateTime.now().subtract(const Duration(days: 7)), end: DateTime.now()),
+            isSelected: _isSameDay(
+              state.startDate,
+              DateTime.now().subtract(const Duration(days: 7)),
+            ),
+            onTap: () => notifier.updateFilters(
+              start: DateTime.now().subtract(const Duration(days: 7)),
+              end: DateTime.now(),
+            ),
           ),
           _DateChip(
             label: 'This Month',
             isSelected: state.startDate?.month == DateTime.now().month,
             onTap: () {
               final now = DateTime.now();
-              notifier.updateFilters(start: DateTime(now.year, now.month, 1), end: now);
+              notifier.updateFilters(
+                start: DateTime(now.year, now.month, 1),
+                end: now,
+              );
             },
           ),
           IconButton(
@@ -41,7 +53,10 @@ class KhataFilterBar extends ConsumerWidget {
                 context: context,
                 firstDate: DateTime(2020),
                 lastDate: DateTime.now(),
-                initialDateRange: DateTimeRange(start: state.startDate ?? DateTime.now(), end: state.endDate ?? DateTime.now()),
+                initialDateRange: DateTimeRange(
+                  start: state.startDate ?? DateTime.now(),
+                  end: state.endDate ?? DateTime.now(),
+                ),
               );
               if (range != null) {
                 notifier.updateFilters(start: range.start, end: range.end);
@@ -64,7 +79,11 @@ class _DateChip extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _DateChip({required this.label, required this.isSelected, required this.onTap});
+  const _DateChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +96,9 @@ class _DateChip extends StatelessWidget {
         selectedColor: AppTheme.primaryTeal.withOpacity(0.12),
         labelStyle: TextStyle(
           fontSize: 12,
-          color: isSelected ? AppTheme.primaryTeal : Theme.of(context).hintColor,
+          color: isSelected
+              ? AppTheme.primaryTeal
+              : Theme.of(context).hintColor,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

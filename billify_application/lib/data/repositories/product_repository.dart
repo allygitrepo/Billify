@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:billify_application/core/constants/app_constants.dart';
-import 'package:billify_application/core/services/local_storage_service.dart';
-import 'package:billify_application/data/datasources/remote_product_datasource.dart';
-import 'package:billify_application/data/models/product_model.dart';
+import 'package:billify/core/constants/app_constants.dart';
+import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/data/datasources/remote_product_datasource.dart';
+import 'package:billify/data/models/product_model.dart';
 import 'package:dio/dio.dart';
 
 class ProductRepository {
@@ -12,9 +12,18 @@ class ProductRepository {
   final String _userId;
   final String _businessId;
 
-  ProductRepository(this._storage, this._remoteDatasource, this._userId, this._businessId);
+  ProductRepository(
+    this._storage,
+    this._remoteDatasource,
+    this._userId,
+    this._businessId,
+  );
 
-  String get _productDataKey => AppConstants.businessKey(_userId, _businessId, AppConstants.keyProductData);
+  String get _productDataKey => AppConstants.businessKey(
+    _userId,
+    _businessId,
+    AppConstants.keyProductData,
+  );
 
   Future<void> fetchAndSyncProducts() async {
     if (int.tryParse(_businessId) == null) {
@@ -40,21 +49,26 @@ class ProductRepository {
     try {
       ProductModel? savedProduct;
       if (product.id.isEmpty || product.id.contains('-')) {
-        savedProduct = await _remoteDatasource.createProduct(product, _businessId);
+        savedProduct = await _remoteDatasource.createProduct(
+          product,
+          _businessId,
+        );
       } else {
         savedProduct = await _remoteDatasource.updateProduct(product);
       }
 
       if (savedProduct != null) {
         final products = getProducts();
-        final index = products.indexWhere((p) => p.id == product.id || p.id == savedProduct!.id);
-        
+        final index = products.indexWhere(
+          (p) => p.id == product.id || p.id == savedProduct!.id,
+        );
+
         if (index >= 0) {
-           products[index] = savedProduct;
+          products[index] = savedProduct;
         } else {
-           products.add(savedProduct);
+          products.add(savedProduct);
         }
-        
+
         await _storage.setString(
           _productDataKey,
           jsonEncode(products.map((e) => e.toJson()).toList()),
@@ -65,16 +79,20 @@ class ProductRepository {
     } on DioException catch (e) {
       print("SAVE ERROR: ${e.response?.data ?? e.message}");
       if (e.response?.statusCode == 409) {
-        throw Exception(e.response?.data['message'] ?? 'Product already exists');
+        throw Exception(
+          e.response?.data['message'] ?? 'Product already exists',
+        );
       }
-      throw Exception(e.response?.data['message'] ?? 'Network error while saving product');
+      throw Exception(
+        e.response?.data['message'] ?? 'Network error while saving product',
+      );
     } catch (e) {
       throw e;
     }
   }
 
   Future<void> saveProducts(List<ProductModel> productsToUpdate) async {
-    // Note: If bulk updates are needed to server, they'd go here. 
+    // Note: If bulk updates are needed to server, they'd go here.
     // Currently this is mostly used for bulk stock sync from Invoice Provider logic.
     final products = getProducts();
     for (var updatedProduct in productsToUpdate) {
@@ -89,7 +107,7 @@ class ProductRepository {
         await _remoteDatasource.updateProduct(updatedProduct);
       } catch (_) {}
     }
-    
+
     await _storage.setString(
       _productDataKey,
       jsonEncode(products.map((e) => e.toJson()).toList()),
@@ -99,7 +117,7 @@ class ProductRepository {
   List<ProductModel> getProducts() {
     final data = _storage.getString(_productDataKey);
     if (data == null) return [];
-    
+
     final List<dynamic> list = jsonDecode(data);
     return list.map((e) => ProductModel.fromJson(e)).toList();
   }
@@ -110,7 +128,8 @@ class ProductRepository {
     for (var product in products) {
       if (product.hasVariants) {
         for (var variant in product.variants) {
-          if (variant.sku == barcode) return product; // The UI matches it similarly
+          if (variant.sku == barcode)
+            return product; // The UI matches it similarly
         }
       }
       if (product.barcode == barcode) return product;
@@ -129,7 +148,7 @@ class ProductRepository {
           jsonEncode(products.map((e) => e.toJson()).toList()),
         );
       } else {
-         throw Exception("Failed to delete product on server");
+        throw Exception("Failed to delete product on server");
       }
     } catch (e) {
       throw Exception('Network error while deleting product');

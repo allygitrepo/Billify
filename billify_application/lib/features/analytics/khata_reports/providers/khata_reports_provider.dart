@@ -1,7 +1,8 @@
-import 'package:billify_application/features/analytics/khata_reports/models/khata_report_model.dart';
-import 'package:billify_application/features/analytics/khata_reports/services/khata_reports_service.dart';
-import 'package:billify_application/providers/business_provider.dart';
+import 'package:billify/features/analytics/khata_reports/models/khata_report_model.dart';
+import 'package:billify/features/analytics/khata_reports/services/khata_reports_service.dart';
+import 'package:billify/providers/business_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 class KhataReportsState {
   final KhataSummaryModel summary;
@@ -68,31 +69,41 @@ class KhataReportsState {
       paymentTrends: KhataPaymentTrend(trend: [], totalPaid: 0, totalDue: 0),
       creditSales: [],
       isLoading: false,
-      startDate: DateTime(thirtyDaysAgo.year, thirtyDaysAgo.month, thirtyDaysAgo.day),
+      startDate: DateTime(
+        thirtyDaysAgo.year,
+        thirtyDaysAgo.month,
+        thirtyDaysAgo.day,
+      ),
       endDate: DateTime(now.year, now.month, now.day, 23, 59, 59),
     );
   }
 
   List<KhataDueReportItem> get filteredDueList {
     if (searchQuery.isEmpty) return dueList;
-    return dueList.where((item) => 
-      item.name.toLowerCase().contains(searchQuery.toLowerCase()) || 
-      item.phoneNumber.contains(searchQuery)
-    ).toList();
+    return dueList
+        .where(
+          (item) =>
+              item.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+              item.phoneNumber.contains(searchQuery),
+        )
+        .toList();
   }
 }
 
-final khataReportsProvider = StateNotifierProvider<KhataReportsNotifier, KhataReportsState>((ref) {
-  final service = ref.watch(khataReportsServiceProvider);
-  final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
-  return KhataReportsNotifier(service, businessId);
-});
+final khataReportsProvider =
+    StateNotifierProvider<KhataReportsNotifier, KhataReportsState>((ref) {
+      final service = ref.watch(khataReportsServiceProvider);
+      final businessId =
+          ref.watch(businessProvider).currentBusinessId ?? 'default';
+      return KhataReportsNotifier(service, businessId);
+    });
 
 class KhataReportsNotifier extends StateNotifier<KhataReportsState> {
   final KhataReportsService _service;
   final String _businessId;
 
-  KhataReportsNotifier(this._service, this._businessId) : super(KhataReportsState.initial()) {
+  KhataReportsNotifier(this._service, this._businessId)
+    : super(KhataReportsState.initial()) {
     refresh();
   }
 
@@ -102,8 +113,12 @@ class KhataReportsNotifier extends StateNotifier<KhataReportsState> {
 
   void updateFilters({DateTime? start, DateTime? end, String? branch}) {
     state = state.copyWith(
-      startDate: start != null ? DateTime(start.year, start.month, start.day) : state.startDate,
-      endDate: end != null ? DateTime(end.year, end.month, end.day, 23, 59, 59) : state.endDate,
+      startDate: start != null
+          ? DateTime(start.year, start.month, start.day)
+          : state.startDate,
+      endDate: end != null
+          ? DateTime(end.year, end.month, end.day, 23, 59, 59)
+          : state.endDate,
       branchId: branch ?? state.branchId,
     );
     fetchAllData();
@@ -119,11 +134,36 @@ class KhataReportsNotifier extends StateNotifier<KhataReportsState> {
 
     try {
       final results = await Future.wait([
-        _service.getSummary(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
-        _service.getDueReport(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
-        _service.getTopDueCustomers(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
-        _service.getPaymentTrends(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
-        _service.getCreditSales(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId),
+        _service.getSummary(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
+        _service.getDueReport(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
+        _service.getTopDueCustomers(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
+        _service.getPaymentTrends(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
+        _service.getCreditSales(
+          _businessId,
+          startDate: state.startDate,
+          endDate: state.endDate,
+          branchId: state.branchId,
+        ),
       ]);
 
       state = state.copyWith(
@@ -141,7 +181,13 @@ class KhataReportsNotifier extends StateNotifier<KhataReportsState> {
 
   Future<void> fetchMoreDueItems({int page = 1}) async {
     try {
-      final moreItems = await _service.getDueReport(_businessId, startDate: state.startDate, endDate: state.endDate, branchId: state.branchId, page: page);
+      final moreItems = await _service.getDueReport(
+        _businessId,
+        startDate: state.startDate,
+        endDate: state.endDate,
+        branchId: state.branchId,
+        page: page,
+      );
       if (page == 1) {
         state = state.copyWith(dueList: moreItems);
       } else {

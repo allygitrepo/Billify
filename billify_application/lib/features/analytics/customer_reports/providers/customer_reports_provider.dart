@@ -1,20 +1,24 @@
-import 'package:billify_application/features/analytics/customer_reports/models/customer_report_model.dart';
-import 'package:billify_application/features/analytics/customer_reports/services/customer_reports_service.dart';
-import 'package:billify_application/providers/business_provider.dart';
+import 'package:billify/features/analytics/customer_reports/models/customer_report_model.dart';
+import 'package:billify/features/analytics/customer_reports/services/customer_reports_service.dart';
+import 'package:billify/providers/business_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
-final customerReportsProvider = StateNotifierProvider<CustomerReportsNotifier, CustomerReportsState>((ref) {
-  final service = ref.watch(customerReportsServiceProvider);
-  final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
-  return CustomerReportsNotifier(service, businessId);
-});
+final customerReportsProvider =
+    StateNotifierProvider<CustomerReportsNotifier, CustomerReportsState>((ref) {
+      final service = ref.watch(customerReportsServiceProvider);
+      final businessId =
+          ref.watch(businessProvider).currentBusinessId ?? 'default';
+      return CustomerReportsNotifier(service, businessId);
+    });
 
 class CustomerReportsNotifier extends StateNotifier<CustomerReportsState> {
   final CustomerReportsService _service;
   final String _businessId;
 
   CustomerReportsNotifier(this._service, this._businessId)
-      : super(CustomerReportsState(
+    : super(
+        CustomerReportsState(
           summary: CustomerReportSummary(
             totalCustomers: 0,
             totalReceivable: 0,
@@ -23,7 +27,8 @@ class CustomerReportsNotifier extends StateNotifier<CustomerReportsState> {
           ),
           customers: [],
           isLoading: true,
-        )) {
+        ),
+      ) {
     fetchData();
   }
 
@@ -31,7 +36,10 @@ class CustomerReportsNotifier extends StateNotifier<CustomerReportsState> {
     try {
       state = state.copyWith(isLoading: true, error: null);
 
-      final result = await _service.fetchCustomerAnalytics(_businessId, search: search);
+      final result = await _service.fetchCustomerAnalytics(
+        _businessId,
+        search: search,
+      );
 
       final summary = CustomerReportSummary.fromJson(result['summary']);
       final customers = (result['customers'] as List)

@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'package:billify_application/core/constants/app_constants.dart';
-import 'package:billify_application/core/services/local_storage_service.dart';
-import 'package:billify_application/data/datasources/remote_uom_datasource.dart';
-import 'package:billify_application/data/models/uom_model.dart';
+import 'package:billify/core/constants/app_constants.dart';
+import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/data/datasources/remote_uom_datasource.dart';
+import 'package:billify/data/models/uom_model.dart';
 
 class UomRepository {
   final LocalStorageService _storage;
@@ -10,9 +10,15 @@ class UomRepository {
   final String _userId;
   final String _businessId;
 
-  UomRepository(this._storage, this._remoteDatasource, this._userId, this._businessId);
+  UomRepository(
+    this._storage,
+    this._remoteDatasource,
+    this._userId,
+    this._businessId,
+  );
 
-  String get _uomDataKey => AppConstants.businessKey(_userId, _businessId, AppConstants.keyUomData);
+  String get _uomDataKey =>
+      AppConstants.businessKey(_userId, _businessId, AppConstants.keyUomData);
 
   Future<void> fetchAndSyncUoms() async {
     if (int.tryParse(_businessId) == null) {
@@ -51,13 +57,13 @@ class UomRepository {
         // 2. Update local with server response
         final uoms = getUoms();
         final index = uoms.indexWhere((u) => u.id == uom.id);
-        
+
         if (index >= 0) {
           uoms[index] = savedUom;
         } else {
           uoms.add(savedUom);
         }
-        
+
         await _storage.setString(
           _uomDataKey,
           jsonEncode(uoms.map((e) => e.toJson()).toList()),
@@ -73,7 +79,7 @@ class UomRepository {
     if (data == null) {
       return _seedDefaultUoms();
     }
-    
+
     try {
       final List<dynamic> list = jsonDecode(data);
       return list.map((e) => UomModel.fromJson(e)).toList();
@@ -88,12 +94,12 @@ class UomRepository {
       UomModel(id: 'litre', name: 'Litre', shortCode: 'ltr'),
       UomModel(id: 'pcs', name: 'Pcs', shortCode: 'pcs'),
     ];
-    
+
     _storage.setString(
       _uomDataKey,
       jsonEncode(defaults.map((e) => e.toJson()).toList()),
     );
-    
+
     return defaults;
   }
 

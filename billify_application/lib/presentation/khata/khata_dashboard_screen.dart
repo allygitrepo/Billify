@@ -1,7 +1,7 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/data/models/customer_model.dart';
-import 'package:billify_application/providers/customer_provider.dart';
-import 'package:billify_application/presentation/customers/customer_detail_screen.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/data/models/customer_model.dart';
+import 'package:billify/providers/customer_provider.dart';
+import 'package:billify/presentation/customers/customer_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

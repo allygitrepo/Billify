@@ -1,9 +1,9 @@
-import 'package:billify_application/data/datasources/remote_uom_datasource.dart';
-import 'package:billify_application/data/models/uom_model.dart';
-import 'package:billify_application/data/repositories/uom_repository.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/business_provider.dart';
-import 'package:billify_application/providers/storage_provider.dart';
+import 'package:billify/data/datasources/remote_uom_datasource.dart';
+import 'package:billify/data/models/uom_model.dart';
+import 'package:billify/data/repositories/uom_repository.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/providers/storage_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final uomRepositoryProvider = Provider<UomRepository>((ref) {
@@ -43,4 +43,6 @@ class UomNotifier extends Notifier<List<UomModel>> {
   }
 }
 
-final uomProvider = NotifierProvider<UomNotifier, List<UomModel>>(UomNotifier.new);
+final uomProvider = NotifierProvider<UomNotifier, List<UomModel>>(
+  UomNotifier.new,
+);

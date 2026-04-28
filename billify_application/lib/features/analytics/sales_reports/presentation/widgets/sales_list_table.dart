@@ -1,5 +1,5 @@
-import 'package:billify_application/data/models/invoice_model.dart';
-import 'package:billify_application/core/theme/app_theme.dart';
+import 'package:billify/data/models/invoice_model.dart';
+import 'package:billify/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -11,12 +11,12 @@ class SalesListTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (invoices.isEmpty) {
-       return const Center(
-         child: Padding(
-           padding: EdgeInsets.all(40),
-           child: Text('No transactions found for this period'),
-         ),
-       );
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(40),
+          child: Text('No transactions found for this period'),
+        ),
+      );
     }
 
     return SingleChildScrollView(
@@ -46,7 +46,10 @@ class SalesListTable extends StatelessWidget {
               DataCell(
                 Text(
                   invoice.id,
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryTeal),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryTeal,
+                  ),
                 ),
               ),
               DataCell(Text(DateFormat('dd MMM, yyyy').format(invoice.date))),
@@ -55,9 +58,16 @@ class SalesListTable extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(invoice.customer_name ?? 'Walk-in', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    if (invoice.customer_phone != null && invoice.customer_phone!.isNotEmpty)
-                      Text(invoice.customer_phone!, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+                    Text(
+                      invoice.customer_name ?? 'Walk-in',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    if (invoice.customer_phone != null &&
+                        invoice.customer_phone!.isNotEmpty)
+                      Text(
+                        invoice.customer_phone!,
+                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                      ),
                   ],
                 ),
               ),
@@ -66,9 +76,14 @@ class SalesListTable extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: invoice.items.map((item) => 
-                      Text("${item.name} (${item.quantity})", style: const TextStyle(fontSize: 10))
-                    ).toList(),
+                    children: invoice.items
+                        .map(
+                          (item) => Text(
+                            "${item.name} (${item.quantity})",
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
               ),
@@ -95,7 +110,11 @@ class SalesListTable extends StatelessWidget {
       ),
       child: Text(
         mode,
-        style: const TextStyle(fontSize: 10, color: AppTheme.primaryTeal, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          fontSize: 10,
+          color: AppTheme.primaryTeal,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

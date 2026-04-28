@@ -1,7 +1,7 @@
-import 'package:billify_application/core/constants/api_endpoints.dart';
-import 'package:billify_application/core/services/api_service.dart';
-import 'package:billify_application/data/datasources/auth_datasource.dart';
-import 'package:billify_application/data/models/user_model.dart';
+import 'package:billify/core/constants/api_endpoints.dart';
+import 'package:billify/core/services/api_service.dart';
+import 'package:billify/data/datasources/auth_datasource.dart';
+import 'package:billify/data/models/user_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final remoteAuthDatasourceProvider = Provider<RemoteAuthDatasource>((ref) {
@@ -21,9 +21,9 @@ class RemoteAuthDatasource implements AuthDatasource {
         ApiEndpoints.login,
         data: {'email': email, 'password': password},
       );
-      
+
       if (response.statusCode == 200) {
-        // Note: The response contains { token, user, businesses }. 
+        // Note: The response contains { token, user, businesses }.
         // We'll return true here and handle the data in the repository/provider.
         return true;
       }
@@ -40,7 +40,7 @@ class RemoteAuthDatasource implements AuthDatasource {
         ApiEndpoints.register,
         data: user.toJson(), // User registration might need business_name etc.
       );
-      
+
       if (response.statusCode == 201) {
         return true;
       }
@@ -51,7 +51,10 @@ class RemoteAuthDatasource implements AuthDatasource {
   }
 
   // Helper method for the Repository to get the full login response
-  Future<Map<String, dynamic>> loginWithResponse(String email, String password) async {
+  Future<Map<String, dynamic>> loginWithResponse(
+    String email,
+    String password,
+  ) async {
     final response = await _apiService.post(
       ApiEndpoints.login,
       data: {'email': email, 'password': password},
@@ -62,17 +65,15 @@ class RemoteAuthDatasource implements AuthDatasource {
   Future<Map<String, dynamic>> googleLogin(String idToken) async {
     final response = await _apiService.post(
       ApiEndpoints.googleLogin,
-      data: {
-        'provider': 'google',
-        'idToken': idToken,
-        'platform': 'android',
-      },
+      data: {'provider': 'google', 'idToken': idToken, 'platform': 'android'},
     );
     return response.data;
   }
 
   // Helper method for Registration with more fields
-  Future<Map<String, dynamic>> registerWithDetails(Map<String, dynamic> registrationData) async {
+  Future<Map<String, dynamic>> registerWithDetails(
+    Map<String, dynamic> registrationData,
+  ) async {
     final response = await _apiService.post(
       ApiEndpoints.register,
       data: registrationData,

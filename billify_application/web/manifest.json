@@ -1,11 +1,11 @@
 {
-    "name": "billify_application",
-    "short_name": "billify_application",
+    "name": "Billify",
+    "short_name": "Billify",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#hexcode",
     "theme_color": "#hexcode",
-    "description": "A new Flutter project.",
+    "description": "Manage your small shop products and payments easily",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'package:billify_application/core/constants/app_constants.dart';
-import 'package:billify_application/core/services/local_storage_service.dart';
-import 'package:billify_application/data/datasources/remote_user_management_datasource.dart';
-import 'package:billify_application/data/models/role_model.dart';
-import 'package:billify_application/data/models/user_model.dart';
+import 'package:billify/core/constants/app_constants.dart';
+import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/data/datasources/remote_user_management_datasource.dart';
+import 'package:billify/data/models/role_model.dart';
+import 'package:billify/data/models/user_model.dart';
 
 class UserManagementRepository {
   final LocalStorageService _storage;
@@ -11,8 +11,10 @@ class UserManagementRepository {
 
   UserManagementRepository(this._storage, this._remoteDatasource);
 
-  String _getRoleKey(String businessId) => 'business_${businessId}_${AppConstants.keyRoleData}';
-  String _getUsersListKey(String businessId) => 'business_${businessId}_${AppConstants.keyUsersList}';
+  String _getRoleKey(String businessId) =>
+      'business_${businessId}_${AppConstants.keyRoleData}';
+  String _getUsersListKey(String businessId) =>
+      'business_${businessId}_${AppConstants.keyUsersList}';
 
   // ============ Syncing ============
 

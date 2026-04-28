@@ -1,5 +1,5 @@
-import 'package:billify_application/core/constants/app_constants.dart';
-import 'package:billify_application/core/theme/app_theme.dart';
+import 'package:billify/core/constants/app_constants.dart';
+import 'package:billify/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class CustomButton extends StatelessWidget {
@@ -36,7 +36,10 @@ class CustomButton extends StatelessWidget {
             ? SizedBox(
                 height: 20,
                 width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: color ?? AppTheme.primaryTeal),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: color ?? AppTheme.primaryTeal,
+                ),
               )
             : Text(
                 text,
@@ -52,9 +55,13 @@ class CustomButton extends StatelessWidget {
       width: double.infinity,
       height: 50,
       decoration: BoxDecoration(
-        gradient: (onPressed == null || !isGradient) ? null : AppTheme.tealGradient,
+        gradient: (onPressed == null || !isGradient)
+            ? null
+            : AppTheme.tealGradient,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        color: onPressed == null ? Colors.grey : (isGradient ? null : color ?? AppTheme.primaryTeal),
+        color: onPressed == null
+            ? Colors.grey
+            : (isGradient ? null : color ?? AppTheme.primaryTeal),
       ),
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,

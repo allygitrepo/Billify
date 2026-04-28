@@ -1,11 +1,11 @@
-import 'package:billify_application/data/models/business_model.dart';
-import 'package:billify_application/data/models/cart_item_model.dart';
-import 'package:billify_application/data/models/invoice_model.dart';
-import 'package:billify_application/data/models/product_model.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/providers/invoice_provider.dart';
-import 'package:billify_application/providers/product_provider.dart';
-import 'package:billify_application/providers/customer_provider.dart';
+import 'package:billify/data/models/business_model.dart';
+import 'package:billify/data/models/cart_item_model.dart';
+import 'package:billify/data/models/invoice_model.dart';
+import 'package:billify/data/models/product_model.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/providers/invoice_provider.dart';
+import 'package:billify/providers/product_provider.dart';
+import 'package:billify/providers/customer_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class BillingState {
@@ -24,7 +24,7 @@ class BillingState {
   });
 
   double get subtotal => items.fold(0, (sum, item) => sum + item.subtotal);
-  
+
   double calculateTax(double percent) {
     return subtotal * (percent / 100);
   }
@@ -66,7 +66,9 @@ class BillingNotifier extends Notifier<BillingState> {
 
   bool addToCart(ProductModel product, {double? quantity}) {
     if (product.stock <= 0) {
-      print('DEBUG: Cannot add to cart - Product ${product.name} is out of stock!');
+      print(
+        'DEBUG: Cannot add to cart - Product ${product.name} is out of stock!',
+      );
       return false;
     }
 
@@ -90,12 +92,17 @@ class BillingNotifier extends Notifier<BillingState> {
         return false;
       }
       final updatedItems = List<CartItemModel>.from(state.items);
-      updatedItems[index] =
-          existingItem.copyWith(quantity: existingItem.quantity + qtyToAdd);
+      updatedItems[index] = existingItem.copyWith(
+        quantity: existingItem.quantity + qtyToAdd,
+      );
       state = state.copyWith(items: updatedItems);
     } else {
       state = state.copyWith(
-          items: [...state.items, CartItemModel(product: product, quantity: qtyToAdd)]);
+        items: [
+          ...state.items,
+          CartItemModel(product: product, quantity: qtyToAdd),
+        ],
+      );
     }
     return true;
   }
@@ -116,8 +123,10 @@ class BillingNotifier extends Notifier<BillingState> {
       total_amount: state.subtotal,
       tax_amount: state.calculateTax(business.tax_percentage),
       gst_amount: state.calculateTax(business.gst_percentage),
-      final_amount:
-          state.getTotal(business.tax_percentage, business.gst_percentage),
+      final_amount: state.getTotal(
+        business.tax_percentage,
+        business.gst_percentage,
+      ),
       staff_name: staffName,
       customer_id: state.selectedCustomerId,
       customer_type: state.customerType,
@@ -127,18 +136,21 @@ class BillingNotifier extends Notifier<BillingState> {
     // Save to server & history
     // NOTE: The Server-side createInvoice now handles KHATA balance updates automatically
     // because I fixed the data mapping in RemoteInvoiceDatasource!
-    final serverInvoice =
-        await ref.read(invoiceProvider.notifier).addInvoice(invoice);
+    final serverInvoice = await ref
+        .read(invoiceProvider.notifier)
+        .addInvoice(invoice);
     print('DEBUG: Invoice saved on server. ID: ${serverInvoice.id}');
 
     // Update customerProvider state synchronously before returning
     ref.invalidate(customerProvider);
     if (serverInvoice.customer_id != null) {
       print(
-          'DEBUG: Forcing synchronous refresh of Customer Ledger for ID: ${serverInvoice.customer_id}');
+        'DEBUG: Forcing synchronous refresh of Customer Ledger for ID: ${serverInvoice.customer_id}',
+      );
       // Await the actual refresh to ensure next screen has fresh data
-      await ref
-          .refresh(customerLedgerProvider(serverInvoice.customer_id!).future);
+      await ref.refresh(
+        customerLedgerProvider(serverInvoice.customer_id!).future,
+      );
     }
 
     // Sync products mathematically from the server
@@ -159,23 +171,30 @@ class BillingNotifier extends Notifier<BillingState> {
     }
   }
 
-  bool updateQuantity(String productId, double newQuantity, {String? variantId}) {
+  bool updateQuantity(
+    String productId,
+    double newQuantity, {
+    String? variantId,
+  }) {
     if (newQuantity <= 0) {
       removeFromCart(productId, variantId: variantId);
       return true;
     }
 
     final itemIndex = state.items.indexWhere(
-      (i) => i.product.id == productId && i.product.selectedVariantId == variantId,
+      (i) =>
+          i.product.id == productId && i.product.selectedVariantId == variantId,
     );
-    
+
     if (itemIndex == -1) return false;
     final item = state.items[itemIndex];
 
     // STOCK VALIDATION
     if (newQuantity > item.product.stock) {
-        print('DEBUG: Cannot update quantity - Exceeds stock (${item.product.stock})');
-        return false;
+      print(
+        'DEBUG: Cannot update quantity - Exceeds stock (${item.product.stock})',
+      );
+      return false;
     }
 
     final updatedItems = state.items.map((item) {
@@ -189,9 +208,15 @@ class BillingNotifier extends Notifier<BillingState> {
     return true;
   }
 
-  void updateItem(String productId, {String? variantId, String? customName, double? customPrice}) {
+  void updateItem(
+    String productId, {
+    String? variantId,
+    String? customName,
+    double? customPrice,
+  }) {
     final updatedItems = state.items.map((item) {
-      if (item.product.id == productId && item.product.selectedVariantId == variantId) {
+      if (item.product.id == productId &&
+          item.product.selectedVariantId == variantId) {
         return item.copyWith(customName: customName, customPrice: customPrice);
       }
       return item;
@@ -201,7 +226,13 @@ class BillingNotifier extends Notifier<BillingState> {
 
   void removeFromCart(String productId, {String? variantId}) {
     state = state.copyWith(
-      items: state.items.where((i) => i.product.id != productId || i.product.selectedVariantId != variantId).toList(),
+      items: state.items
+          .where(
+            (i) =>
+                i.product.id != productId ||
+                i.product.selectedVariantId != variantId,
+          )
+          .toList(),
     );
   }
 
@@ -210,4 +241,6 @@ class BillingNotifier extends Notifier<BillingState> {
   }
 }
 
-final billingProvider = NotifierProvider<BillingNotifier, BillingState>(BillingNotifier.new);
+final billingProvider = NotifierProvider<BillingNotifier, BillingState>(
+  BillingNotifier.new,
+);

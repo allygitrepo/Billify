@@ -1,5 +1,5 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/features/analytics/profit_reports/models/profit_report_model.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/features/analytics/profit_reports/models/profit_report_model.dart';
 import 'package:flutter/material.dart';
 
 class ProfitListItem extends StatelessWidget {
@@ -36,23 +36,30 @@ class ProfitListItem extends StatelessWidget {
                 Expanded(
                   child: Text(
                     data.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: (isNegative ? Colors.red : AppTheme.primaryTeal).withOpacity(0.1),
+                    color: (isNegative ? Colors.red : AppTheme.primaryTeal)
+                        .withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     "${data.margin.toStringAsFixed(1)}%",
                     style: TextStyle(
-                      fontSize: 10, 
-                      color: isNegative ? Colors.red : AppTheme.primaryTeal, 
-                      fontWeight: FontWeight.bold
+                      fontSize: 10,
+                      color: isNegative ? Colors.red : AppTheme.primaryTeal,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -62,10 +69,16 @@ class ProfitListItem extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _StatItem(label: 'Revenue', value: '₹${data.revenue.toStringAsFixed(0)}'),
-                _StatItem(label: 'Cost', value: '₹${data.cost.toStringAsFixed(0)}'),
                 _StatItem(
-                  label: 'Profit', 
+                  label: 'Revenue',
+                  value: '₹${data.revenue.toStringAsFixed(0)}',
+                ),
+                _StatItem(
+                  label: 'Cost',
+                  value: '₹${data.cost.toStringAsFixed(0)}',
+                ),
+                _StatItem(
+                  label: 'Profit',
                   value: '₹${data.profit.toStringAsFixed(0)}',
                   valueColor: isNegative ? Colors.red : AppTheme.primaryTeal,
                 ),
@@ -96,8 +109,8 @@ class _StatItem extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            fontSize: 12, 
-            fontWeight: FontWeight.bold, 
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
             color: valueColor ?? Theme.of(context).textTheme.bodyMedium?.color,
           ),
         ),

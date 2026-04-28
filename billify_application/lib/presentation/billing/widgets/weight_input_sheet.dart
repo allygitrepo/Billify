@@ -1,7 +1,7 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/data/models/product_model.dart';
-import 'package:billify_application/data/models/uom_model.dart';
-import 'package:billify_application/providers/uom_provider.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/data/models/product_model.dart';
+import 'package:billify/data/models/uom_model.dart';
+import 'package:billify/providers/uom_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -33,7 +33,7 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
 
   void _onNumberPressed(String value) {
     if (value == '.' && _weightController.text.contains('.')) return;
-    
+
     // Max 3 decimal places
     if (_weightController.text.contains('.')) {
       final parts = _weightController.text.split('.');
@@ -48,8 +48,10 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
   void _onBackspace() {
     if (_weightController.text.isNotEmpty) {
       setState(() {
-        _weightController.text = _weightController.text
-            .substring(0, _weightController.text.length - 1);
+        _weightController.text = _weightController.text.substring(
+          0,
+          _weightController.text.length - 1,
+        );
       });
     }
   }
@@ -111,7 +113,7 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
-          
+
           // Weight Display Area
           Container(
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
@@ -124,24 +126,32 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  _weightController.text.isEmpty ? '0.000' : _weightController.text,
+                  _weightController.text.isEmpty
+                      ? '0.000'
+                      : _weightController.text,
                   style: TextStyle(
                     fontSize: 48,
                     fontWeight: FontWeight.bold,
-                    color: _weightController.text.isEmpty ? Colors.grey : AppTheme.primaryTeal,
+                    color: _weightController.text.isEmpty
+                        ? Colors.grey
+                        : AppTheme.primaryTeal,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Text(
                   currentUnit,
-                  style: const TextStyle(fontSize: 24, color: Colors.grey, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Unit Selection Toggle
           if (subUnit != null)
             Row(
@@ -160,16 +170,19 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
                 ),
               ],
             ),
-          
+
           const SizedBox(height: 16),
-          
+
           Text(
             '₹${widget.product.price_per_unit.toStringAsFixed(2)} / $baseUnit  |  Subtotal: ₹${subtotal.toStringAsFixed(2)}',
-            style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              color: Colors.grey,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Numeric Keypad
           GridView.count(
             shrinkWrap: true,
@@ -179,10 +192,10 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
             childAspectRatio: 1.5,
             physics: const NeverScrollableScrollPhysics(),
             children: [
-              ...['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0'].map((val) => _KeyButton(
-                    label: val,
-                    onTap: () => _onNumberPressed(val),
-                  )),
+              ...['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0'].map(
+                (val) =>
+                    _KeyButton(label: val, onTap: () => _onNumberPressed(val)),
+              ),
               _KeyButton(
                 icon: Icons.backspace_outlined,
                 onTap: _onBackspace,
@@ -191,9 +204,9 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           ElevatedButton(
             onPressed: enteredValue > 0
                 ? () {
@@ -204,12 +217,18 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryTeal,
               minimumSize: const Size(double.infinity, 56),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               disabledBackgroundColor: Colors.grey.withOpacity(0.3),
             ),
             child: Text(
               widget.buttonLabel,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -241,7 +260,9 @@ class _UnitToggleButton extends StatelessWidget {
           color: isSelected ? AppTheme.primaryTeal : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryTeal : Colors.grey.withOpacity(0.3),
+            color: isSelected
+                ? AppTheme.primaryTeal
+                : Colors.grey.withOpacity(0.3),
           ),
         ),
         child: Text(
@@ -288,7 +309,10 @@ class _KeyButton extends StatelessWidget {
             child: label != null
                 ? Text(
                     label!,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   )
                 : Icon(icon, color: iconColor ?? AppTheme.primaryTeal),
           ),

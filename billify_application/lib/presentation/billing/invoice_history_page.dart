@@ -1,10 +1,10 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/data/models/invoice_model.dart';
-import 'package:billify_application/presentation/billing/thermal_invoice_dialog.dart';
-import 'package:billify_application/providers/invoice_provider.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/data/models/invoice_model.dart';
+import 'package:billify/presentation/billing/thermal_invoice_dialog.dart';
+import 'package:billify/providers/invoice_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:billify_application/providers/customer_provider.dart';
+import 'package:billify/providers/customer_provider.dart';
 import 'package:intl/intl.dart';
 
 class InvoiceHistoryPage extends ConsumerStatefulWidget {
@@ -123,7 +123,9 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                                 children: [
                                   (() {
                                     final customer = customers
-                                        .where((c) => c.id == invoice.customer_id)
+                                        .where(
+                                          (c) => c.id == invoice.customer_id,
+                                        )
                                         .firstOrNull;
                                     final isWalkin =
                                         invoice.customer_type == 'WALKIN' ||
@@ -180,7 +182,8 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: (invoice.paid_amount >=
+                                  color:
+                                      (invoice.paid_amount >=
                                           invoice.final_amount)
                                       ? Colors.green.withOpacity(0.1)
                                       : Colors.red.withOpacity(0.1),
@@ -193,7 +196,8 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: (invoice.paid_amount >=
+                                    color:
+                                        (invoice.paid_amount >=
                                             invoice.final_amount)
                                         ? Colors.green
                                         : Colors.red,

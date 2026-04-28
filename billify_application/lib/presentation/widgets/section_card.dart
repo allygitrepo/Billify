@@ -1,4 +1,4 @@
-import 'package:billify_application/core/constants/app_constants.dart';
+import 'package:billify/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 
 class SectionCard extends StatelessWidget {

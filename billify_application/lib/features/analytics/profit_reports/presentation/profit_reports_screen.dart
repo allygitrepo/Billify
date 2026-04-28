@@ -1,10 +1,10 @@
-import 'package:billify_application/features/analytics/profit_reports/providers/profit_reports_provider.dart';
-import 'package:billify_application/features/analytics/profit_reports/presentation/widgets/profit_summary_card.dart';
-import 'package:billify_application/features/analytics/profit_reports/presentation/widgets/profit_filter_bar.dart';
-import 'package:billify_application/features/analytics/profit_reports/presentation/widgets/profit_chart.dart';
-import 'package:billify_application/features/analytics/profit_reports/presentation/widgets/profit_list_item.dart';
-import 'package:billify_application/providers/auth_provider.dart';
-import 'package:billify_application/data/models/user_permission.dart';
+import 'package:billify/features/analytics/profit_reports/providers/profit_reports_provider.dart';
+import 'package:billify/features/analytics/profit_reports/presentation/widgets/profit_summary_card.dart';
+import 'package:billify/features/analytics/profit_reports/presentation/widgets/profit_filter_bar.dart';
+import 'package:billify/features/analytics/profit_reports/presentation/widgets/profit_chart.dart';
+import 'package:billify/features/analytics/profit_reports/presentation/widgets/profit_list_item.dart';
+import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/data/models/user_permission.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,9 +14,12 @@ class ProfitReportsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
-    
+
     // Permission Check
-    if (!auth.hasPermission(PermissionModule.analytics, PermissionAction.view)) {
+    if (!auth.hasPermission(
+      PermissionModule.analytics,
+      PermissionAction.view,
+    )) {
       return Scaffold(
         appBar: AppBar(title: const Text('Profit Reports')),
         body: const Center(
@@ -25,7 +28,10 @@ class ProfitReportsScreen extends ConsumerWidget {
             children: [
               Icon(Icons.lock_outline, size: 64, color: Colors.grey),
               SizedBox(height: 16),
-              Text('Access Denied', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                'Access Denied',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               Text('You do not have permission to view profit reports.'),
             ],
           ),
@@ -54,7 +60,8 @@ class ProfitReportsScreen extends ConsumerWidget {
             child: state.isLoading && state.summary.totalProfit == 0
                 ? const Center(child: CircularProgressIndicator())
                 : RefreshIndicator(
-                    onRefresh: () => ref.read(profitReportsProvider.notifier).refresh(),
+                    onRefresh: () =>
+                        ref.read(profitReportsProvider.notifier).refresh(),
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.all(16),
@@ -63,26 +70,36 @@ class ProfitReportsScreen extends ConsumerWidget {
                         children: [
                           ProfitSummaryCards(summary: state.summary),
                           const SizedBox(height: 24),
-                          
+
                           _buildSectionTitle(context, 'Profit Trend'),
                           const SizedBox(height: 12),
-                          _buildChartCard(context, ProfitTrendChart(data: state.trend)),
+                          _buildChartCard(
+                            context,
+                            ProfitTrendChart(data: state.trend),
+                          ),
                           const SizedBox(height: 24),
 
-                          _buildSectionTitle(context, 'Most Profitable Products'),
+                          _buildSectionTitle(
+                            context,
+                            'Most Profitable Products',
+                          ),
                           const SizedBox(height: 12),
                           if (state.topProducts.isEmpty)
-                            const Center(child: Padding(
-                              padding: EdgeInsets.all(20.0),
-                              child: Text('No product data available'),
-                            ))
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20.0),
+                                child: Text('No product data available'),
+                              ),
+                            )
                           else
                             ListView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: state.topProducts.length,
                               itemBuilder: (context, index) {
-                                return ProfitListItem(data: state.topProducts[index]);
+                                return ProfitListItem(
+                                  data: state.topProducts[index],
+                                );
                               },
                             ),
                           const SizedBox(height: 100), // Bottom padding

@@ -1,4 +1,4 @@
-import 'package:billify_application/data/models/product_model.dart';
+import 'package:billify/data/models/product_model.dart';
 
 class CartItemModel {
   final ProductModel product;
@@ -32,8 +32,17 @@ class CartItemModel {
     return CartItemModel(
       product: product,
       quantity: double.tryParse(json['quantity']?.toString() ?? '') ?? 1.0,
-      customPrice: double.tryParse(json['customPrice']?.toString() ?? json['price']?.toString() ?? '') ?? 0.0,
-      customName: (json['customName'] ?? json['product_name'] ?? json['productName'] ?? 'Unknown').toString(),
+      customPrice:
+          double.tryParse(
+            json['customPrice']?.toString() ?? json['price']?.toString() ?? '',
+          ) ??
+          0.0,
+      customName:
+          (json['customName'] ??
+                  json['product_name'] ??
+                  json['productName'] ??
+                  'Unknown')
+              .toString(),
     );
   }
 
@@ -50,7 +59,9 @@ class CartItemModel {
     return {
       'productId': int.tryParse(product.id),
       'productName': product.name,
-      'variantName': product.selectedVariantId != null ? product.name.split(' (').last.replaceAll(')', '') : '',
+      'variantName': product.selectedVariantId != null
+          ? product.name.split(' (').last.replaceAll(')', '')
+          : '',
       'quantity': quantity,
       'price': price,
       'subtotal': subtotal,
@@ -61,6 +72,7 @@ class CartItemModel {
     if (customPrice != null) return customPrice!;
     return product.is_weighted ? product.price_per_unit : product.basePrice;
   }
+
   String get name => customName ?? product.name;
   double get subtotal => price * quantity;
 

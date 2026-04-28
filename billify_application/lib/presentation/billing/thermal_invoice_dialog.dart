@@ -1,10 +1,10 @@
-import 'package:billify_application/core/theme/app_theme.dart';
-import 'package:billify_application/data/models/business_model.dart';
-import 'package:billify_application/providers/billing_provider.dart';
+import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/data/models/business_model.dart';
+import 'package:billify/providers/billing_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:billify_application/providers/customer_provider.dart';
-import 'package:billify_application/presentation/customers/customer_detail_screen.dart';
+import 'package:billify/providers/customer_provider.dart';
+import 'package:billify/presentation/customers/customer_detail_screen.dart';
 import 'package:intl/intl.dart';
 
 class ThermalInvoiceDialog extends ConsumerStatefulWidget {
@@ -586,8 +586,8 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                           _paymentMode == 'CASH'
                               ? 'CONFIRM (PAID)'
                               : _paymentMode == 'KHATA'
-                                  ? 'CONFIRM (KHATA)'
-                                  : 'CONFIRM (SPLIT)',
+                              ? 'CONFIRM (KHATA)'
+                              : 'CONFIRM (SPLIT)',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,

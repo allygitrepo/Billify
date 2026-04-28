@@ -1,6 +1,6 @@
-import 'package:billify_application/core/constants/api_endpoints.dart';
-import 'package:billify_application/core/services/api_service.dart';
-import 'package:billify_application/data/models/business_model.dart';
+import 'package:billify/core/constants/api_endpoints.dart';
+import 'package:billify/core/services/api_service.dart';
+import 'package:billify/data/models/business_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class RemoteBusinessDatasource {
@@ -46,7 +46,7 @@ class RemoteBusinessDatasource {
       return null;
     }
   }
-  
+
   Future<BusinessModel?> updateBusiness(BusinessModel business) async {
     try {
       final response = await _apiService.put(
@@ -73,6 +73,8 @@ class RemoteBusinessDatasource {
   }
 }
 
-final remoteBusinessDatasourceProvider = Provider<RemoteBusinessDatasource>((ref) {
+final remoteBusinessDatasourceProvider = Provider<RemoteBusinessDatasource>((
+  ref,
+) {
   return RemoteBusinessDatasource(ref.read(apiServiceProvider));
 });

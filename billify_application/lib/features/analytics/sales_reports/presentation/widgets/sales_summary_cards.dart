@@ -1,5 +1,5 @@
-import 'package:billify_application/presentation/analytics/widgets/analytics_widgets.dart';
-import 'package:billify_application/features/analytics/sales_reports/models/sales_models.dart';
+import 'package:billify/presentation/analytics/widgets/analytics_widgets.dart';
+import 'package:billify/features/analytics/sales_reports/models/sales_models.dart';
 import 'package:flutter/material.dart';
 
 class SalesSummaryCards extends StatelessWidget {

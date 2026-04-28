@@ -1,6 +1,6 @@
-import 'package:billify_application/core/constants/api_endpoints.dart';
-import 'package:billify_application/core/services/api_service.dart';
-import 'package:billify_application/features/analytics/khata_reports/models/khata_report_model.dart';
+import 'package:billify/core/constants/api_endpoints.dart';
+import 'package:billify/core/services/api_service.dart';
+import 'package:billify/features/analytics/khata_reports/models/khata_report_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final khataReportsServiceProvider = Provider<KhataReportsService>((ref) {
@@ -13,7 +13,12 @@ class KhataReportsService {
 
   KhataReportsService(this._apiService);
 
-  Map<String, dynamic> _buildParams(String businessId, {DateTime? startDate, DateTime? endDate, String? branchId}) {
+  Map<String, dynamic> _buildParams(
+    String businessId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    String? branchId,
+  }) {
     return {
       'business_id': businessId,
       if (startDate != null) 'start_date': startDate.toIso8601String(),
@@ -22,12 +27,22 @@ class KhataReportsService {
     };
   }
 
-  Future<KhataSummaryModel> getSummary(String businessId, {DateTime? startDate, DateTime? endDate, String? branchId}) async {
+  Future<KhataSummaryModel> getSummary(
+    String businessId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    String? branchId,
+  }) async {
     final uri = ApiEndpoints.getKhataSummary(businessId);
     print("Fetching Khata Summary from: $uri");
     final response = await _apiService.get(
       uri,
-      queryParameters: _buildParams(businessId, startDate: startDate, endDate: endDate, branchId: branchId),
+      queryParameters: _buildParams(
+        businessId,
+        startDate: startDate,
+        endDate: endDate,
+        branchId: branchId,
+      ),
     );
     if (response.statusCode == 200 && response.data != null) {
       return KhataSummaryModel.fromJson(response.data['summary']);
@@ -35,8 +50,19 @@ class KhataReportsService {
     return KhataSummaryModel.empty();
   }
 
-  Future<List<KhataDueReportItem>> getDueReport(String businessId, {DateTime? startDate, DateTime? endDate, String? branchId, int page = 1}) async {
-    final params = _buildParams(businessId, startDate: startDate, endDate: endDate, branchId: branchId);
+  Future<List<KhataDueReportItem>> getDueReport(
+    String businessId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    String? branchId,
+    int page = 1,
+  }) async {
+    final params = _buildParams(
+      businessId,
+      startDate: startDate,
+      endDate: endDate,
+      branchId: branchId,
+    );
     params['page'] = page;
     final response = await _apiService.get(
       ApiEndpoints.getKhataDueReport(businessId),
@@ -49,10 +75,20 @@ class KhataReportsService {
     return [];
   }
 
-  Future<KhataPaymentTrend> getPaymentTrends(String businessId, {DateTime? startDate, DateTime? endDate, String? branchId}) async {
+  Future<KhataPaymentTrend> getPaymentTrends(
+    String businessId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    String? branchId,
+  }) async {
     final response = await _apiService.get(
       ApiEndpoints.getKhataPayments(businessId),
-      queryParameters: _buildParams(businessId, startDate: startDate, endDate: endDate, branchId: branchId),
+      queryParameters: _buildParams(
+        businessId,
+        startDate: startDate,
+        endDate: endDate,
+        branchId: branchId,
+      ),
     );
     if (response.statusCode == 200 && response.data != null) {
       return KhataPaymentTrend.fromJson(response.data['payments']);
@@ -60,10 +96,20 @@ class KhataReportsService {
     return KhataPaymentTrend(trend: [], totalPaid: 0, totalDue: 0);
   }
 
-  Future<List<KhataChartPoint>> getCreditSales(String businessId, {DateTime? startDate, DateTime? endDate, String? branchId}) async {
+  Future<List<KhataChartPoint>> getCreditSales(
+    String businessId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    String? branchId,
+  }) async {
     final response = await _apiService.get(
       ApiEndpoints.getKhataCreditReport(businessId),
-      queryParameters: _buildParams(businessId, startDate: startDate, endDate: endDate, branchId: branchId),
+      queryParameters: _buildParams(
+        businessId,
+        startDate: startDate,
+        endDate: endDate,
+        branchId: branchId,
+      ),
     );
     if (response.statusCode == 200 && response.data != null) {
       final data = response.data['credit'] as List? ?? [];
@@ -72,10 +118,20 @@ class KhataReportsService {
     return [];
   }
 
-  Future<List<KhataDueReportItem>> getTopDueCustomers(String businessId, {DateTime? startDate, DateTime? endDate, String? branchId}) async {
+  Future<List<KhataDueReportItem>> getTopDueCustomers(
+    String businessId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    String? branchId,
+  }) async {
     final response = await _apiService.get(
       ApiEndpoints.getKhataCustomersAnalytics(businessId),
-      queryParameters: _buildParams(businessId, startDate: startDate, endDate: endDate, branchId: branchId),
+      queryParameters: _buildParams(
+        businessId,
+        startDate: startDate,
+        endDate: endDate,
+        branchId: branchId,
+      ),
     );
     if (response.statusCode == 200 && response.data != null) {
       final data = response.data['top_due'] as List? ?? [];

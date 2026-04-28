@@ -1,9 +1,10 @@
-import 'package:billify_application/data/models/analytics_models.dart';
-import 'package:billify_application/providers/customer_provider.dart';
-import 'package:billify_application/providers/invoice_provider.dart';
-import 'package:billify_application/providers/product_provider.dart';
-import 'package:billify_application/providers/category_provider.dart';
+import 'package:billify/data/models/analytics_models.dart';
+import 'package:billify/providers/customer_provider.dart';
+import 'package:billify/providers/invoice_provider.dart';
+import 'package:billify/providers/product_provider.dart';
+import 'package:billify/providers/category_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 enum AnalyticsDateFilter { today, week, month }
 
@@ -47,7 +48,8 @@ class AnalyticsNotifier extends StateNotifier<AnalyticsState> {
   final Ref _ref;
   AnalyticsDateFilter _currentFilter = AnalyticsDateFilter.today;
 
-  AnalyticsNotifier(this._ref) : super(AnalyticsState(summary: AnalyticsSummary.empty())) {
+  AnalyticsNotifier(this._ref)
+    : super(AnalyticsState(summary: AnalyticsSummary.empty())) {
     refresh();
   }
 
@@ -67,7 +69,7 @@ class AnalyticsNotifier extends StateNotifier<AnalyticsState> {
     final products = _ref.read(productProvider);
     final categories = _ref.read(categoryProvider);
     final customersAsync = _ref.read(customerProvider);
-    
+
     // We handle the AsyncValue for customers
     final customers = customersAsync.asData?.value ?? [];
 
@@ -75,15 +77,22 @@ class AnalyticsNotifier extends StateNotifier<AnalyticsState> {
     final filteredInvoices = _filterInvoices(invoices, _currentFilter);
 
     // Calculate Summary
-    final totalSales = filteredInvoices.fold(0.0, (sum, item) => sum + item.final_amount);
-    
+    final totalSales = filteredInvoices.fold(
+      0.0,
+      (sum, item) => sum + item.final_amount,
+    );
+
     // Profit calculation - assuming a fixed 20% margin if profit not explicitly stored per item
     // In a real app, this would be (final_amount - total_cost)
-    final totalProfit = totalSales * 0.25; 
+    final totalProfit = totalSales * 0.25;
 
     final totalOrders = filteredInvoices.length;
     final totalCustomersCount = customers.length;
-    final totalReceivable = customers.fold(0.0, (sum, item) => sum + (item.remainingBalance > 0 ? item.remainingBalance : 0));
+    final totalReceivable = customers.fold(
+      0.0,
+      (sum, item) =>
+          sum + (item.remainingBalance > 0 ? item.remainingBalance : 0),
+    );
 
     final summary = AnalyticsSummary(
       totalSales: totalSales,
@@ -103,7 +112,11 @@ class AnalyticsNotifier extends StateNotifier<AnalyticsState> {
     final paymentMethods = _calculatePaymentMethods(filteredInvoices);
 
     // 4. Category Sales (Horizontal Bar Data)
-    final categorySales = _calculateCategorySales(filteredInvoices, products, categories);
+    final categorySales = _calculateCategorySales(
+      filteredInvoices,
+      products,
+      categories,
+    );
 
     state = state.copyWith(
       summary: summary,
@@ -115,12 +128,17 @@ class AnalyticsNotifier extends StateNotifier<AnalyticsState> {
     );
   }
 
-  List<dynamic> _filterInvoices(List<dynamic> invoices, AnalyticsDateFilter filter) {
+  List<dynamic> _filterInvoices(
+    List<dynamic> invoices,
+    AnalyticsDateFilter filter,
+  ) {
     final now = DateTime.now();
     return invoices.where((inv) {
       final date = inv.date.toLocal();
       if (filter == AnalyticsDateFilter.today) {
-        return date.year == now.year && date.month == now.month && date.day == now.day;
+        return date.year == now.year &&
+            date.month == now.month &&
+            date.day == now.day;
       } else if (filter == AnalyticsDateFilter.week) {
         final weekAgo = now.subtract(const Duration(days: 7));
         return date.isAfter(weekAgo);
@@ -130,7 +148,10 @@ class AnalyticsNotifier extends StateNotifier<AnalyticsState> {
     }).toList();
   }
 
-  List<ChartDataPoint> _calculateSalesTrend(List<dynamic> invoices, AnalyticsDateFilter filter) {
+  List<ChartDataPoint> _calculateSalesTrend(
+    List<dynamic> invoices,
+    AnalyticsDateFilter filter,
+  ) {
     final now = DateTime.now();
     final Map<String, double> groupedSales = {};
 
@@ -156,17 +177,21 @@ class AnalyticsNotifier extends StateNotifier<AnalyticsState> {
       }
     }
 
-    return groupedSales.entries.map((e) => ChartDataPoint(e.key, e.value)).toList();
+    return groupedSales.entries
+        .map((e) => ChartDataPoint(e.key, e.value))
+        .toList();
   }
 
   List<ChartDataPoint> _calculateTopProducts(List<dynamic> invoices) {
     final Map<String, double> productTotals = {};
     for (var inv in invoices) {
       for (var item in inv.items) {
-        productTotals[item.name] = (productTotals[item.name] ?? 0) + item.subtotal;
+        productTotals[item.name] =
+            (productTotals[item.name] ?? 0) + item.subtotal;
       }
     }
-    final sorted = productTotals.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final sorted = productTotals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
     return sorted.take(5).map((e) => ChartDataPoint(e.key, e.value)).toList();
   }
 
@@ -174,26 +199,34 @@ class AnalyticsNotifier extends StateNotifier<AnalyticsState> {
     final Map<String, double> methodTotals = {};
     double total = 0;
     for (var inv in invoices) {
-       final method = inv.payment_mode;
-       methodTotals[method] = (methodTotals[method] ?? 0) + inv.final_amount;
-       total += inv.final_amount;
+      final method = inv.payment_mode;
+      methodTotals[method] = (methodTotals[method] ?? 0) + inv.final_amount;
+      total += inv.final_amount;
     }
-    
+
     if (total == 0) return [];
-    
-    return methodTotals.entries.map((e) => PaymentMethodData(
-      method: e.key,
-      amount: e.value,
-      percentage: (e.value / total) * 100,
-    )).toList();
+
+    return methodTotals.entries
+        .map(
+          (e) => PaymentMethodData(
+            method: e.key,
+            amount: e.value,
+            percentage: (e.value / total) * 100,
+          ),
+        )
+        .toList();
   }
 
-  List<CategorySalesData> _calculateCategorySales(List<dynamic> invoices, List<dynamic> products, List<dynamic> categories) {
+  List<CategorySalesData> _calculateCategorySales(
+    List<dynamic> invoices,
+    List<dynamic> products,
+    List<dynamic> categories,
+  ) {
     final Map<String, double> catTotals = {};
-    
+
     // Map category ID to name
     final Map<String, String> catIdToName = {
-      for (var c in categories) c.id: c.name
+      for (var c in categories) c.id: c.name,
     };
 
     // Map product name to category name for efficiency
@@ -205,20 +238,24 @@ class AnalyticsNotifier extends StateNotifier<AnalyticsState> {
     for (var inv in invoices) {
       for (var item in inv.items) {
         final categoryName = prodToCatName[item.name] ?? 'Uncategorized';
-        catTotals[categoryName] = (catTotals[categoryName] ?? 0) + item.subtotal;
+        catTotals[categoryName] =
+            (catTotals[categoryName] ?? 0) + item.subtotal;
       }
     }
-    
-    return catTotals.entries.map((e) => CategorySalesData(e.key, e.value)).toList();
+
+    return catTotals.entries
+        .map((e) => CategorySalesData(e.key, e.value))
+        .toList();
   }
 }
 
-final analyticsProvider = StateNotifierProvider<AnalyticsNotifier, AnalyticsState>((ref) {
-  // Watch dependencies so we refresh when data changes
-  ref.watch(invoiceProvider);
-  ref.watch(productProvider);
-  ref.watch(categoryProvider);
-  ref.watch(customerProvider);
-  
-  return AnalyticsNotifier(ref);
-});
+final analyticsProvider =
+    StateNotifierProvider<AnalyticsNotifier, AnalyticsState>((ref) {
+      // Watch dependencies so we refresh when data changes
+      ref.watch(invoiceProvider);
+      ref.watch(productProvider);
+      ref.watch(categoryProvider);
+      ref.watch(customerProvider);
+
+      return AnalyticsNotifier(ref);
+    });

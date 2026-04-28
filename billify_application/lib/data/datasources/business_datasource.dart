@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:billify_application/core/constants/app_constants.dart';
-import 'package:billify_application/core/services/local_storage_service.dart';
-import 'package:billify_application/data/models/business_model.dart';
+import 'package:billify/core/constants/app_constants.dart';
+import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/data/models/business_model.dart';
 
 abstract class BusinessDatasource {
   Future<bool> saveBusiness(BusinessModel business);
@@ -17,28 +17,34 @@ class LocalBusinessDatasource implements BusinessDatasource {
 
   LocalBusinessDatasource(this._storage, this._userId);
 
-  String get _businessDataKey => AppConstants.userKey(_userId, AppConstants.keyBusinessData);
-  String get _currentBusinessIdKey => AppConstants.userKey(_userId, AppConstants.keyCurrentBusinessId);
+  String get _businessDataKey =>
+      AppConstants.userKey(_userId, AppConstants.keyBusinessData);
+  String get _currentBusinessIdKey =>
+      AppConstants.userKey(_userId, AppConstants.keyCurrentBusinessId);
 
   @override
   Future<bool> saveBusiness(BusinessModel business) async {
     final businesses = getBusinesses();
     final index = businesses.indexWhere((b) => b.id == business.id);
-    
+
     if (index >= 0) {
       businesses[index] = business;
     } else {
       businesses.add(business);
     }
 
-    final businessesJson = jsonEncode(businesses.map((e) => e.toJson()).toList());
+    final businessesJson = jsonEncode(
+      businesses.map((e) => e.toJson()).toList(),
+    );
     final saved = await _storage.setString(_businessDataKey, businessesJson);
-    
+
     // If it's the first business, set it as current (only if it's a real server-assigned ID)
-    if (saved && getCurrentBusinessId() == null && int.tryParse(business.id) != null) {
+    if (saved &&
+        getCurrentBusinessId() == null &&
+        int.tryParse(business.id) != null) {
       await setCurrentBusinessId(business.id);
     }
-    
+
     return saved;
   }
 

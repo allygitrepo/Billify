@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart' as gsi;
 
-import 'package:billify_application/core/constants/app_constants.dart';
-import 'package:billify_application/core/services/local_storage_service.dart';
-import 'package:billify_application/data/datasources/auth_datasource.dart';
-import 'package:billify_application/data/datasources/remote_auth_datasource.dart';
-import 'package:billify_application/data/models/user_model.dart';
+import 'package:billify/core/constants/app_constants.dart';
+import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/data/datasources/auth_datasource.dart';
+import 'package:billify/data/datasources/remote_auth_datasource.dart';
+import 'package:billify/data/models/user_model.dart';
 
 class AuthRepository {
   final LocalAuthDatasource _localDatasource;

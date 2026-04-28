@@ -1,5 +1,6 @@
 class ApiEndpoints {
-  static const String baseUrl = "http://192.168.1.9:3000/billify";
+  static const String baseUrl =
+      "https://silverapi.allysoftsolutions.com/billify";
 
   // Auth Endpoints
   static const String login = "$baseUrl/auth/login";

@@ -36,7 +36,7 @@ app.get("/billify/test", (req, res) => {
     res.json(
         {
             status: "Running",
-            server: "Shiftledger"
+            server: "Billify"
         }
     )
 });

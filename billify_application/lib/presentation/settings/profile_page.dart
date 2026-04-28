@@ -1,4 +1,5 @@
 import 'package:billify_application/core/theme/app_theme.dart';
+import 'package:billify_application/core/utils/image_utils.dart';
 import 'package:billify_application/presentation/widgets/full_screen_image_viewer.dart';
 import 'package:billify_application/providers/auth_provider.dart';
 import 'package:billify_application/presentation/widgets/error_handler.dart';
@@ -187,8 +188,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                     ? (_selectedImagePath!.startsWith('http')
                                         ? NetworkImage(_selectedImagePath!)
                                         : (_selectedImagePath!.startsWith('data:image') || _selectedImagePath!.length > 100 
-                                            ? MemoryImage(base64Decode(_selectedImagePath!.split(',').last)) 
-                                            : FileImage(File(_selectedImagePath!)) as ImageProvider))
+                                        ? MemoryImage(ImageUtils.decodeBase64(_selectedImagePath!)) 
+                                        : FileImage(File(_selectedImagePath!)) as ImageProvider))
                                     : null,
                                 child: _selectedImagePath == null || _selectedImagePath!.isEmpty
                                     ? Icon(Icons.person, size: 60, color: Colors.grey[400])

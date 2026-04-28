@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:billify_application/core/theme/app_theme.dart';
+import 'package:billify_application/core/utils/image_utils.dart';
 import 'package:billify_application/core/utils/validators.dart';
 import 'package:billify_application/data/models/product_model.dart';
 import 'package:billify_application/data/models/product_variant_model.dart';
@@ -324,7 +325,7 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
                                 0.1,
                               ),
                               backgroundImage: base64Image != null
-                                  ? MemoryImage(base64Decode(base64Image!))
+                                  ? MemoryImage(ImageUtils.decodeBase64(base64Image!))
                                   : null,
                               child: base64Image == null
                                   ? const Icon(
@@ -909,7 +910,7 @@ class _ProductListTile extends ConsumerWidget {
             borderRadius: BorderRadius.circular(8),
             image: product.photo != null
                 ? DecorationImage(
-                    image: MemoryImage(base64Decode(product.photo!)),
+                    image: MemoryImage(ImageUtils.decodeBase64(product.photo!)),
                     fit: BoxFit.cover,
                   )
                 : null,

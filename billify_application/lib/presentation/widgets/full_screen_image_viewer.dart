@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:billify_application/core/utils/image_utils.dart';
 import 'package:flutter/material.dart';
 
 class FullScreenImageViewer extends StatelessWidget {
@@ -32,7 +33,7 @@ class FullScreenImageViewer extends StatelessWidget {
                 ? (imagePath!.startsWith('data:image') ||
                         imagePath!.length > 100
                     ? Image.memory(
-                      base64Decode(imagePath!.split(',').last),
+                      ImageUtils.decodeBase64(imagePath!),
                       fit: BoxFit.contain,
                     )
                     : Image.file(

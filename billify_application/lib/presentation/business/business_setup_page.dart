@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:billify_application/core/theme/app_theme.dart';
+import 'package:billify_application/core/utils/image_utils.dart';
 import 'package:billify_application/core/utils/validators.dart';
 import 'package:billify_application/providers/state/business_state.dart';
 import 'package:billify_application/data/models/business_model.dart';
@@ -307,7 +308,7 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
                   image: business.business_logo != null
                       ? DecorationImage(
                           image: MemoryImage(
-                            base64Decode(business.business_logo!),
+                            ImageUtils.decodeBase64(business.business_logo!),
                           ),
                           fit: BoxFit.cover,
                         )

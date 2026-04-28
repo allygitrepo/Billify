@@ -1,4 +1,5 @@
 import 'package:billify_application/core/theme/app_theme.dart';
+import 'package:billify_application/core/utils/image_utils.dart';
 import 'package:billify_application/data/models/role_model.dart';
 import 'package:billify_application/data/models/user_model.dart';
 import 'package:billify_application/presentation/settings/widgets/permission_matrix_widget.dart';
@@ -108,7 +109,7 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                 ? (user.photo!.startsWith('http')
                     ? NetworkImage(user.photo!)
                     : (user.photo!.startsWith('data:image') || user.photo!.length > 100 
-                        ? MemoryImage(base64Decode(user.photo!.split(',').last)) 
+                        ? MemoryImage(ImageUtils.decodeBase64(user.photo!)) 
                         : FileImage(File(user.photo!)) as ImageProvider))
                 : null,
               child: user.photo == null ? const Icon(Icons.person, color: AppTheme.primaryTeal) : null,
@@ -277,8 +278,8 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> with Si
                           radius: 50,
                           backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
                           backgroundImage: base64Image != null 
-                              ? MemoryImage(base64Decode(base64Image!.split(',').last)) 
-                              : null,
+                          ? MemoryImage(ImageUtils.decodeBase64(base64Image!)) 
+                          : null,
                           child: base64Image == null 
                               ? const Icon(Icons.person_outline, color: AppTheme.primaryTeal, size: 40)
                               : null,

@@ -1,6 +1,7 @@
 import 'package:billify_application/core/enums/stock_mode.dart';
 import 'dart:convert';
 import 'package:billify_application/core/theme/app_theme.dart';
+import 'package:billify_application/core/utils/image_utils.dart';
 import 'package:billify_application/data/models/product_model.dart';
 import 'package:billify_application/data/models/product_variant_model.dart';
 import 'package:billify_application/data/models/stock_history_model.dart';
@@ -1031,7 +1032,7 @@ class _HistoryItem extends ConsumerWidget {
               clipBehavior: Clip.antiAlias,
               child: product?.photo != null && product!.photo!.isNotEmpty
                   ? Image.memory(
-                      base64Decode(product.photo!.split(',').last),
+                      ImageUtils.decodeBase64(product.photo!),
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => const Icon(
                         Icons.image_not_supported_outlined,
@@ -1249,7 +1250,7 @@ class _StockItemTile extends StatelessWidget {
                           builder: (context) {
                             try {
                               return Image.memory(
-                                base64Decode(product.photo!.split(',').last),
+                                ImageUtils.decodeBase64(product.photo!),
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
                                     const Icon(
@@ -1484,7 +1485,7 @@ class _InventoryProductTile extends ConsumerWidget {
                   builder: (context) {
                     try {
                       return Image.memory(
-                        base64Decode(product.photo!.split(',').last),
+                        ImageUtils.decodeBase64(product.photo!),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
                             const Icon(Icons.image_not_supported_outlined, size: 20),

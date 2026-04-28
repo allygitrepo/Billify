@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:billify_application/core/utils/image_utils.dart';
 import 'package:billify_application/core/theme/app_theme.dart';
 import 'package:billify_application/presentation/billing/scanner_screen.dart';
 import 'package:billify_application/presentation/business/business_setup_page.dart';
@@ -353,7 +354,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: Image.memory(
-                                base64Decode(b.business_logo!),
+                                ImageUtils.decodeBase64(b.business_logo!),
                                 fit: BoxFit.cover,
                               ),
                             )
@@ -728,7 +729,7 @@ class _HomeHeader extends StatelessWidget {
                             : (user!.photo!.startsWith('data:image') ||
                                     user!.photo!.length > 100
                                 ? MemoryImage(
-                                    base64Decode(user!.photo!.split(',').last),
+                                    ImageUtils.decodeBase64(user!.photo!),
                                   )
                                 : FileImage(File(user!.photo!)) as ImageProvider))
                       : null,
@@ -804,7 +805,7 @@ class _HomeHeader extends StatelessWidget {
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(15),
                       child: Image.memory(
-                        base64Decode(business!.business_logo!),
+                        ImageUtils.decodeBase64(business!.business_logo!),
                         fit: BoxFit.cover,
                       ),
                     )

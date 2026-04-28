@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:billify_application/core/utils/image_utils.dart';
 import 'package:billify_application/data/models/customer_model.dart';
 import 'package:billify_application/data/models/ledger_model.dart';
 import 'package:billify_application/data/models/payment_model.dart';
@@ -323,7 +324,9 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
             child: customer.photo != null && customer.photo!.isNotEmpty
                 ? CircleAvatar(
                     radius: 50,
-                    backgroundImage: MemoryImage(base64Decode(customer.photo!)),
+                    backgroundImage: MemoryImage(
+                      ImageUtils.decodeBase64(customer.photo!),
+                    ),
                   )
                 : CircleAvatar(
                     radius: 50,

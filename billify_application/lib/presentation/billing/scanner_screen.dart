@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:billify_application/core/theme/app_theme.dart';
+import 'package:billify_application/core/utils/image_utils.dart';
 import 'package:billify_application/presentation/billing/thermal_invoice_dialog.dart';
 import 'package:billify_application/presentation/product/product_management_page.dart';
 import 'package:billify_application/providers/billing_provider.dart';
@@ -1091,7 +1092,7 @@ class _PanelItemTile extends ConsumerWidget {
               child:
                   item.product.photo != null && item.product.photo!.isNotEmpty
                   ? Image.memory(
-                      base64Decode(item.product.photo!.split(',').last),
+                      ImageUtils.decodeBase64(item.product.photo!),
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => const Icon(
                         Icons.image_not_supported_outlined,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:billify_application/core/constants/app_constants.dart';
+import 'package:billify_application/core/utils/image_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -78,7 +79,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(AppConstants.borderRadius),
                     child: Image.memory(
-                      base64Decode(_base64String!),
+                      ImageUtils.decodeBase64(_base64String!),
                       fit: BoxFit.cover,
                     ),
                   )

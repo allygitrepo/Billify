@@ -22,6 +22,14 @@ class AuthRepository {
     return response;
   }
 
+  Future<Map<String, dynamic>> requestOtp(String email) async {
+    return await _remoteDatasource.requestOtp(email);
+  }
+
+  Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
+    return await _remoteDatasource.verifyOtp(email, otp);
+  }
+
   Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await _remoteDatasource.loginWithResponse(email, password);
     return _handleAuthResponse(response);

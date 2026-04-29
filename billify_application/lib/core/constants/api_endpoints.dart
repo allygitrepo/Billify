@@ -1,11 +1,14 @@
 class ApiEndpoints {
-  static const String baseUrl =
-      "https://silverapi.allysoftsolutions.com/billify";
+  // static const String baseUrl =
+  //     "https://silverapi.allysoftsolutions.com/billify";
+  static const String baseUrl = "http://192.168.1.9:3000/billify";
 
   // Auth Endpoints
   static const String login = "$baseUrl/auth/login";
   static const String googleLogin = "$baseUrl/auth/google";
   static const String register = "$baseUrl/auth/register";
+  static const String requestOtp = "$baseUrl/auth/request-otp";
+  static const String verifyOtp = "$baseUrl/auth/verify-otp";
   static const String updateProfile = "$baseUrl/users/profile/update";
   static const String changePassword = "$baseUrl/users/change-password";
 

@@ -81,6 +81,22 @@ class RemoteAuthDatasource implements AuthDatasource {
     return response.data;
   }
 
+  Future<Map<String, dynamic>> requestOtp(String email) async {
+    final response = await _apiService.post(
+      ApiEndpoints.requestOtp,
+      data: {'email': email},
+    );
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
+    final response = await _apiService.post(
+      ApiEndpoints.verifyOtp,
+      data: {'email': email, 'otp': otp},
+    );
+    return response.data;
+  }
+
   @override
   Future<void> logout() async {
     // Typically involves clearing token on server if using refresh tokens

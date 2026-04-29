@@ -18,6 +18,7 @@ class RegistrationModel {
   final int? startingNumber;
   final String? invoiceFormat;
   final String? footerNote;
+  final String? otp;
 
   RegistrationModel({
     required this.name,
@@ -37,6 +38,7 @@ class RegistrationModel {
     this.startingNumber,
     this.invoiceFormat,
     this.footerNote,
+    this.otp,
   });
 
   Map<String, dynamic> toJson() {
@@ -58,6 +60,7 @@ class RegistrationModel {
       'startingNumber': startingNumber,
       'invoiceFormat': invoiceFormat,
       'footerNote': footerNote,
+      'otp': otp,
     };
   }
 
@@ -79,6 +82,7 @@ class RegistrationModel {
     int? startingNumber,
     String? invoiceFormat,
     String? footerNote,
+    String? otp,
   }) {
     return RegistrationModel(
       name: name ?? this.name,
@@ -98,6 +102,7 @@ class RegistrationModel {
       startingNumber: startingNumber ?? this.startingNumber,
       invoiceFormat: invoiceFormat ?? this.invoiceFormat,
       footerNote: footerNote ?? this.footerNote,
+      otp: otp ?? this.otp,
     );
   }
 }

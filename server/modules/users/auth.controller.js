@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 const User = require("./users.model");
+const OTP = require("./otp.model");
 const Business = require("../businesses/businesses.model");
 const UserBusiness = require("./user_businesses.model");
 const RolePermission = require("../role_permission/role_permission.model");
@@ -9,6 +10,8 @@ const Role = require("../roles/roles.model");
 const UOM = require("../uoms/uoms.model");
 const Settings = require("../settings/settings.model");
 const sequelize = require("../../config/db");
+const { sendOTPEmail } = require("../../services/email.service");
+const { Op } = require("sequelize");
 require("dotenv").config();
 
 const MODULES = [
@@ -26,6 +29,68 @@ const MODULES = [
 ];
 
 const authController = {
+    // ============ Request OTP ============
+    requestOTP: async (req, res) => {
+        try {
+            const { email } = req.body;
+            if (!email) {
+                return res.status(400).json({ message: "Email is required" });
+            }
+
+            // Check if user already exists
+            const existingUser = await User.findOne({ where: { email } });
+            if (existingUser) {
+                return res.status(400).json({ message: "Email already registered" });
+            }
+
+            // Generate 6-digit OTP
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const expires_at = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
+
+            // Save OTP
+            await OTP.create({ email, otp, expires_at });
+
+            // Send Email
+            const sent = await sendOTPEmail(email, otp);
+            if (sent) {
+                return res.status(200).json({ message: "OTP sent successfully" });
+            } else {
+                return res.status(500).json({ message: "Failed to send OTP email" });
+            }
+        } catch (error) {
+            console.error("Request OTP Error:", error);
+            return res.status(500).json({ message: "Internal server error", error: error.message });
+        }
+    },
+
+    // ============ Verify OTP ============
+    verifyOTP: async (req, res) => {
+        try {
+            const { email, otp } = req.body;
+            if (!email || !otp) {
+                return res.status(400).json({ message: "Email and OTP are required" });
+            }
+
+            const otpRecord = await OTP.findOne({
+                where: {
+                    email,
+                    otp,
+                    expires_at: { [Op.gt]: new Date() }
+                },
+                order: [['createdAt', 'DESC']]
+            });
+
+            if (!otpRecord) {
+                return res.status(400).json({ message: "Invalid or expired OTP" });
+            }
+
+            return res.status(200).json({ message: "OTP verified successfully" });
+        } catch (error) {
+            console.error("Verify OTP Error:", error);
+            return res.status(500).json({ message: "Internal server error", error: error.message });
+        }
+    },
+
     // ============ User Registration ============
     register: async (req, res) => {
         const t = await sequelize.transaction();
@@ -34,7 +99,8 @@ const authController = {
                 name, email, password, business_name, phone, gstin, address,
                 userPhoto, userMobile, businessPhoto,
                 taxPercentage, gstPercentage, currency, 
-                invoicePrefix, startingNumber, invoiceFormat, footerNote
+                invoicePrefix, startingNumber, invoiceFormat, footerNote,
+                otp
             } = req.body;
 
             console.log("Registration Request:", { 
@@ -45,12 +111,26 @@ const authController = {
                 businessPhotoSize: businessPhoto ? businessPhoto.length : 0
             });
 
-            if (!name || !email || !password || !business_name) {
+            if (!name || !email || !password || !business_name || !otp) {
                 console.log("Registration Failed: Missing fields");
-                return res.status(400).json({ message: "Name, Email, Password, and Business Name are required" });
+                return res.status(400).json({ message: "Name, Email, Password, Business Name, and OTP are required" });
             }
 
-            // 1. Check if user exists
+            // 1. Verify OTP
+            const otpRecord = await OTP.findOne({
+                where: {
+                    email,
+                    otp,
+                    expires_at: { [Op.gt]: new Date() }
+                },
+                order: [['createdAt', 'DESC']]
+            });
+
+            if (!otpRecord) {
+                return res.status(400).json({ message: "Invalid or expired OTP" });
+            }
+
+            // 2. Check if user exists
             const existingUser = await User.findOne({ where: { email } });
             if (existingUser) {
                 console.log("Registration Failed: Email exists", email);

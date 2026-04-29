@@ -40,11 +40,19 @@ class RegistrationNotifier extends StateNotifier<RegistrationModel?> {
           startingNumber: json['startingNumber'],
           invoiceFormat: json['invoiceFormat'],
           footerNote: json['footerNote'],
+          otp: json['otp'],
         );
       } catch (_) {
         _storage.remove(_storageKey);
       }
     }
+  }
+
+  Future<void> updateOtpStep(String otp) async {
+    if (state == null) return;
+    final newState = state!.copyWith(otp: otp);
+    state = newState;
+    await _storage.setString(_storageKey, jsonEncode(newState.toJson()));
   }
 
   Future<void> updateUserStep({

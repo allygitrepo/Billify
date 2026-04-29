@@ -164,7 +164,8 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                 business.name.toUpperCase(),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
+                  fontSize: 15,
+                  letterSpacing: 0,
                   color: Colors.black,
                 ),
                 textAlign: TextAlign.center,
@@ -180,8 +181,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                 style: const TextStyle(fontSize: 12, color: Colors.black87),
                 textAlign: TextAlign.center,
               ),
-              if (business.gstin != null &&
-                  business.gstin!.isNotEmpty)
+              if (business.gstin != null && business.gstin!.isNotEmpty)
                 Text(
                   'GSTIN: ${business.gstin}',
                   style: const TextStyle(

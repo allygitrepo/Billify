@@ -25,15 +25,19 @@ class Payment {
 
   factory Payment.fromJson(Map<String, dynamic> json) {
     return Payment(
-      id: json['id'],
-      businessId: json['business_id'],
-      customerId: json['customer_id'],
-      amount: double.parse(json['amount'].toString()),
-      type: json['type'],
-      paymentMethod: json['payment_method'],
+      id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
+      businessId: int.tryParse(json['business_id']?.toString() ?? '') ?? 0,
+      customerId: int.tryParse(json['customer_id']?.toString() ?? '') ?? 0,
+      amount: double.tryParse(json['amount']?.toString() ?? '') ?? 0.0,
+      type: json['type'] ?? '',
+      paymentMethod: json['payment_method'] ?? 'Cash',
       note: json['note'],
-      referenceInvoiceId: json['reference_invoice_id'],
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      referenceInvoiceId: json['reference_invoice_id'] != null
+          ? int.tryParse(json['reference_invoice_id'].toString())
+          : null,
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString())
+          : null,
       customerDetails: json['customer'],
     );
   }

@@ -248,24 +248,20 @@ const authController = {
     login: async (req, res) => {
         try {
             const { email, password } = req.body;
-            console.log("Login Request received for:", email);
 
             if (!email || !password) {
-                console.log("Login Error: Missing credentials");
                 return res.status(400).json({ message: "Email and Password are required" });
             }
 
             // 1. Find user
             const user = await User.findOne({ where: { email, status: true } });
             if (!user) {
-                console.log("Login Error: User not found:", email);
                 return res.status(401).json({ message: "Invalid credentials" });
             }
 
             // 2. Check password
             const isMatch = await bcrypt.compare(password, user.password);
             if (!isMatch) {
-                console.log("Login Error: Password mismatch for:", email);
                 return res.status(401).json({ message: "Invalid credentials" });
             }
 

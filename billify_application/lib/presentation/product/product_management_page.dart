@@ -140,38 +140,54 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
             ),
           ),
           Expanded(
-            child: filteredProducts.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          productList.isEmpty
-                              ? 'No products added yet'
-                              : 'No products match your search',
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filteredProducts.length,
-                    itemBuilder: (context, index) {
-                      final product = filteredProducts[index];
-                      return _ProductListTile(
-                        product: product,
-                        onEdit: () => _showProductBottomSheet(product: product),
-                        onDelete: () => _showDeleteDialog(product),
-                      );
-                    },
-                  ),
+            child: RefreshIndicator(
+              onRefresh:
+                  () => ref
+                      .read(productProvider.notifier)
+                      .fetchAndSyncProducts(),
+              child:
+                  filteredProducts.isEmpty
+                      ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.6,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.inventory_2_outlined,
+                                    size: 64,
+                                    color: Colors.grey[400],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    productList.isEmpty
+                                        ? 'No products added yet'
+                                        : 'No products match your search',
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                      : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = filteredProducts[index];
+                          return _ProductListTile(
+                            product: product,
+                            onEdit:
+                                () => _showProductBottomSheet(product: product),
+                            onDelete: () => _showDeleteDialog(product),
+                          );
+                        },
+                      ),
+            ),
           ),
         ],
       ),

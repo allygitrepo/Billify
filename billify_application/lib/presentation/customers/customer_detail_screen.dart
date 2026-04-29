@@ -4,6 +4,9 @@ import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/data/models/ledger_model.dart';
 import 'package:billify/data/models/payment_model.dart';
 import 'package:billify/providers/customer_provider.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/core/services/whatsapp_service.dart';
+import 'package:billify/core/services/pdf_service.dart';
 import 'package:billify/presentation/customers/add_customer_bottom_sheet.dart';
 import 'package:billify/presentation/customers/add_payment_screen.dart';
 import 'package:billify/presentation/billing/thermal_invoice_dialog.dart';
@@ -24,6 +27,7 @@ class CustomerDetailScreen extends ConsumerStatefulWidget {
 class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isSharing = false;
 
   @override
   void initState() {
@@ -44,6 +48,61 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
             tooltip: 'Edit Customer',
             onPressed: () => _showEditBottomSheet(ledgerAsync.value?.customer),
           ),
+          if (ledgerAsync.value?.customer.phoneNumber != null &&
+              ledgerAsync.value!.customer.phoneNumber.isNotEmpty)
+            _isSharing 
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.send, color: Color(0xFF25D366)),
+                  tooltip: 'WhatsApp Reminder',
+                  onPressed: () async {
+                    final customer = ledgerAsync.value!.customer;
+                    final business = ref.read(businessProvider).currentBusiness;
+                
+                if (business == null) return;
+
+                setState(() => _isSharing = true);
+                try {
+                  // Get invoices for this customer to include items in PDF
+                  final allInvoices = ref.read(invoiceProvider);
+                  final customerInvoices = allInvoices.where(
+                    (inv) => inv.customer_id == widget.customerId
+                  ).toList();
+
+                  // Generate PDF
+                  final pdfFile = await PdfService.generateCustomerLedgerPdf(
+                    ledgerData: ledgerAsync.value!,
+                    invoices: customerInvoices,
+                    business: business,
+                  );
+
+                  // Send via WhatsApp (with PDF and Text)
+                  await WhatsappService.sendBalanceReminder(
+                    phone: customer.phoneNumber,
+                    balance: ledgerAsync.value!.summary.remainingBalance,
+                    businessName: business.name,
+                    pdfFile: pdfFile,
+                  );
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                  }
+                } finally {
+                  if (mounted) setState(() => _isSharing = false);
+                }
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
             tooltip: 'Delete Customer',

@@ -148,12 +148,17 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                                               : customer.name,
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: isWalkin
-                                                ? Colors.grey
-                                                : Colors.black87,
-                                            fontWeight: isWalkin
-                                                ? FontWeight.normal
-                                                : FontWeight.bold,
+                                            color:
+                                                isWalkin
+                                                    ? Colors.grey
+                                                    : Theme.of(context)
+                                                        .textTheme
+                                                        .bodyLarge
+                                                        ?.color,
+                                            fontWeight:
+                                                isWalkin
+                                                    ? FontWeight.normal
+                                                    : FontWeight.bold,
                                           ),
                                         ),
                                       ],

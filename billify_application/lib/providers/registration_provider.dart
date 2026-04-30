@@ -22,7 +22,7 @@ class RegistrationNotifier extends StateNotifier<RegistrationModel?> {
         // or just mapping manually.
         state = RegistrationModel(
           name: json['name'] ?? '',
-          email: json['email'] ?? '',
+          email: json['email'],
           password: json['password'] ?? '',
           phone: json['userMobile'],
           businessName: json['business_name'] ?? '',
@@ -57,7 +57,7 @@ class RegistrationNotifier extends StateNotifier<RegistrationModel?> {
 
   Future<void> updateUserStep({
     required String name,
-    required String email,
+    String? email,
     required String password,
     String? phone,
   }) async {

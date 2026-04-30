@@ -1,6 +1,6 @@
 class RegistrationModel {
   final String name;
-  final String email;
+  final String? email;
   final String password;
   final String? phone;
   final String? userPhoto;
@@ -22,7 +22,7 @@ class RegistrationModel {
 
   RegistrationModel({
     required this.name,
-    required this.email,
+    this.email,
     required this.password,
     this.phone,
     this.userPhoto,

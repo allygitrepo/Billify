@@ -6,7 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class FeatureSettingsNotifier extends Notifier<FeatureSettingsModel> {
   String get _storageKey {
-    final email = ref.watch(authProvider).user?.email ?? 'guest';
+    final user = ref.watch(authProvider).user;
+    final email = user?.email ?? user?.mobile ?? 'guest';
     return 'feature_settings_$email';
   }
 

@@ -1,7 +1,7 @@
 class UserModel {
   final String? id;
   final String name;
-  final String email;
+  final String? email;
   final String mobile;
   final String? password; // Nullable if not being sent
   final String? roleId;
@@ -12,7 +12,7 @@ class UserModel {
   UserModel({
     this.id,
     required this.name,
-    required this.email,
+    this.email,
     required this.mobile,
     this.password,
     this.roleId,
@@ -25,7 +25,7 @@ class UserModel {
     return UserModel(
       id: json['id']?.toString(),
       name: json['name']?.toString() ?? '',
-      email: json['email']?.toString() ?? '',
+      email: json['email']?.toString(),
       mobile: json['mobile']?.toString() ?? '',
       password: null, // Password never returned by server
       roleId: (json['role_id'] ?? json['roleId'])?.toString(),
@@ -75,8 +75,8 @@ class UserModel {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is UserModel && runtimeType == other.runtimeType && email == other.email;
+      other is UserModel && runtimeType == other.runtimeType && mobile == other.mobile;
 
   @override
-  int get hashCode => email.hashCode;
+  int get hashCode => mobile.hashCode;
 }

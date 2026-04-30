@@ -43,7 +43,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       try {
         await ref.read(registrationProvider.notifier).updateUserStep(
               name: _nameController.text,
-              email: _emailController.text,
+              email: _emailController.text.isEmpty ? null : _emailController.text,
               password: _passwordController.text,
               phone: _phoneController.text,
             );
@@ -52,15 +52,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           // 1. Request OTP
           ErrorHandler.showSuccessSnackBar(context, 'Requesting OTP code...');
           
-          await ref.read(authProvider.notifier).requestOtp(_emailController.text);
+          await ref.read(authProvider.notifier).requestOtp(_phoneController.text);
           
           if (mounted) {
             setState(() => _isLoadingOtp = false);
             ErrorHandler.showSuccessSnackBar(
               context, 
-              'Verification code sent to ${_emailController.text}'
+              'Verification code sent to ${_phoneController.text}'
             );
-            _showOTPBottomSheet(context, _emailController.text);
+            _showOTPBottomSheet(context, _phoneController.text);
           }
         }
       } catch (e) {
@@ -72,7 +72,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     }
   }
 
-  void _showOTPBottomSheet(BuildContext context, String email) {
+  void _showOTPBottomSheet(BuildContext context, String phoneNumber) {
     final otpController = TextEditingController();
     bool isVerifying = false;
 
@@ -122,7 +122,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   ),
                   const SizedBox(height: 32),
                   Text(
-                    'Verify Email',
+                    'Verify Phone Number',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -136,7 +136,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     style: TextStyle(color: secondaryTextColor, fontSize: 16),
                   ),
                   Text(
-                    email,
+                    phoneNumber,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Theme.of(context).primaryColor,
@@ -201,7 +201,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         // 1. Verify OTP standalone
                         final response = await ref
                             .read(authProvider.notifier)
-                            .verifyOtp(email, otpController.text);
+                            .verifyOtp(phoneNumber, otpController.text);
 
                         if (mounted) {
                           // 2. Save OTP in provider
@@ -214,7 +214,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Email verified successfully!'),
+                                content: Text('Phone number verified successfully!'),
                                 backgroundColor: Colors.green,
                                 behavior: SnackBarBehavior.floating,
                               ),
@@ -245,7 +245,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             try {
                               await ref
                                   .read(authProvider.notifier)
-                                  .requestOtp(email);
+                                  .requestOtp(phoneNumber);
                               if (mounted) {
                                 messenger.showSnackBar(
                                   const SnackBar(
@@ -366,12 +366,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                     Validators.validateRequired(v, 'Full Name'),
                               ),
                               const SizedBox(height: 20),
-                              CustomTextField(
+                               CustomTextField(
                                 controller: _emailController,
-                                label: 'Email',
+                                label: 'Email (Optional)',
                                 hint: 'Enter your email',
                                 prefixIcon: Icons.email_outlined,
-                                validator: Validators.validateEmail,
                                 keyboardType: TextInputType.emailAddress,
                               ),
                               const SizedBox(height: 20),

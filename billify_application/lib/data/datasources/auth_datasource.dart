@@ -5,7 +5,7 @@ import 'package:billify/data/models/user_model.dart';
 
 abstract class AuthDatasource {
   Future<bool> register(UserModel user);
-  Future<bool> login(String email, String password);
+  Future<bool> login(String phoneNumber, String password);
   Future<void> logout();
   UserModel? getUser();
   bool isLoggedIn();
@@ -32,11 +32,11 @@ class LocalAuthDatasource implements AuthDatasource {
   }
 
   @override
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String phoneNumber, String password) async {
     final userJson = _storage.getString(AppConstants.keyUserData);
     if (userJson != null) {
       final user = UserModel.fromJson(jsonDecode(userJson));
-      if (user.email == email && user.password == password) {
+      if (user.mobile == phoneNumber && user.password == password) {
         await _storage.setBool(AppConstants.keyIsLoggedIn, true);
         return true;
       }

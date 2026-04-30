@@ -15,11 +15,11 @@ class RemoteAuthDatasource implements AuthDatasource {
   RemoteAuthDatasource(this._apiService);
 
   @override
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String phoneNumber, String password) async {
     try {
       final response = await _apiService.post(
         ApiEndpoints.login,
-        data: {'email': email, 'password': password},
+        data: {'phoneNumber': phoneNumber, 'password': password},
       );
 
       if (response.statusCode == 200) {
@@ -52,12 +52,12 @@ class RemoteAuthDatasource implements AuthDatasource {
 
   // Helper method for the Repository to get the full login response
   Future<Map<String, dynamic>> loginWithResponse(
-    String email,
+    String phoneNumber,
     String password,
   ) async {
     final response = await _apiService.post(
       ApiEndpoints.login,
-      data: {'email': email, 'password': password},
+      data: {'phoneNumber': phoneNumber, 'password': password},
     );
     return response.data;
   }
@@ -81,18 +81,18 @@ class RemoteAuthDatasource implements AuthDatasource {
     return response.data;
   }
 
-  Future<Map<String, dynamic>> requestOtp(String email) async {
+  Future<Map<String, dynamic>> requestOtp(String phoneNumber) async {
     final response = await _apiService.post(
       ApiEndpoints.requestOtp,
-      data: {'email': email},
+      data: {'phoneNumber': phoneNumber},
     );
     return response.data;
   }
 
-  Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
+  Future<Map<String, dynamic>> verifyOtp(String phoneNumber, String otp) async {
     final response = await _apiService.post(
       ApiEndpoints.verifyOtp,
-      data: {'email': email, 'otp': otp},
+      data: {'phoneNumber': phoneNumber, 'otp': otp},
     );
     return response.data;
   }

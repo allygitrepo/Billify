@@ -279,7 +279,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
-                      initialValue: user?.email,
+                      initialValue: user?.email ?? 'Not Set',
                       enabled: false,
                       style: TextStyle(
                         color: Theme.of(context).brightness == Brightness.dark

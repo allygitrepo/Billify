@@ -236,9 +236,8 @@ class PdfService {
     );
 
     final output = await getTemporaryDirectory();
-    final file = File(
-      "${output.path}/${ledgerData.customer.name.replaceAll(' ', '_')}.pdf",
-    );
+    final sanitizedName = ledgerData.customer.name.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').replaceAll(' ', '_');
+    final file = File("${output.path}/$sanitizedName.pdf");
     await file.writeAsBytes(await pdf.save());
     return file;
   }
@@ -495,7 +494,8 @@ class PdfService {
     );
 
     final output = await getTemporaryDirectory();
-    final file = File("${output.path}/INV_${invoice.id}.pdf");
+    final sanitizedId = invoice.id.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+    final file = File("${output.path}/INV_$sanitizedId.pdf");
     await file.writeAsBytes(await pdf.save());
     return file;
   }

@@ -115,7 +115,11 @@ class AuthRepository {
       if (response['businesses'] != null &&
           (response['businesses'] as List).isNotEmpty) {
         final List<dynamic> businessesJson = response['businesses'];
-        final userId = user.businessOwnerId ?? user.mobile;
+        final userId = (user.businessOwnerId?.isNotEmpty == true)
+            ? user.businessOwnerId!
+            : (user.email?.isNotEmpty == true)
+                ? user.email!
+                : user.mobile;
 
         // Save full business list to user-scoped key
         await _storage.setString(

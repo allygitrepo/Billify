@@ -43,7 +43,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       try {
         await ref.read(registrationProvider.notifier).updateUserStep(
               name: _nameController.text,
-              email: _emailController.text.isEmpty ? null : _emailController.text,
+              email: _emailController.text.trim(),
               password: _passwordController.text,
               phone: _phoneController.text,
             );
@@ -229,10 +229,54 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           }
                         }
                       } catch (e) {
-                        setModalState(() {
-                          isVerifying = false;
-                          errorMessage = ErrorHandler.getUserFriendlyMessage(e);
-                        });
+                        if (mounted) {
+                          setModalState(() {
+                            isVerifying = false;
+                            errorMessage = ErrorHandler.getUserFriendlyMessage(e);
+                          });
+                          
+                          // Show Top Toast for OTP mismatch
+                          final overlay = Overlay.of(context);
+                          final overlayEntry = OverlayEntry(
+                            builder: (context) => Positioned(
+                              top: MediaQuery.of(context).padding.top + 10,
+                              left: 20,
+                              right: 20,
+                              child: Material(
+                                color: Colors.transparent,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade800,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.error_outline, color: Colors.white),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          errorMessage!,
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+
+                          overlay.insert(overlayEntry);
+                          Future.delayed(const Duration(seconds: 3), () => overlayEntry.remove());
+                        }
                       }
                     },
                   ),

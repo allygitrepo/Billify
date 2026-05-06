@@ -10,14 +10,14 @@ const usersController = {
     getUsersByBusiness: async (req, res) => {
         try {
             const { business_id } = req.params;
-            
+
             const userBusinesses = await UserBusiness.findAll({
                 where: { business_id, status: true },
                 include: [
-                    { 
-                        model: User, 
+                    {
+                        model: User,
                         as: 'user',
-                        attributes: { exclude: ['password'] } 
+                        attributes: { exclude: ['password'] }
                     },
                     { model: Role, as: 'role' }
                 ]
@@ -47,13 +47,13 @@ const usersController = {
         try {
             const { name, email, password, role_id, business_id, mobile, photo } = req.body;
 
-            if (!name || !email || !password || !role_id || !business_id) {
+            if (!name || !mobile || !password || !role_id || !business_id) {
                 return res.status(400).json({ message: "Missing required fields" });
             }
 
             // 1. Check if user already exists
             let user = await User.findOne({ where: { email } });
-            
+
             if (!user) {
                 // Create new user
                 const hashedPassword = await bcrypt.hash(password, 10);
@@ -86,7 +86,7 @@ const usersController = {
             }, { transaction: t });
 
             await t.commit();
-            return res.status(201).json({ 
+            return res.status(201).json({
                 message: "User created and assigned successfully",
                 user: { id: user.id, name: user.name, email: user.email }
             });
@@ -112,7 +112,7 @@ const usersController = {
             }
 
             // Update user info
-            await user.update({ 
+            await user.update({
                 name: name || user.name,
                 email: email || user.email,
                 mobile: mobile !== undefined ? mobile : user.mobile,
@@ -129,9 +129,9 @@ const usersController = {
                     if (status !== undefined) {
                         finalStatus = (status === 'active' || status === true);
                     }
-                    
-                    await mapping.update({ 
-                        role_id, 
+
+                    await mapping.update({
+                        role_id,
                         status: finalStatus
                     }, { transaction: t });
                 }
@@ -171,7 +171,7 @@ const usersController = {
             // Hash and update new password
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(newPassword, salt);
-            
+
             await user.update({ password: hashedPassword });
 
             return res.status(200).json({ message: "Password updated successfully" });
@@ -199,7 +199,7 @@ const usersController = {
                 photo: photo !== undefined ? photo : user.photo
             });
 
-            return res.status(200).json({ 
+            return res.status(200).json({
                 message: "Profile updated successfully",
                 user: {
                     id: user.id,

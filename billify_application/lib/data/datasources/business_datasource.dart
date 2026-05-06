@@ -9,6 +9,7 @@ abstract class BusinessDatasource {
   String? getCurrentBusinessId();
   Future<bool> setCurrentBusinessId(String id);
   Future<void> clearAll();
+  Future<bool> deleteBusiness(String id);
 }
 
 class LocalBusinessDatasource implements BusinessDatasource {
@@ -82,5 +83,13 @@ class LocalBusinessDatasource implements BusinessDatasource {
   Future<void> clearAll() async {
     await _storage.remove(_businessDataKey);
     await _storage.remove(_currentBusinessIdKey);
+  }
+
+  @override
+  Future<bool> deleteBusiness(String id) async {
+    final businesses = getBusinesses();
+    final updated = businesses.where((b) => b.id != id).toList();
+    final businessesJson = jsonEncode(updated.map((e) => e.toJson()).toList());
+    return await _storage.setString(_businessDataKey, businessesJson);
   }
 }

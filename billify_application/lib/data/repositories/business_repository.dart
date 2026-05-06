@@ -20,8 +20,15 @@ class BusinessRepository {
         // New business, create on server
         final remoteBusiness = await _remoteDatasource.createBusiness(business);
         if (remoteBusiness != null) {
-          // Replace local temp ID with server ID
+          // Remove the temporary local business to avoid duplicates
+          await _datasource.deleteBusiness(business.id);
+          // Save the real server-assigned business
           await _datasource.saveBusiness(remoteBusiness);
+          
+          // Also update current business ID if it was the temp one
+          if (_datasource.getCurrentBusinessId() == business.id) {
+            await _datasource.setCurrentBusinessId(remoteBusiness.id);
+          }
         }
       }
     } catch (e) {

@@ -497,11 +497,40 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
             if (_activeBusinessId != null) ...[
               const SizedBox(height: 16),
               TextButton.icon(
-                onPressed: () {
-                  ref
-                      .read(businessProvider.notifier)
-                      .deleteBusiness(_activeBusinessId!);
-                  setState(() => _isFormView = false);
+                onPressed: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Delete Business?'),
+                      content: const Text(
+                        'This will permanently wipe out all data associated with this business (Invoices, Products, Customers). This action cannot be undone.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('CANCEL'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text(
+                            'DELETE ALL DATA',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true) {
+                    await ref
+                        .read(businessProvider.notifier)
+                        .deleteBusiness(_activeBusinessId!);
+                    if (mounted) {
+                      setState(() => _isFormView = false);
+                      ErrorHandler.showSuccessSnackBar(context, 'Business deleted successfully');
+                      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+                    }
+                  }
                 },
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                 label: const Text(

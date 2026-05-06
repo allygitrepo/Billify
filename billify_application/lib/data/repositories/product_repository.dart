@@ -42,10 +42,27 @@ class ProductRepository {
   }
 
   Future<void> saveProduct(ProductModel product) async {
+    // 1. Always save locally first for immediate UI update
+    final products = getProducts();
+    final index = products.indexWhere((p) => p.id == product.id);
+
+    if (index >= 0) {
+      products[index] = product;
+    } else {
+      products.add(product);
+    }
+
+    await _storage.setString(
+      _productDataKey,
+      jsonEncode(products.map((e) => e.toJson()).toList()),
+    );
+
+    // 2. Try remote save if business ID is valid
     if (int.tryParse(_businessId) == null) {
-      print("Skipping remote product save: Business ID is temporary.");
+      print("Skipping remote product save: Business ID $_businessId is temporary.");
       return;
     }
+
     try {
       ProductModel? savedProduct;
       if (product.id.isEmpty || product.id.contains('-')) {
@@ -58,36 +75,31 @@ class ProductRepository {
       }
 
       if (savedProduct != null) {
-        final products = getProducts();
-        final index = products.indexWhere(
+        // Update local storage with server-assigned data (like real ID)
+        final currentProducts = getProducts();
+        final idx = currentProducts.indexWhere(
           (p) => p.id == product.id || p.id == savedProduct!.id,
         );
 
-        if (index >= 0) {
-          products[index] = savedProduct;
+        if (idx >= 0) {
+          currentProducts[idx] = savedProduct;
         } else {
-          products.add(savedProduct);
+          currentProducts.add(savedProduct);
         }
 
         await _storage.setString(
           _productDataKey,
-          jsonEncode(products.map((e) => e.toJson()).toList()),
+          jsonEncode(currentProducts.map((e) => e.toJson()).toList()),
         );
-      } else {
-        throw Exception("Failed to save product on server");
       }
     } on DioException catch (e) {
       print("SAVE ERROR: ${e.response?.data ?? e.message}");
-      if (e.response?.statusCode == 409) {
-        throw Exception(
-          e.response?.data['message'] ?? 'Product already exists',
-        );
-      }
-      throw Exception(
-        e.response?.data['message'] ?? 'Network error while saving product',
-      );
+      // We don't rethrow here if it was already saved locally, 
+      // but maybe we should if we want the user to know it's not on server.
+      // For now, let's rethrow to maintain original behavior but keep local save.
+      rethrow;
     } catch (e) {
-      throw e;
+      rethrow;
     }
   }
 

@@ -55,7 +55,11 @@ class ApiService {
           if (userJson != null) {
             try {
               final user = UserModel.fromJson(jsonDecode(userJson));
-              final userId = user.businessOwnerId ?? (user.email ?? user.mobile);
+              final userId = (user.businessOwnerId?.isNotEmpty == true)
+                  ? user.businessOwnerId!
+                  : (user.email?.isNotEmpty == true)
+                      ? user.email!
+                      : user.mobile;
 
               // Get the current business ID using the user-scoped key
               final businessId = storage.getString(

@@ -115,7 +115,11 @@ class AuthNotifier extends Notifier<AuthState> {
     final storage = ref.read(localStorageServiceProvider);
 
     // 1. Determine scoped User ID for key lookups
-    final userId = user.businessOwnerId ?? (user.email ?? user.mobile);
+    final userId = (user.businessOwnerId?.isNotEmpty == true)
+        ? user.businessOwnerId!
+        : (user.email?.isNotEmpty == true)
+            ? user.email!
+            : user.mobile;
 
     // 2. Resolve Business ID from Storage only to avoid Circular Dependency
     String? businessId = storage.getString(

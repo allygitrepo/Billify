@@ -43,7 +43,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       try {
         await ref.read(registrationProvider.notifier).updateUserStep(
               name: _nameController.text,
-              email: _emailController.text.isEmpty ? null : _emailController.text,
+              email: _emailController.text.trim(),
               password: _passwordController.text,
               phone: _phoneController.text,
             );

@@ -16,6 +16,9 @@ class CustomTextField extends StatefulWidget {
   final bool autofocus;
   final bool enabled;
   final bool readOnly;
+  final int? maxLength;
+  final TextAlign textAlign;
+  final TextStyle? style;
 
   const CustomTextField({
     super.key,
@@ -33,6 +36,9 @@ class CustomTextField extends StatefulWidget {
     this.autofocus = false,
     this.enabled = true,
     this.readOnly = false,
+    this.maxLength,
+    this.textAlign = TextAlign.start,
+    this.style,
   });
 
   @override
@@ -73,6 +79,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
           autofocus: widget.autofocus,
           enabled: widget.enabled,
           readOnly: widget.readOnly,
+          maxLength: widget.maxLength,
+          textAlign: widget.textAlign,
+          style: widget.style,
           decoration: InputDecoration(
             hintText: widget.hint,
             prefixIcon: widget.prefixIcon != null
@@ -93,6 +102,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                     },
                   )
                 : widget.suffixIcon,
+            counterText: "",
             filled: true,
             fillColor: Theme.of(context).colorScheme.surface,
             border: OutlineInputBorder(

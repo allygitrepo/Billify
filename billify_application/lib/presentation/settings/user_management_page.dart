@@ -160,7 +160,7 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(user.email, style: const TextStyle(fontSize: 12)),
+                Text(user.mobile, style: const TextStyle(fontSize: 12)),
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(

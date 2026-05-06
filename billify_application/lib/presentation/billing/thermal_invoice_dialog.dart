@@ -1,10 +1,15 @@
+import 'package:billify/core/services/pdf_service.dart';
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/data/models/business_model.dart';
+import 'package:billify/data/models/cart_item_model.dart';
 import 'package:billify/providers/billing_provider.dart';
+import 'package:billify/providers/business_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:billify/presentation/customers/customer_detail_screen.dart';
+import 'package:billify/core/services/whatsapp_service.dart';
+import 'package:billify/data/models/invoice_model.dart';
 import 'package:intl/intl.dart';
 
 class ThermalInvoiceDialog extends ConsumerStatefulWidget {
@@ -33,12 +38,14 @@ class ThermalInvoiceDialog extends ConsumerStatefulWidget {
     this.invoiceDate,
     this.initialPaidAmount,
     this.initialPaymentMode,
+    this.invoice,
   });
 
   final bool isViewOnly;
   final DateTime? invoiceDate;
   final double? initialPaidAmount;
   final String? initialPaymentMode;
+  final InvoiceModel? invoice;
 
   @override
   ConsumerState<ThermalInvoiceDialog> createState() =>
@@ -49,6 +56,40 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
   late TextEditingController _paidController;
   late double _remaining;
   String _paymentMode = 'CASH'; // 'CASH', 'KHATA', 'SPLIT'
+  bool _isConfirmed = false;
+  InvoiceModel? _savedInvoice;
+  bool _isSaving = false;
+  bool _isSharingInvoice = false;
+
+  InvoiceModel get _effectiveInvoice {
+    if (_savedInvoice != null) return _savedInvoice!;
+
+    final currentBusiness =
+        ref.read(businessProvider).currentBusiness ?? widget.business;
+
+    if (widget.invoice != null) {
+      return widget.invoice!.copyWith(business: currentBusiness);
+    }
+
+    return InvoiceModel(
+      id: widget.invoiceId,
+      date: widget.invoiceDate ?? DateTime.now(),
+      business: currentBusiness,
+      items: (widget.items as List).map((e) {
+        if (e is CartItemModel) return e;
+        return CartItemModel.fromJson(e as Map<String, dynamic>);
+      }).toList(),
+      total_amount: widget.subtotal,
+      tax_amount: widget.taxAmount,
+      gst_amount: widget.gstAmount,
+      final_amount: widget.total,
+      staff_name: 'Owner',
+      customer_id: widget.customerId,
+      customer_type: widget.customerType,
+      paid_amount: widget.initialPaidAmount ?? widget.total,
+      payment_mode: widget.initialPaymentMode ?? 'Cash',
+    );
+  }
 
   @override
   void initState() {
@@ -100,6 +141,9 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final businessState = ref.watch(businessProvider);
+    final business = businessState.currentBusiness ?? widget.business;
+
     final now = widget.invoiceDate ?? DateTime.now();
     final dateFormat = DateFormat('dd-MM-yyyy');
     final timeFormat = DateFormat('hh:mm a');
@@ -117,29 +161,29 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
             children: [
               // Header
               Text(
-                widget.business.name.toUpperCase(),
+                business.name.toUpperCase(),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
+                  fontSize: 15,
+                  letterSpacing: 0,
                   color: Colors.black,
                 ),
                 textAlign: TextAlign.center,
               ),
-              if (widget.business.address != null)
+              if (business.address != null)
                 Text(
-                  widget.business.address!,
+                  business.address!,
                   style: const TextStyle(fontSize: 12, color: Colors.black87),
                   textAlign: TextAlign.center,
                 ),
               Text(
-                'Phone: ${widget.business.phone}',
+                'Phone: ${business.phone}',
                 style: const TextStyle(fontSize: 12, color: Colors.black87),
                 textAlign: TextAlign.center,
               ),
-              if (widget.business.gstin != null &&
-                  widget.business.gstin!.isNotEmpty)
+              if (business.gstin != null && business.gstin!.isNotEmpty)
                 Text(
-                  'GSTIN: ${widget.business.gstin}',
+                  'GSTIN: ${business.gstin}',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -535,64 +579,186 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
               const SizedBox(height: 20),
 
               // Action Buttons
-              if (!widget.isViewOnly)
+              if (_isConfirmed || widget.isViewOnly) ...[
+                if (_isConfirmed) ...[
+                  const Divider(),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'INVOICE SAVED SUCCESSFULLY!',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+                if (widget.customerType == 'REGULAR' &&
+                    widget.customerId != null)
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final customers = ref.watch(customerProvider).value ?? [];
+                      final customer = customers
+                          .where((c) => c.id == widget.customerId)
+                          .firstOrNull;
+
+                      if (customer?.phoneNumber == null ||
+                          customer!.phoneNumber.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+
+                      return Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _isSharingInvoice
+                                  ? null
+                                  : () async {
+                                      setState(() => _isSharingInvoice = true);
+                                      try {
+                                        final inv = _effectiveInvoice;
+                                        final pdfFile =
+                                            await PdfService.generateInvoicePdf(
+                                              invoice: inv,
+                                            );
+                                        await WhatsappService.sendInvoice(
+                                          phone: customer.phoneNumber,
+                                          invoiceId: inv.id,
+                                          amount: inv.final_amount,
+                                          pdfFile: pdfFile,
+                                        );
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Error sharing: $e',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      } finally {
+                                        if (mounted) {
+                                          setState(
+                                            () => _isSharingInvoice = false,
+                                          );
+                                        }
+                                      }
+                                    },
+                              icon: _isSharingInvoice
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(Icons.send, color: Colors.white),
+                              label: Text(
+                                _isSharingInvoice
+                                    ? 'PREPARING PDF...'
+                                    : 'SEND TO WHATSAPP',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF25D366),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      );
+                    },
+                  ),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('DONE / CLOSE'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ] else if (!widget.isViewOnly)
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: _isSaving
+                            ? null
+                            : () => Navigator.pop(context),
                         child: const Text('CANCEL'),
                       ),
                     ),
                     const SizedBox(width: 5),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () async {
-                          final paid =
-                              double.tryParse(_paidController.text) ?? 0.0;
-                          ref
-                              .read(billingProvider.notifier)
-                              .setPaidAmount(paid);
+                        onPressed: _isSaving
+                            ? null
+                            : () async {
+                                setState(() => _isSaving = true);
+                                final paid =
+                                    double.tryParse(_paidController.text) ??
+                                    0.0;
+                                ref
+                                    .read(billingProvider.notifier)
+                                    .setPaidAmount(paid);
 
-                          await ref
-                              .read(billingProvider.notifier)
-                              .confirmInvoice(widget.business);
+                                final invoice = await ref
+                                    .read(billingProvider.notifier)
+                                    .confirmInvoice(widget.business);
 
-                          if (mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Invoice confirmed and saved'),
-                              ),
-                            );
-
-                            // Auto-navigate to Customer Details for Khata/Split
-                            // if ((_paymentMode == 'KHATA' || _paymentMode == 'SPLIT') &&
-                            //     widget.customerId != null) {
-                            //   Navigator.push(
-                            //     context,
-                            //     MaterialPageRoute(
-                            //       builder: (context) =>
-                            //           CustomerDetailScreen(customerId: widget.customerId!),
-                            //     ),
-                            //   );
-                            // }
-                          }
-                        },
+                                if (mounted) {
+                                  if (invoice != null) {
+                                    setState(() {
+                                      _isConfirmed = true;
+                                      _savedInvoice = invoice;
+                                      _isSaving = false;
+                                    });
+                                  } else {
+                                    setState(() => _isSaving = false);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Failed to save invoice'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryTeal,
                         ),
-                        child: Text(
-                          _paymentMode == 'CASH'
-                              ? 'CONFIRM (PAID)'
-                              : _paymentMode == 'KHATA'
-                              ? 'CONFIRM (KHATA)'
-                              : 'CONFIRM (SPLIT)',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 15,
+                                width: 15,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                _paymentMode == 'CASH'
+                                    ? 'CONFIRM (PAID)'
+                                    : _paymentMode == 'KHATA'
+                                    ? 'CONFIRM (KHATA)'
+                                    : 'CONFIRM (SPLIT)',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                ),
+                              ),
                       ),
                     ),
                   ],

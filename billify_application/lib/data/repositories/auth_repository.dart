@@ -22,8 +22,17 @@ class AuthRepository {
     return response;
   }
 
-  Future<Map<String, dynamic>> login(String email, String password) async {
-    final response = await _remoteDatasource.loginWithResponse(email, password);
+  Future<Map<String, dynamic>> requestOtp(String phoneNumber) async {
+    return await _remoteDatasource.requestOtp(phoneNumber);
+  }
+
+  Future<Map<String, dynamic>> verifyOtp(String phoneNumber, String otp) async {
+    return await _remoteDatasource.verifyOtp(phoneNumber, otp);
+  }
+
+  Future<Map<String, dynamic>> login(String phoneNumber, String password) async {
+    final response =
+        await _remoteDatasource.loginWithResponse(phoneNumber, password);
     return _handleAuthResponse(response);
   }
 
@@ -106,7 +115,7 @@ class AuthRepository {
       if (response['businesses'] != null &&
           (response['businesses'] as List).isNotEmpty) {
         final List<dynamic> businessesJson = response['businesses'];
-        final userId = user.businessOwnerId ?? user.email;
+        final userId = user.businessOwnerId ?? user.mobile;
 
         // Save full business list to user-scoped key
         await _storage.setString(

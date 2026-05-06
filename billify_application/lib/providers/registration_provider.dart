@@ -22,7 +22,7 @@ class RegistrationNotifier extends StateNotifier<RegistrationModel?> {
         // or just mapping manually.
         state = RegistrationModel(
           name: json['name'] ?? '',
-          email: json['email'] ?? '',
+          email: json['email'],
           password: json['password'] ?? '',
           phone: json['userMobile'],
           businessName: json['business_name'] ?? '',
@@ -40,6 +40,7 @@ class RegistrationNotifier extends StateNotifier<RegistrationModel?> {
           startingNumber: json['startingNumber'],
           invoiceFormat: json['invoiceFormat'],
           footerNote: json['footerNote'],
+          otp: json['otp'],
         );
       } catch (_) {
         _storage.remove(_storageKey);
@@ -47,9 +48,16 @@ class RegistrationNotifier extends StateNotifier<RegistrationModel?> {
     }
   }
 
+  Future<void> updateOtpStep(String otp) async {
+    if (state == null) return;
+    final newState = state!.copyWith(otp: otp);
+    state = newState;
+    await _storage.setString(_storageKey, jsonEncode(newState.toJson()));
+  }
+
   Future<void> updateUserStep({
     required String name,
-    required String email,
+    String? email,
     required String password,
     String? phone,
   }) async {

@@ -201,8 +201,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                         aspectRatio: 1.0,
                         child: StatCard(
                           title: 'Month',
-                          value:
-                              '₹${(monthlyRevenue / 1000).toStringAsFixed(1)}k',
+                          value: monthlyRevenue >= 1000
+                              ? '₹${(monthlyRevenue / 1000).toStringAsFixed(1)}k'
+                              : '₹${monthlyRevenue.toStringAsFixed(0)}',
                           icon: Icons.trending_up,
                           gradient: const [
                             AppTheme.primaryTeal,

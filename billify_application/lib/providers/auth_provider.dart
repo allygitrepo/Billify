@@ -115,7 +115,7 @@ class AuthNotifier extends Notifier<AuthState> {
     final storage = ref.read(localStorageServiceProvider);
 
     // 1. Determine scoped User ID for key lookups
-    final userId = user.businessOwnerId ?? user.email;
+    final userId = user.businessOwnerId ?? (user.email ?? user.mobile);
 
     // 2. Resolve Business ID from Storage only to avoid Circular Dependency
     String? businessId = storage.getString(
@@ -198,7 +198,7 @@ class AuthNotifier extends Notifier<AuthState> {
     await ref.read(businessProvider.notifier).sync();
   }
 
-  Future<void> login(String email, String password) async {
+  Future<void> login(String phoneNumber, String password) async {
     // Reset state to clean slate while loading to ensure no stale data is visible
     state = AuthState(
       isLoading: true,
@@ -206,7 +206,7 @@ class AuthNotifier extends Notifier<AuthState> {
     );
     try {
       final repo = ref.read(authRepositoryProvider);
-      final response = await repo.login(email, password);
+      final response = await repo.login(phoneNumber, password);
       await _handleLoginResponse(response);
     } catch (e) {
       state = state.copyWith(
@@ -290,6 +290,24 @@ class AuthNotifier extends Notifier<AuthState> {
         errorObject: e,
         error: e.toString(),
       );
+    }
+  }
+
+  Future<Map<String, dynamic>> requestOtp(String phoneNumber) async {
+    try {
+      final repo = ref.read(authRepositoryProvider);
+      return await repo.requestOtp(phoneNumber);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyOtp(String phoneNumber, String otp) async {
+    try {
+      final repo = ref.read(authRepositoryProvider);
+      return await repo.verifyOtp(phoneNumber, otp);
+    } catch (e) {
+      rethrow;
     }
   }
 

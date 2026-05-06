@@ -10,7 +10,7 @@ final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
   final remoteDatasource = ref.watch(remoteCategoryDatasourceProvider);
   final user = ref.watch(authProvider).user;
-  final userId = user?.businessOwnerId ?? user?.email ?? 'guest';
+  final userId = user?.businessOwnerId ?? user?.email ?? user?.mobile ?? 'guest';
   final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
   return CategoryRepository(storage, remoteDatasource, userId, businessId);
 });

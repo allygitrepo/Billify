@@ -17,12 +17,12 @@ class LoginPage extends ConsumerStatefulWidget {
 
 class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -31,7 +31,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (_formKey.currentState!.validate()) {
       await ref
           .read(authProvider.notifier)
-          .login(_emailController.text, _passwordController.text);
+          .login(_phoneController.text, _passwordController.text);
 
       if (!mounted) return;
 
@@ -124,12 +124,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               child: Column(
                                 children: [
                                   CustomTextField(
-                                    controller: _emailController,
-                                    label: 'Email',
-                                    hint: 'Enter your email',
-                                    prefixIcon: Icons.email_outlined,
-                                    validator: Validators.validateEmail,
-                                    keyboardType: TextInputType.emailAddress,
+                                    controller: _phoneController,
+                                    label: 'Phone Number',
+                                    hint: 'Enter your phone number',
+                                    prefixIcon: Icons.phone_outlined,
+                                    validator: Validators.validatePhone,
+                                    keyboardType: TextInputType.phone,
                                   ),
                                   const SizedBox(height: 24),
                                   CustomTextField(

@@ -86,6 +86,7 @@ class ErrorHandler {
 
   /// Show user-friendly error message in a SnackBar
   static void showErrorSnackBar(BuildContext context, dynamic error) {
+    if (!context.mounted) return;
     final message = getUserFriendlyMessage(error);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -105,6 +106,7 @@ class ErrorHandler {
 
   /// Show success message in a SnackBar
   static void showSuccessSnackBar(BuildContext context, String message) {
+    if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),

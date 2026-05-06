@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 const User = require("./users.model");
+const OTP = require("./otp.model");
 const Business = require("../businesses/businesses.model");
 const UserBusiness = require("./user_businesses.model");
 const RolePermission = require("../role_permission/role_permission.model");
@@ -9,6 +10,8 @@ const Role = require("../roles/roles.model");
 const UOM = require("../uoms/uoms.model");
 const Settings = require("../settings/settings.model");
 const sequelize = require("../../config/db");
+const { sendOTPSMS } = require("../../services/sms.service");
+const { Op } = require("sequelize");
 require("dotenv").config();
 
 const MODULES = [
@@ -26,6 +29,73 @@ const MODULES = [
 ];
 
 const authController = {
+    // ============ Request OTP ============
+    requestOTP: async (req, res) => {
+        try {
+            const { phoneNumber } = req.body;
+            console.log(`[Auth] OTP Requested for: ${phoneNumber}`);
+            if (!phoneNumber) {
+                return res.status(400).json({ message: "Phone number is required" });
+            }
+
+            // Check if user already exists
+            const existingUser = await User.findOne({ where: { mobile: phoneNumber } });
+            if (existingUser) {
+                return res.status(400).json({ message: "Phone number already registered" });
+            }
+
+            // Generate 6-digit OTP
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const expires_at = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
+
+            // Save OTP
+            await OTP.create({ phoneNumber, otp, expires_at });
+            console.log(`[Auth] Generated OTP ${otp} for ${phoneNumber}`);
+
+            // Send SMS
+            const sent = await sendOTPSMS(phoneNumber, otp);
+            if (sent) {
+                return res.status(200).json({ message: "OTP sent successfully" });
+            } else {
+                return res.status(500).json({ message: "Failed to send OTP SMS" });
+            }
+        } catch (error) {
+            console.error("Request OTP Error:", error);
+            return res.status(500).json({ message: "Internal server error", error: error.message });
+        }
+    },
+
+    // ============ Verify OTP ============
+    verifyOTP: async (req, res) => {
+        try {
+            const { phoneNumber, otp } = req.body;
+            console.log(`[Auth] Verifying OTP ${otp} for ${phoneNumber}`);
+            if (!phoneNumber || !otp) {
+                return res.status(400).json({ message: "Phone number and OTP are required" });
+            }
+
+            const otpRecord = await OTP.findOne({
+                where: {
+                    phoneNumber,
+                    otp,
+                    expires_at: { [Op.gt]: new Date() }
+                },
+                order: [['createdAt', 'DESC']]
+            });
+
+            if (!otpRecord) {
+                console.warn(`[Auth] Invalid or expired OTP attempt for ${phoneNumber}: ${otp}`);
+                return res.status(400).json({ message: "Invalid or expired OTP" });
+            }
+
+            console.log(`[Auth] OTP Verified successfully for ${phoneNumber}`);
+            return res.status(200).json({ message: "OTP verified successfully" });
+        } catch (error) {
+            console.error("Verify OTP Error:", error);
+            return res.status(500).json({ message: "Internal server error", error: error.message });
+        }
+    },
+
     // ============ User Registration ============
     register: async (req, res) => {
         const t = await sequelize.transaction();
@@ -34,7 +104,8 @@ const authController = {
                 name, email, password, business_name, phone, gstin, address,
                 userPhoto, userMobile, businessPhoto,
                 taxPercentage, gstPercentage, currency, 
-                invoicePrefix, startingNumber, invoiceFormat, footerNote
+                invoicePrefix, startingNumber, invoiceFormat, footerNote,
+                otp
             } = req.body;
 
             console.log("Registration Request:", { 
@@ -45,16 +116,30 @@ const authController = {
                 businessPhotoSize: businessPhoto ? businessPhoto.length : 0
             });
 
-            if (!name || !email || !password || !business_name) {
+            if (!name || !password || !business_name || !otp || !userMobile) {
                 console.log("Registration Failed: Missing fields");
-                return res.status(400).json({ message: "Name, Email, Password, and Business Name are required" });
+                return res.status(400).json({ message: "Name, Mobile, Password, Business Name, and OTP are required" });
             }
 
-            // 1. Check if user exists
-            const existingUser = await User.findOne({ where: { email } });
+            // 1. Verify OTP
+            const otpRecord = await OTP.findOne({
+                where: {
+                    phoneNumber: userMobile,
+                    otp,
+                    expires_at: { [Op.gt]: new Date() }
+                },
+                order: [['createdAt', 'DESC']]
+            });
+
+            if (!otpRecord) {
+                return res.status(400).json({ message: "Invalid or expired OTP" });
+            }
+
+            // 2. Check if user exists
+            const existingUser = await User.findOne({ where: { mobile: userMobile } });
             if (existingUser) {
-                console.log("Registration Failed: Email exists", email);
-                return res.status(400).json({ message: "Email already registered" });
+                console.log("Registration Failed: Mobile exists", userMobile);
+                return res.status(400).json({ message: "Phone number already registered" });
             }
 
             // 2. Hash password
@@ -149,7 +234,7 @@ const authController = {
             }
 
             await t.commit();
-            console.log("Registration Successful for:", email);
+            console.log("Registration Successful for:", userMobile);
 
             return res.status(201).json({
                 message: "User and Business registered successfully",
@@ -167,25 +252,21 @@ const authController = {
     // ============ User Login ============
     login: async (req, res) => {
         try {
-            const { email, password } = req.body;
-            console.log("Login Request received for:", email);
+            const { phoneNumber, password } = req.body;
 
-            if (!email || !password) {
-                console.log("Login Error: Missing credentials");
-                return res.status(400).json({ message: "Email and Password are required" });
+            if (!phoneNumber || !password) {
+                return res.status(400).json({ message: "Phone number and Password are required" });
             }
 
             // 1. Find user
-            const user = await User.findOne({ where: { email, status: true } });
+            const user = await User.findOne({ where: { mobile: phoneNumber, status: true } });
             if (!user) {
-                console.log("Login Error: User not found:", email);
                 return res.status(401).json({ message: "Invalid credentials" });
             }
 
             // 2. Check password
             const isMatch = await bcrypt.compare(password, user.password);
             if (!isMatch) {
-                console.log("Login Error: Password mismatch for:", email);
                 return res.status(401).json({ message: "Invalid credentials" });
             }
 

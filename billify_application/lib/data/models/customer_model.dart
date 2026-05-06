@@ -25,16 +25,16 @@ class Customer {
 
   factory Customer.fromJson(Map<String, dynamic> json) {
     return Customer(
-      id: json['id'],
-      businessId: json['business_id'],
-      name: json['name'],
-      phoneNumber: json['phone_number'],
-      openingBalance: double.parse(json['opening_balance'].toString()),
-      remainingBalance: double.parse(json['remaining_balance'].toString()),
+      id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
+      businessId: int.tryParse(json['business_id']?.toString() ?? '') ?? 0,
+      name: json['name'] ?? '',
+      phoneNumber: json['phone_number'] ?? '',
+      openingBalance: double.tryParse(json['opening_balance']?.toString() ?? '') ?? 0.0,
+      remainingBalance: double.tryParse(json['remaining_balance']?.toString() ?? '') ?? 0.0,
       photo: json['photo'],
       city: json['city'],
       status: json['status'] ?? 'active',
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'].toString()) : null,
     );
   }
 

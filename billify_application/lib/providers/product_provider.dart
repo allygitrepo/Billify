@@ -13,7 +13,7 @@ final productRepositoryProvider = Provider<ProductRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
   final remoteProductDatasource = ref.watch(remoteProductDatasourceProvider);
   final user = ref.watch(authProvider).user;
-  final userId = user?.businessOwnerId ?? user?.email ?? 'guest';
+  final userId = user?.businessOwnerId ?? user?.email ?? user?.mobile ?? 'guest';
   final businessId = ref.watch(businessProvider).currentBusinessId ?? 'default';
   return ProductRepository(
     storage,

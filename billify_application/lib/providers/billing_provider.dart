@@ -107,8 +107,8 @@ class BillingNotifier extends Notifier<BillingState> {
     return true;
   }
 
-  Future<void> confirmInvoice(BusinessModel business) async {
-    if (state.items.isEmpty) return;
+  Future<InvoiceModel?> confirmInvoice(BusinessModel business) async {
+    if (state.items.isEmpty) return null;
 
     // Generate placeholder ID (Server will assign correct sequential Number)
     final invoiceId = 'pending_${DateTime.now().millisecondsSinceEpoch}';
@@ -134,8 +134,6 @@ class BillingNotifier extends Notifier<BillingState> {
     );
 
     // Save to server & history
-    // NOTE: The Server-side createInvoice now handles KHATA balance updates automatically
-    // because I fixed the data mapping in RemoteInvoiceDatasource!
     final serverInvoice = await ref
         .read(invoiceProvider.notifier)
         .addInvoice(invoice);
@@ -160,6 +158,8 @@ class BillingNotifier extends Notifier<BillingState> {
 
     // Clear cart
     clearCart();
+
+    return serverInvoice;
   }
 
   void addByBarcode(String barcode, {Function(String)? onNotFound}) {

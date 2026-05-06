@@ -5,6 +5,7 @@ import 'package:billify/core/constants/app_constants.dart';
 import 'package:billify/data/models/user_model.dart';
 import 'package:billify/providers/storage_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logger/logger.dart';
 
 final apiServiceProvider = Provider<ApiService>((ref) {
   return ApiService(ref);
@@ -13,6 +14,16 @@ final apiServiceProvider = Provider<ApiService>((ref) {
 class ApiService {
   final Ref _ref;
   late final Dio _dio;
+  final _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0,
+      errorMethodCount: 5,
+      lineLength: 80,
+      colors: true,
+      printEmojis: true,
+      printTime: true,
+    ),
+  );
 
   ApiService(this._ref) {
     _dio = Dio(
@@ -44,7 +55,7 @@ class ApiService {
           if (userJson != null) {
             try {
               final user = UserModel.fromJson(jsonDecode(userJson));
-              final userId = user.businessOwnerId ?? user.email;
+              final userId = user.businessOwnerId ?? (user.email ?? user.mobile);
 
               // Get the current business ID using the user-scoped key
               final businessId = storage.getString(
@@ -61,13 +72,34 @@ class ApiService {
 
           return handler.next(options);
         },
+        onResponse: (response, handler) {
+          _logger.i(
+            "RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}",
+          );
+          return handler.next(response);
+        },
         onError: (e, handler) {
+          _logger.e(
+            "ERROR[${e.response?.statusCode}] => PATH: ${e.requestOptions.path}\n"
+            "DATA: ${e.response?.data}",
+          );
           if (e.response?.statusCode == 401) {
-            // TODO: Trigger global logout or refresh token logic
-            print("Unauthorized access - 401");
+            _logger.w("Unauthorized access - 401");
           }
           return handler.next(e);
         },
+      ),
+    );
+
+    // Add Detailed Request Logger
+    _dio.interceptors.add(
+      LogInterceptor(
+        requestHeader: true,
+        requestBody: true,
+        responseHeader: false,
+        responseBody: true,
+        error: true,
+        logPrint: (obj) => _logger.d(obj),
       ),
     );
   }

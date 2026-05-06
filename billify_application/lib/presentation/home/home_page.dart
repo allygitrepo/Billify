@@ -164,53 +164,42 @@ class _HomePageState extends ConsumerState<HomePage> {
                 PermissionModule.dashboard,
                 PermissionAction.view,
               )) ...[
-                Row(
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 0.85, // Slightly taller for text breathing room
                   children: [
-                    Expanded(
-                      child: AspectRatio(
-                        aspectRatio: 1.0,
-                        child: StatCard(
-                          title: 'Today\'s Sales',
-                          value: '₹${todaySales.toStringAsFixed(0)}',
-                          icon: Icons.currency_rupee,
-                          gradient: const [
-                            Color(0xFF00B4D8),
-                            Color(0xFF0077B6),
-                          ],
-                        ),
-                      ),
+                    StatCard(
+                      title: 'Today\'s Sales',
+                      value: '₹${todaySales.toStringAsFixed(0)}',
+                      icon: Icons.currency_rupee,
+                      gradient: const [
+                        Color(0xFF00B4D8),
+                        Color(0xFF0077B6),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: AspectRatio(
-                        aspectRatio: 1.0,
-                        child: StatCard(
-                          title: 'Invoices',
-                          value: todayInvoiceCount.toString(),
-                          icon: Icons.receipt_long,
-                          gradient: const [
-                            Color(0xFF48CAE4),
-                            Color(0xFF00B4D8),
-                          ],
-                        ),
-                      ),
+                    StatCard(
+                      title: 'Invoices',
+                      value: todayInvoiceCount.toString(),
+                      icon: Icons.receipt_long,
+                      gradient: const [
+                        Color(0xFF48CAE4),
+                        Color(0xFF00B4D8),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: AspectRatio(
-                        aspectRatio: 1.0,
-                        child: StatCard(
-                          title: 'Month',
-                          value: monthlyRevenue >= 1000
-                              ? '₹${(monthlyRevenue / 1000).toStringAsFixed(1)}k'
-                              : '₹${monthlyRevenue.toStringAsFixed(0)}',
-                          icon: Icons.trending_up,
-                          gradient: const [
-                            AppTheme.primaryTeal,
-                            Color(0xFF00B4D8),
-                          ],
-                        ),
-                      ),
+                    StatCard(
+                      title: 'Month',
+                      value: monthlyRevenue >= 1000
+                          ? '₹${(monthlyRevenue / 1000).toStringAsFixed(1)}k'
+                          : '₹${monthlyRevenue.toStringAsFixed(0)}',
+                      icon: Icons.trending_up,
+                      gradient: const [
+                        AppTheme.primaryTeal,
+                        Color(0xFF00B4D8),
+                      ],
                     ),
                   ],
                 ),
@@ -221,8 +210,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                 PermissionModule.analytics,
                 PermissionAction.view,
               )) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 12,
                   children: [
                     const Text(
                       'Revenue Overview',
@@ -237,6 +229,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           _FilterChip(
                             label: 'Weekly',
@@ -720,34 +713,48 @@ class _HomeHeader extends StatelessWidget {
                     width: 2,
                   ),
                 ),
-                child: CircleAvatar(
-                  radius: 25,
-                  backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
-                  backgroundImage:
-                      user?.photo != null && user!.photo!.isNotEmpty
-                      ? (user!.photo!.startsWith('http')
-                            ? NetworkImage(user!.photo!)
-                            : (user!.photo!.startsWith('data:image') ||
-                                      user!.photo!.length > 100
-                                  ? MemoryImage(
-                                      ImageUtils.decodeBase64(user!.photo!),
-                                    )
-                                  : FileImage(File(user!.photo!))
-                                        as ImageProvider))
-                      : null,
-                  child: user?.photo == null || user!.photo!.isEmpty
-                      ? const Icon(
-                          Icons.person,
-                          color: AppTheme.primaryTeal,
-                          size: 30,
-                        )
-                      : null,
-                  onBackgroundImageError:
-                      (user?.photo != null && user!.photo!.isNotEmpty)
-                      ? (exception, stackTrace) {
-                          debugPrint('Error loading profile image: $exception');
-                        }
-                      : null,
+                child: Builder(
+                  builder: (context) {
+                    if (user?.photo == null || user!.photo!.isEmpty) {
+                      return const Icon(Icons.person, color: AppTheme.primaryTeal, size: 30);
+                    }
+
+                    try {
+                      final photo = user!.photo!;
+                      if (photo.startsWith('http')) {
+                        return CircleAvatar(
+                          radius: 25,
+                          backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
+                          backgroundImage: NetworkImage(photo),
+                          onBackgroundImageError: (_, __) {},
+                        );
+                      }
+
+                      final bytes = ImageUtils.decodeBase64(photo);
+                      if (bytes.isNotEmpty) {
+                        return CircleAvatar(
+                          radius: 25,
+                          backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
+                          backgroundImage: MemoryImage(bytes),
+                          onBackgroundImageError: (_, __) {},
+                        );
+                      }
+
+                      // Fallback for local files
+                      if (File(photo).existsSync()) {
+                        return CircleAvatar(
+                          radius: 25,
+                          backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
+                          backgroundImage: FileImage(File(photo)),
+                          onBackgroundImageError: (_, __) {},
+                        );
+                      }
+                    } catch (e) {
+                      debugPrint('Error decoding image: $e');
+                    }
+                    
+                    return const Icon(Icons.person, color: AppTheme.primaryTeal, size: 30);
+                  },
                 ),
               ),
             ),

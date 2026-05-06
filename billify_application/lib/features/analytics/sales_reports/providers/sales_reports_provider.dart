@@ -131,6 +131,22 @@ class SalesReportsNotifier extends StateNotifier<SalesReportsState> {
 
   Future<void> fetchAllData() async {
     if (state.isLoading) return;
+    
+    // Check if business ID is temporary
+    if (int.tryParse(_businessId) == null) {
+      state = state.copyWith(
+        isLoading: false, 
+        error: "Business data is being synchronized. Please wait...",
+        summary: SalesSummaryModel.empty(),
+        trend: [],
+        topProducts: [],
+        categorySales: [],
+        paymentMethods: [],
+        invoices: [],
+      );
+      return;
+    }
+
     state = state.copyWith(isLoading: true, error: null);
 
     try {

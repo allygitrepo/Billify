@@ -1,6 +1,6 @@
 class Customer {
   final int? id;
-  final int businessId;
+  final String businessId;
   final String name;
   final String phoneNumber;
   final double openingBalance;
@@ -26,7 +26,7 @@ class Customer {
   factory Customer.fromJson(Map<String, dynamic> json) {
     return Customer(
       id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
-      businessId: int.tryParse(json['business_id']?.toString() ?? '') ?? 0,
+      businessId: json['business_id']?.toString() ?? json['businessId']?.toString() ?? '',
       name: json['name'] ?? '',
       phoneNumber: json['phone_number'] ?? '',
       openingBalance: double.tryParse(json['opening_balance']?.toString() ?? '') ?? 0.0,

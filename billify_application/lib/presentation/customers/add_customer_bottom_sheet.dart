@@ -188,8 +188,7 @@ class _AddCustomerBottomSheetState
 
     setState(() => _isSaving = true);
     try {
-      final businessIdString = ref.read(businessProvider).currentBusinessId;
-      final int businessId = int.parse(businessIdString ?? '0');
+      final businessId = ref.read(businessProvider).currentBusinessId ?? '0';
 
       final customer = Customer(
         id: widget.initialCustomer?.id, // Preserve ID if editing

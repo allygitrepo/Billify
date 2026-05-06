@@ -238,8 +238,7 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
   }
 
   void _showAddDetailsBottomSheet(Contact contact) {
-    final businessIdString = ref.read(businessProvider).currentBusinessId;
-    final int businessId = int.parse(businessIdString ?? '0');
+    final businessId = ref.read(businessProvider).currentBusinessId ?? '0';
 
     final tempCustomer = Customer(
       businessId: businessId,
@@ -275,8 +274,7 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
   Future<void> _importSelected(Set<String> existingPhones) async {
     setState(() => _isLoading = true);
     try {
-      final businessIdString = ref.read(businessProvider).currentBusinessId;
-      final int businessId = int.parse(businessIdString ?? '0');
+      final businessId = ref.read(businessProvider).currentBusinessId ?? '0';
 
       final List<Customer> toImport = [];
       for (final phone in _selectedPhones) {

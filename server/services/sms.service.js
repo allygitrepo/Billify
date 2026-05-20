@@ -6,7 +6,7 @@ const sendOTPSMS = async (phoneNumber, otp) => {
         const deviceCode = process.env.SMS_DEVICE_CODE; // User will edit this
         const apiUrl = "http://silverapi.allysoftsolutions.com/smsmitra/v1/sms/trigger";
 
-        const message = `Your Billify verification code is: ${otp}. Valid for 5 minutes.`;
+        const message = `Hello, your billify code is: ${otp}. Please do not share it with anyone.`;
 
         console.log(`[SMS Service] Attempting to send OTP to ${phoneNumber} via ${apiUrl}`);
         const response = await axios.post(apiUrl, {

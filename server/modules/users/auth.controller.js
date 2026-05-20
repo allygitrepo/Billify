@@ -53,7 +53,8 @@ const authController = {
             console.log(`[Auth] Generated OTP ${otp} for ${phoneNumber}`);
 
             // Send SMS
-            const sent = await sendOTPSMS(phoneNumber, otp);
+            const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+const sent = await sendOTPSMS(formattedPhone, otp);
             if (sent) {
                 return res.status(200).json({ message: "OTP sent successfully" });
             } else {

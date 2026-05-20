@@ -14,6 +14,7 @@ const Business = sequelize.define("Businesses",
         invoice_prefix: { type: DataTypes.STRING, allowNull: true },
         invoice_format: { type: DataTypes.STRING, allowNull: true },
         business_logo: { type: DataTypes.TEXT, allowNull: true },
+        whatsapp_instance_key: { type: DataTypes.STRING, allowNull: true },
         status: { type: DataTypes.BOOLEAN, defaultValue: true }
     },
     {

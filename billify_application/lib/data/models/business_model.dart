@@ -9,6 +9,7 @@ class BusinessModel {
   final String? business_logo;
   final String invoice_prefix;
   final int starting_invoice_number;
+  final String? whatsapp_instance_key;
 
   BusinessModel({
     required this.id,
@@ -21,6 +22,7 @@ class BusinessModel {
     this.business_logo,
     this.invoice_prefix = 'INV-',
     this.starting_invoice_number = 1,
+    this.whatsapp_instance_key,
   });
 
   factory BusinessModel.fromJson(Map<String, dynamic> json) {
@@ -46,6 +48,7 @@ class BusinessModel {
       starting_invoice_number: (json['starting_invoice_number'] as num?)?.toInt() ?? 
                                (json['startingNumber'] as num?)?.toInt() ?? 
                                (json['nextInvoiceNumber'] as num?)?.toInt() ?? 1,
+      whatsapp_instance_key: json['whatsapp_instance_key']?.toString(),
     );
   }
 
@@ -68,6 +71,7 @@ class BusinessModel {
       'business_logo': business_logo,
       'invoice_prefix': invoice_prefix,
       'starting_invoice_number': starting_invoice_number,
+      'whatsapp_instance_key': whatsapp_instance_key,
     };
   }
 
@@ -82,6 +86,7 @@ class BusinessModel {
     String? business_logo,
     String? invoice_prefix,
     int? starting_invoice_number,
+    String? whatsapp_instance_key,
   }) {
     return BusinessModel(
       id: id ?? this.id,
@@ -94,6 +99,7 @@ class BusinessModel {
       business_logo: business_logo ?? this.business_logo,
       invoice_prefix: invoice_prefix ?? this.invoice_prefix,
       starting_invoice_number: starting_invoice_number ?? this.starting_invoice_number,
+      whatsapp_instance_key: whatsapp_instance_key ?? this.whatsapp_instance_key,
     );
   }
 }

@@ -627,7 +627,16 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                           invoiceId: inv.id,
                                           amount: inv.final_amount,
                                           pdfFile: pdfFile,
+                                          ref: ref,
                                         );
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('WhatsApp invoice sent successfully!'),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                        }
                                       } catch (e) {
                                         if (mounted) {
                                           ScaffoldMessenger.of(
@@ -657,7 +666,12 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                         color: Colors.white,
                                       ),
                                     )
-                                  : const Icon(Icons.send, color: Colors.white),
+                                  : Image.asset(
+                                      'assets/whatsapp-icon.webp',
+                                      width: 20,
+                                      height: 20,
+                                      color: Colors.white,
+                                    ),
                               label: Text(
                                 _isSharingInvoice
                                     ? 'PREPARING PDF...'

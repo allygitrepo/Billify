@@ -4,8 +4,8 @@ import 'package:billify/core/constants/api_endpoints.dart';
 import 'package:billify/core/constants/app_constants.dart';
 import 'package:billify/data/models/user_model.dart';
 import 'package:billify/providers/storage_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:logger/logger.dart';
 
 final apiServiceProvider = Provider<ApiService>((ref) {
   return ApiService(ref);
@@ -14,17 +14,6 @@ final apiServiceProvider = Provider<ApiService>((ref) {
 class ApiService {
   final Ref _ref;
   late final Dio _dio;
-  final _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 0,
-      errorMethodCount: 5,
-      lineLength: 80,
-      colors: true,
-      printEmojis: true,
-      printTime: true,
-    ),
-  );
-
   ApiService(this._ref) {
     _dio = Dio(
       BaseOptions(
@@ -77,18 +66,18 @@ class ApiService {
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          _logger.i(
+          debugPrint(
             "RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}",
           );
           return handler.next(response);
         },
         onError: (e, handler) {
-          _logger.e(
+          debugPrint(
             "ERROR[${e.response?.statusCode}] => PATH: ${e.requestOptions.path}\n"
             "DATA: ${e.response?.data}",
           );
           if (e.response?.statusCode == 401) {
-            _logger.w("Unauthorized access - 401");
+            debugPrint("Unauthorized access - 401");
           }
           return handler.next(e);
         },
@@ -103,7 +92,7 @@ class ApiService {
         responseHeader: false,
         responseBody: true,
         error: true,
-        logPrint: (obj) => _logger.d(obj),
+        logPrint: (obj) => debugPrint(obj.toString()),
       ),
     );
   }

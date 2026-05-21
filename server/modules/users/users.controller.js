@@ -51,15 +51,23 @@ const usersController = {
                 return res.status(400).json({ message: "Missing required fields" });
             }
 
+            const cleanEmail = email && email.trim() !== "" ? email.trim() : null;
+
             // 1. Check if user already exists
-            let user = await User.findOne({ where: { email } });
+            let user = null;
+            if (cleanEmail) {
+                user = await User.findOne({ where: { email: cleanEmail } });
+            }
+            if (!user && mobile) {
+                user = await User.findOne({ where: { mobile } });
+            }
 
             if (!user) {
                 // Create new user
                 const hashedPassword = await bcrypt.hash(password, 10);
                 user = await User.create({
                     name,
-                    email,
+                    email: cleanEmail,
                     mobile,
                     photo,
                     password: hashedPassword,

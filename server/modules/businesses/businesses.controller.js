@@ -4,6 +4,7 @@ const Role = require("../roles/roles.model");
 const Settings = require("../settings/settings.model");
 const UOM = require("../uoms/uoms.model");
 const sequelize = require("../../config/db");
+const whatsappService = require("../../services/whatsapp.service");
 
 const businessController = {
     // ============ Get All Businesses for User ============
@@ -204,6 +205,221 @@ const businessController = {
         } catch (error) {
             console.error("Delete Business Error:", error);
             return res.status(500).json({ message: "Internal server error" });
+        }
+    },
+
+    // ============ Initiate WhatsApp ============
+    initiateWhatsApp: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const business = await Business.findByPk(id);
+            if (!business) {
+                return res.status(404).json({ message: "Business not found" });
+            }
+
+            // Check if requester belongs to business
+            const userBusiness = await UserBusiness.findOne({
+                where: { user_id: req.user.id, business_id: id, status: true }
+            });
+            if (!userBusiness) {
+                return res.status(403).json({ message: "Unauthorized access to this business" });
+            }
+
+            // Call service
+            const result = await whatsappService.initiateInstance(business.name, business.whatsapp_instance_key);
+            
+            if (result && result.success) {
+                // Update instanceKey in db if it changed
+                if (result.instanceKey && result.instanceKey !== business.whatsapp_instance_key) {
+                    await business.update({ whatsapp_instance_key: result.instanceKey });
+                }
+                return res.status(200).json(result);
+            } else {
+                return res.status(400).json({ success: false, message: "Initiation failed", details: result });
+            }
+        } catch (error) {
+            console.error("Initiate WhatsApp Error:", error);
+            return res.status(500).json({ message: "Internal server error", error: error.message });
+        }
+    },
+
+    // ============ Get WhatsApp Status ============
+    getWhatsAppStatus: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const business = await Business.findByPk(id);
+            if (!business) {
+                return res.status(404).json({ message: "Business not found" });
+            }
+
+            // Check if requester belongs to business
+            const userBusiness = await UserBusiness.findOne({
+                where: { user_id: req.user.id, business_id: id, status: true }
+            });
+            if (!userBusiness) {
+                return res.status(403).json({ message: "Unauthorized access to this business" });
+            }
+
+            if (!business.whatsapp_instance_key) {
+                return res.status(200).json({ success: true, status: 'disconnected', message: 'No instance key found' });
+            }
+
+            // Call service
+            const result = await whatsappService.getInstanceStatus(business.whatsapp_instance_key);
+            
+            let status = 'disconnected';
+            if (result && result.success) {
+                if (result.connected) {
+                    status = 'connected';
+                } else if (result.qr) {
+                    status = 'qr_ready';
+                }
+            }
+
+            return res.status(200).json({
+                success: result && result.success,
+                status: status,
+                qr: result ? result.qr : null,
+                phone: result ? result.phone : null,
+                name: result ? result.name : null,
+                profileImage: result ? result.profileImage : null
+            });
+        } catch (error) {
+            console.error("Get WhatsApp Status Error:", error);
+            return res.status(500).json({ message: "Internal server error", error: error.message });
+        }
+    },
+
+    // ============ Delete WhatsApp Instance ============
+    deleteWhatsApp: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const business = await Business.findByPk(id);
+            if (!business) {
+                return res.status(404).json({ message: "Business not found" });
+            }
+
+            // Check if requester belongs to business
+            const userBusiness = await UserBusiness.findOne({
+                where: { user_id: req.user.id, business_id: id, status: true }
+            });
+            if (!userBusiness) {
+                return res.status(403).json({ message: "Unauthorized access to this business" });
+            }
+
+            if (!business.whatsapp_instance_key) {
+                return res.status(200).json({ success: true, message: 'Instance already deleted/not linked' });
+            }
+
+            // Call service
+            const result = await whatsappService.deleteInstance(business.whatsapp_instance_key);
+            
+            // Clear from db
+            await business.update({ whatsapp_instance_key: null });
+            
+            return res.status(200).json(result);
+        } catch (error) {
+            console.error("Delete WhatsApp Error:", error);
+            return res.status(500).json({ message: "Internal server error", error: error.message });
+        }
+    },
+
+    // ============ Send WhatsApp Media ============
+    sendWhatsAppMedia: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { number, pdfBase64, fileName, message } = req.body;
+
+            if (!number || !pdfBase64) {
+                return res.status(400).json({ success: false, message: "number and pdfBase64 are required fields" });
+            }
+
+            const business = await Business.findByPk(id);
+            if (!business) {
+                return res.status(404).json({ message: "Business not found" });
+            }
+
+            // Check if requester belongs to business
+            const userBusiness = await UserBusiness.findOne({
+                where: { user_id: req.user.id, business_id: id, status: true }
+            });
+            if (!userBusiness) {
+                return res.status(403).json({ message: "Unauthorized access to this business" });
+            }
+
+            if (!business.whatsapp_instance_key) {
+                return res.status(400).json({ success: false, message: "No WhatsApp account is linked to this business." });
+            }
+
+            // Convert base64 back to Buffer
+            const buffer = Buffer.from(pdfBase64, 'base64');
+            const targetFilename = fileName || `invoice_${Date.now()}.pdf`;
+
+            // Call service
+            const result = await whatsappService.sendMediaMessage(
+                business.whatsapp_instance_key,
+                number,
+                buffer,
+                message || "",
+                targetFilename
+            );
+
+            return res.status(200).json(result);
+        } catch (error) {
+            console.error("Send WhatsApp Media Error:", error);
+            return res.status(500).json({ success: false, message: "Internal server error", error: error.message });
+        }
+    },
+
+    // ============ Send WhatsApp Bulk ============
+    sendWhatsAppBulk: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { messages } = req.body;
+
+            if (!Array.isArray(messages) || messages.length === 0) {
+                return res.status(400).json({ success: false, message: "messages array is required and cannot be empty" });
+            }
+
+            const business = await Business.findByPk(id);
+            if (!business) {
+                return res.status(404).json({ message: "Business not found" });
+            }
+
+            // Check if requester belongs to business
+            const userBusiness = await UserBusiness.findOne({
+                where: { user_id: req.user.id, business_id: id, status: true }
+            });
+            if (!userBusiness) {
+                return res.status(403).json({ message: "Unauthorized access to this business" });
+            }
+
+            if (!business.whatsapp_instance_key) {
+                return res.status(400).json({ success: false, message: "No WhatsApp account is linked to this business." });
+            }
+
+            // Validate and sanitize each message
+            const sanitizedMessages = messages.map(msg => {
+                let num = msg.number.replace(/\D/g, '');
+                if (num.length === 10) {
+                    num = '91' + num;
+                }
+                return {
+                    number: num,
+                    message: msg.message
+                };
+            });
+
+            // Call service
+            const result = await whatsappService.sendBulkMessages(
+                business.whatsapp_instance_key,
+                sanitizedMessages
+            );
+
+            return res.status(200).json(result);
+        } catch (error) {
+            console.error("Send WhatsApp Bulk Error:", error);
+            return res.status(500).json({ success: false, message: "Internal server error", error: error.message });
         }
     }
 };

@@ -62,7 +62,11 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
                   ),
                 )
               : IconButton(
-                  icon: const Icon(Icons.send, color: Color(0xFF25D366)),
+                  icon: Image.asset(
+                    'assets/whatsapp-icon.webp',
+                    width: 24,
+                    height: 24,
+                  ),
                   tooltip: 'WhatsApp Reminder',
                   onPressed: () async {
                     final customer = ledgerAsync.value!.customer;
@@ -91,7 +95,16 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
                     balance: ledgerAsync.value!.summary.remainingBalance,
                     businessName: business.name,
                     pdfFile: pdfFile,
+                    ref: ref,
                   );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('WhatsApp reminder sent successfully!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

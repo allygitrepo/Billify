@@ -2,6 +2,7 @@ import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:billify/presentation/customers/customer_detail_screen.dart';
+import 'package:billify/core/services/whatsapp_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,7 +29,33 @@ class _KhataDashboardScreenState extends ConsumerState<KhataDashboardScreen> {
     final customersAsync = ref.watch(customerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Khata Dashboard'), elevation: 0),
+      appBar: AppBar(
+        title: const Text('Khata Dashboard'),
+        elevation: 0,
+        actions: customersAsync.when(
+          data: (customers) {
+            final hasOutstanding = customers.any((c) => c.remainingBalance > 0);
+            return [
+              IconButton(
+                icon: Opacity(
+                  opacity: hasOutstanding ? 1.0 : 0.4,
+                  child: Image.asset(
+                    'assets/whatsapp-icon.webp',
+                    width: 24,
+                    height: 24,
+                  ),
+                ),
+                tooltip: 'Send Bulk Reminders',
+                onPressed: hasOutstanding
+                    ? () => _sendBulkWhatsAppReminders(context, ref, customers)
+                    : null,
+              ),
+            ];
+          },
+          loading: () => [],
+          error: (_, __) => [],
+        ),
+      ),
       body: customersAsync.when(
         data: (customers) {
           final summary = _calculateSummary(customers);
@@ -191,6 +218,105 @@ class _KhataDashboardScreenState extends ConsumerState<KhataDashboardScreen> {
         ],
       ),
     );
+  }
+
+  void _sendBulkWhatsAppReminders(BuildContext context, WidgetRef ref, List<Customer> customers) async {
+    final outstandingCustomers = customers.where((c) => c.remainingBalance > 0).toList();
+    
+    if (outstandingCustomers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No customers with pending balances found.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Send Bulk Reminders?'),
+        content: Text(
+          'This will send a WhatsApp reminder to all ${outstandingCustomers.length} customers who owe you money.\n\n'
+          'Total Outstanding: ₹${outstandingCustomers.fold<double>(0, (sum, c) => sum + c.remainingBalance).toStringAsFixed(2)}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryTeal),
+            child: const Text('SEND ALL', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    if (!context.mounted) return;
+
+    // Show progress loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Sending bulk messages via WhatsApp...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final messages = outstandingCustomers.map((c) {
+        final messageText = 
+            'Hello ${c.name}, this is a friendly reminder that you have a pending balance of '
+            '₹${c.remainingBalance.toStringAsFixed(2)} with us. '
+            'Please clear it at your earliest convenience. Thank you!';
+        return {
+          'number': c.phoneNumber,
+          'message': messageText,
+        };
+      }).toList();
+
+      await WhatsappService.sendBulkReminders(
+        messages: messages,
+        ref: ref,
+      );
+
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully sent reminders to ${outstandingCustomers.length} customers!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send bulk reminders: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 

@@ -44,22 +44,22 @@ class RegistrationModel {
   Map<String, dynamic> toJson() {
     return {
       'name': name,
-      'email': email,
+      'email': (email == null || email!.trim().isEmpty) ? null : email!.trim(),
       'password': password,
       'userMobile': phone,
       'userPhoto': userPhoto,
       'business_name': businessName,
-      'phone': businessPhone,
-      'gstin': gstin,
-      'address': address,
+      'phone': (businessPhone == null || businessPhone!.trim().isEmpty) ? null : businessPhone!.trim(),
+      'gstin': (gstin == null || gstin!.trim().isEmpty) ? null : gstin!.trim(),
+      'address': (address == null || address!.trim().isEmpty) ? null : address!.trim(),
       'businessPhoto': businessPhoto,
       'taxPercentage': taxPercentage,
       'gstPercentage': gstPercentage,
       'currency': currency,
-      'invoicePrefix': invoicePrefix,
+      'invoicePrefix': (invoicePrefix == null || invoicePrefix!.trim().isEmpty) ? null : invoicePrefix!.trim(),
       'startingNumber': startingNumber,
       'invoiceFormat': invoiceFormat,
-      'footerNote': footerNote,
+      'footerNote': (footerNote == null || footerNote!.trim().isEmpty) ? null : footerNote!.trim(),
       'otp': otp,
     };
   }

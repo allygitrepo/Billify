@@ -160,7 +160,7 @@ const sent = await sendOTPSMS(formattedPhone, otp);
             // 4. Create User (No default global role)
             const user = await User.create({
                 name,
-                email,
+                email: email && email.trim() !== "" ? email.trim() : null,
                 mobile: userMobile,
                 password: hashedPassword,
                 role_id: null,

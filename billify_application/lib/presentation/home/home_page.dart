@@ -688,7 +688,7 @@ class _HomeHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          // User Profile Photo on the Left - WhatsApp style Full View
+          // User Profile Photo on the Left - Full View
           GestureDetector(
             onTap: () {
               Navigator.push(

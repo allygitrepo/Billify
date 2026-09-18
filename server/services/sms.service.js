@@ -4,7 +4,7 @@ require('dotenv').config();
 const sendOTPSMS = async (phoneNumber, otp) => {
     try {
         const deviceCode = process.env.SMS_DEVICE_CODE; // User will edit this
-        const apiUrl = "http://silverapi.allysoftsolutions.com/smsmitra/v1/sms/trigger";
+        const apiUrl = "https://silverapi.allysoftsolutions.com/smsmitra/v1/sms/trigger";
 
         const message = `Hello, your billify code is: ${otp}. Please do not share it with anyone.`;
 

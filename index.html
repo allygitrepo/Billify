@@ -506,7 +506,7 @@
                         <div class="code-header">
                             <span class="code-lang">Endpoint</span>
                         </div>
-                        <code>POST http://silverapi.allysoftsolutions.com/smsmitra/v1/sms/trigger</code>
+                        <code>POST https://silverapi.allysoftsolutions.com/smsmitra/v1/sms/trigger</code>
                     </div>
                 </div>
 
@@ -540,7 +540,7 @@ payload = {
 }
 
 response = requests.post(
-    "http://silverapi.allysoftsolutions.com/smsmitra/v1/sms/trigger", 
+    "https://silverapi.allysoftsolutions.com/smsmitra/v1/sms/trigger", 
     json=payload
 )
 print(response.json())</code>

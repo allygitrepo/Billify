@@ -5,7 +5,7 @@ import 'package:billify/data/models/ledger_model.dart';
 import 'package:billify/data/models/payment_model.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:billify/providers/business_provider.dart';
-import 'package:billify/core/services/whatsapp_service.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:billify/core/services/pdf_service.dart';
 import 'package:billify/presentation/customers/add_customer_bottom_sheet.dart';
 import 'package:billify/presentation/customers/add_payment_screen.dart';
@@ -62,12 +62,8 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
                   ),
                 )
               : IconButton(
-                  icon: Image.asset(
-                    'assets/whatsapp-icon.webp',
-                    width: 24,
-                    height: 24,
-                  ),
-                  tooltip: 'WhatsApp Reminder',
+                  icon: const Icon(Icons.share),
+                  tooltip: 'Share Statement',
                   onPressed: () async {
                     final customer = ledgerAsync.value!.customer;
                     final business = ref.read(businessProvider).currentBusiness;
@@ -89,22 +85,11 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
                     business: business,
                   );
 
-                  // Send via WhatsApp (with PDF and Text)
-                  await WhatsappService.sendBalanceReminder(
-                    phone: customer.phoneNumber,
-                    balance: ledgerAsync.value!.summary.remainingBalance,
-                    businessName: business.name,
-                    pdfFile: pdfFile,
-                    ref: ref,
+                  // Share Statement PDF
+                  await Share.shareXFiles(
+                    [XFile(pdfFile.path)],
+                    text: 'Statement for ${customer.name}\nOutstanding Balance: ₹${ledgerAsync.value!.summary.remainingBalance.toStringAsFixed(2)}',
                   );
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('WhatsApp reminder sent successfully!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

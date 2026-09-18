@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:billify/presentation/customers/customer_detail_screen.dart';
-import 'package:billify/core/services/whatsapp_service.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:billify/data/models/invoice_model.dart';
 import 'package:intl/intl.dart';
 
@@ -622,21 +622,10 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                             await PdfService.generateInvoicePdf(
                                               invoice: inv,
                                             );
-                                        await WhatsappService.sendInvoice(
-                                          phone: customer.phoneNumber,
-                                          invoiceId: inv.id,
-                                          amount: inv.final_amount,
-                                          pdfFile: pdfFile,
-                                          ref: ref,
+                                        await Share.shareXFiles(
+                                          [XFile(pdfFile.path)],
+                                          text: 'Invoice No: ${inv.id}\nAmount: ₹${inv.final_amount.toStringAsFixed(2)}\nThank you for shopping with us!',
                                         );
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('WhatsApp invoice sent successfully!'),
-                                              backgroundColor: Colors.green,
-                                            ),
-                                          );
-                                        }
                                       } catch (e) {
                                         if (mounted) {
                                           ScaffoldMessenger.of(
@@ -666,20 +655,19 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                         color: Colors.white,
                                       ),
                                     )
-                                  : Image.asset(
-                                      'assets/whatsapp-icon.webp',
-                                      width: 20,
-                                      height: 20,
+                                  : const Icon(
+                                      Icons.share,
+                                      size: 20,
                                       color: Colors.white,
                                     ),
                               label: Text(
                                 _isSharingInvoice
                                     ? 'PREPARING PDF...'
-                                    : 'SEND TO WHATSAPP',
+                                    : 'SHARE INVOICE (PDF)',
                                 style: const TextStyle(color: Colors.white),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF25D366),
+                                backgroundColor: AppTheme.primaryTeal,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 12,
                                 ),

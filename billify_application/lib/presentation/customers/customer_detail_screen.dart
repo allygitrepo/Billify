@@ -36,6 +36,12 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
   }
 
   @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final ledgerAsync = ref.watch(customerLedgerProvider(widget.customerId));
 

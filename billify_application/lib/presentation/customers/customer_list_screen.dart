@@ -21,6 +21,12 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final customersAsync = ref.watch(customerProvider);
 

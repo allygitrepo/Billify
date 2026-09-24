@@ -40,6 +40,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
 
   Future<void> _checkPermission() async {
     final status = await Permission.camera.request();
+    if (!mounted) return;
     setState(() {
       _hasPermission = status.isGranted;
     });

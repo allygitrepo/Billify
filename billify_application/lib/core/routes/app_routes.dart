@@ -15,7 +15,11 @@ class AppRoutes {
   static const String userManagement = '/user-management';
   static const String profile = '/profile';
   static const String customers = '/customers';
+  static const String customerDetail = '/customer-detail';
+  static const String contactsImport = '/contacts-import';
   static const String addPayment = '/add-payment';
+  static const String categoryManagement = '/category-management';
+  static const String uomManagement = '/uom-management';
   static const String analytics = '/analytics';
   static const String analyticsSales = '/analytics/sales';
   static const String analyticsProfit = '/analytics/profit';

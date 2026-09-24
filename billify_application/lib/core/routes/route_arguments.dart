@@ -11,3 +11,10 @@ class AddPaymentRouteArgs {
 
   const AddPaymentRouteArgs({required this.customerId});
 }
+
+/// Strongly typed argument for CustomerDetailScreen
+class CustomerDetailRouteArgs {
+  final int customerId;
+
+  const CustomerDetailRouteArgs({required this.customerId});
+}

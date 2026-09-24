@@ -11,12 +11,16 @@ import 'package:billify/presentation/auth/register_page.dart';
 import 'package:billify/presentation/billing/invoice_history_page.dart';
 import 'package:billify/presentation/billing/scanner_screen.dart';
 import 'package:billify/presentation/business/business_setup_page.dart';
+import 'package:billify/presentation/customers/contacts_import_screen.dart';
+import 'package:billify/presentation/customers/customer_detail_screen.dart';
 import 'package:billify/presentation/customers/customer_list_screen.dart';
 import 'package:billify/presentation/home/home_page.dart';
 import 'package:billify/presentation/inventory/stock_management_page.dart';
 import 'package:billify/presentation/payments/add_payment_screen.dart';
 import 'package:billify/presentation/product/product_management_page.dart';
+import 'package:billify/presentation/settings/category_management_page.dart';
 import 'package:billify/presentation/settings/profile_page.dart';
+import 'package:billify/presentation/settings/uom_management_page.dart';
 import 'package:billify/presentation/settings/user_management_page.dart';
 import 'package:billify/presentation/splash/splash_page.dart';
 import 'package:billify/presentation/widgets/error_retry_view.dart';
@@ -73,6 +77,40 @@ class AppRouter {
 
       case AppRoutes.customers:
         return _buildRoute(const CustomerListScreen(), settings);
+
+      case AppRoutes.customerDetail:
+        int? customerId;
+        if (settings.arguments is CustomerDetailRouteArgs) {
+          customerId = (settings.arguments as CustomerDetailRouteArgs).customerId;
+        } else if (settings.arguments is Map && (settings.arguments as Map).containsKey('customerId')) {
+          customerId = (settings.arguments as Map)['customerId'] as int?;
+        } else if (settings.arguments is int) {
+          customerId = settings.arguments as int;
+        }
+
+        if (customerId != null) {
+          return _buildRoute(CustomerDetailScreen(customerId: customerId), settings);
+        }
+        return _buildRoute(
+          const Scaffold(
+            body: Center(
+              child: ErrorRetryView(
+                title: 'Invalid Navigation',
+                message: 'A valid customer ID is required to view details.',
+              ),
+            ),
+          ),
+          settings,
+        );
+
+      case AppRoutes.contactsImport:
+        return _buildRoute(const ContactsImportScreen(), settings);
+
+      case AppRoutes.categoryManagement:
+        return _buildRoute(const CategoryManagementPage(), settings);
+
+      case AppRoutes.uomManagement:
+        return _buildRoute(const UomManagementPage(), settings);
 
       case AppRoutes.addPayment:
         int? customerId;

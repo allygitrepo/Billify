@@ -1,10 +1,10 @@
 import 'dart:convert';
+import 'package:billify/core/routes/app_routes.dart';
+import 'package:billify/core/routes/route_arguments.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:billify/presentation/customers/add_customer_bottom_sheet.dart';
-import 'package:billify/presentation/customers/contacts_import_screen.dart';
-import 'package:billify/presentation/customers/customer_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -39,12 +39,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
           IconButton(
             icon: const Icon(Icons.import_contacts),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ContactsImportScreen(),
-                ),
-              );
+              Navigator.pushNamed(context, AppRoutes.contactsImport);
             },
             tooltip: 'Import from Contacts',
           ),
@@ -190,12 +185,11 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                           ],
                         ),
                         onTap: () {
-                          Navigator.push(
+                          Navigator.pushNamed(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => CustomerDetailScreen(
-                                customerId: customer.id!,
-                              ),
+                            AppRoutes.customerDetail,
+                            arguments: CustomerDetailRouteArgs(
+                              customerId: customer.id!,
                             ),
                           );
                         },

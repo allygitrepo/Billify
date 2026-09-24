@@ -132,7 +132,7 @@ class AuthNotifier extends Notifier<AuthState> {
       );
 
       // Check if it's a known Global Admin role (ID 1)
-      if (user.roleId == 1) {
+      if (user.roleId == '1' || user.roleId?.toLowerCase() == 'admin') {
         debugPrint(
           "SUCCESS: Global Admin detected (Role ID: 1). Granting full administrative access.",
         );

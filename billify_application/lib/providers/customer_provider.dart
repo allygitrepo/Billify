@@ -1,5 +1,6 @@
 import 'package:billify/core/services/api_service.dart';
 import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/datasources/remote_customer_datasource.dart';
 import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/data/models/ledger_model.dart';
@@ -71,8 +72,9 @@ class CustomerNotifier extends AsyncNotifier<List<Customer>> {
     DateTime? date,
     String method = 'Cash',
   }) async {
-    print(
-      'DEBUG: Recording Payment - ID: $customerId, Amount: $amount, isCredit: $isCredit, Note: $note',
+    AppLogger.debug(
+      'Recording Payment - ID: $customerId, Amount: $amount, isCredit: $isCredit, Note: $note',
+      tag: 'CustomerNotifier',
     );
     final repo = ref.read(customerRepositoryProvider);
     final data = {
@@ -85,15 +87,15 @@ class CustomerNotifier extends AsyncNotifier<List<Customer>> {
 
     try {
       if (isCredit) {
-        print('DEBUG: Calling givePayment (Credit)');
+        AppLogger.debug('Calling givePayment (Credit)', tag: 'CustomerNotifier');
         await repo.givePayment(data);
       } else {
-        print('DEBUG: Calling receivePayment (Got)');
+        AppLogger.debug('Calling receivePayment (Got)', tag: 'CustomerNotifier');
         await repo.receivePayment(data);
       }
-      print('DEBUG: Payment Recorded Successfully');
-    } catch (e) {
-      print('DEBUG: Error RecordPayment: $e');
+      AppLogger.info('Payment Recorded Successfully', tag: 'CustomerNotifier');
+    } catch (e, stack) {
+      AppLogger.error('Error in recordPayment', tag: 'CustomerNotifier', error: e, stackTrace: stack);
       rethrow;
     }
 

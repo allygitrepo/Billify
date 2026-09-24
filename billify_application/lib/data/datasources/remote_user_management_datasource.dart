@@ -1,5 +1,7 @@
 import 'package:billify/core/constants/api_endpoints.dart';
+import 'package:billify/core/errors/app_exception.dart';
 import 'package:billify/core/services/api_service.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/models/role_model.dart';
 import 'package:billify/data/models/user_model.dart';
 import 'package:billify/data/models/user_permission.dart';
@@ -25,13 +27,15 @@ class RemoteUserManagementDatasource {
         ApiEndpoints.getUsersByBusiness(businessId),
       );
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['users'];
+        final List<dynamic> data = response.data['users'] ?? [];
         return data.map((e) => UserModel.fromJson(e)).toList();
       }
       return [];
-    } catch (e) {
-      print("Error fetching users: $e");
-      return [];
+    } on AppException {
+      rethrow;
+    } catch (e, stack) {
+      AppLogger.error('Error fetching users', tag: 'RemoteUserManagement', error: e, stackTrace: stack);
+      throw AppException(message: 'Failed to retrieve staff users: $e');
     }
   }
 
@@ -45,9 +49,11 @@ class RemoteUserManagementDatasource {
         return UserModel.fromJson(response.data['user']);
       }
       return null;
-    } catch (e) {
-      print("Error creating user: $e");
-      return null;
+    } on AppException {
+      rethrow;
+    } catch (e, stack) {
+      AppLogger.error('Error creating user', tag: 'RemoteUserManagement', error: e, stackTrace: stack);
+      throw AppException(message: 'Failed to create user: $e');
     }
   }
 
@@ -58,9 +64,11 @@ class RemoteUserManagementDatasource {
         data: {...user.toJson(), 'business_id': int.tryParse(businessId)},
       );
       return response.statusCode == 200;
-    } catch (e) {
-      print("Error updating user: $e");
-      return false;
+    } on AppException {
+      rethrow;
+    } catch (e, stack) {
+      AppLogger.error('Error updating user', tag: 'RemoteUserManagement', error: e, stackTrace: stack);
+      throw AppException(message: 'Failed to update user: $e');
     }
   }
 
@@ -71,9 +79,11 @@ class RemoteUserManagementDatasource {
         queryParameters: {'business_id': businessId},
       );
       return response.statusCode == 200;
-    } catch (e) {
-      print("Error deleting user: $e");
-      return false;
+    } on AppException {
+      rethrow;
+    } catch (e, stack) {
+      AppLogger.error('Error deleting user', tag: 'RemoteUserManagement', error: e, stackTrace: stack);
+      throw AppException(message: 'Failed to delete user: $e');
     }
   }
 
@@ -85,21 +95,27 @@ class RemoteUserManagementDatasource {
         ApiEndpoints.getRolesByBusiness(businessId),
       );
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['roles'];
+        final List<dynamic> data = response.data['roles'] ?? [];
 
-        final List<RoleModel> roles = [];
-        for (var roleJson in data) {
+        // Fetch permissions concurrently using Future.wait to eliminate N+1 latency waterfall
+        final futures = data.map((roleJson) async {
           final role = RoleModel.fromJson(roleJson);
-          // Fetch permissions separately for each role
-          final perms = await getPermissionsForRole(role.id);
-          roles.add(role.copyWith(permissions: perms));
-        }
-        return roles;
+          try {
+            final perms = await getPermissionsForRole(role.id);
+            return role.copyWith(permissions: perms);
+          } catch (_) {
+            return role;
+          }
+        });
+
+        return await Future.wait(futures);
       }
       return [];
-    } catch (e) {
-      print("Error fetching roles: $e");
-      return [];
+    } on AppException {
+      rethrow;
+    } catch (e, stack) {
+      AppLogger.error('Error fetching roles', tag: 'RemoteUserManagement', error: e, stackTrace: stack);
+      throw AppException(message: 'Failed to retrieve roles: $e');
     }
   }
 
@@ -114,9 +130,11 @@ class RemoteUserManagementDatasource {
         return RoleModel.parsePermissions(response.data);
       }
       return {};
-    } catch (e) {
-      print("Error fetching permissions for role $roleId: $e");
-      return {};
+    } on AppException {
+      rethrow;
+    } catch (e, stack) {
+      AppLogger.error('Error fetching permissions for role $roleId', tag: 'RemoteUserManagement', error: e, stackTrace: stack);
+      throw AppException(message: 'Failed to retrieve role permissions: $e');
     }
   }
 
@@ -128,14 +146,15 @@ class RemoteUserManagementDatasource {
       );
       if (response.statusCode == 201) {
         final newRole = RoleModel.fromJson(response.data['role']);
-        // Save initial permissions
         await saveRolePermissions(newRole.id, role);
         return newRole.copyWith(permissions: role.permissions);
       }
       return null;
-    } catch (e) {
-      print("Error creating role: $e");
-      return null;
+    } on AppException {
+      rethrow;
+    } catch (e, stack) {
+      AppLogger.error('Error creating role', tag: 'RemoteUserManagement', error: e, stackTrace: stack);
+      throw AppException(message: 'Failed to create role: $e');
     }
   }
 
@@ -149,9 +168,11 @@ class RemoteUserManagementDatasource {
         return await saveRolePermissions(role.id, role);
       }
       return false;
-    } catch (e) {
-      print("Error updating role: $e");
-      return false;
+    } on AppException {
+      rethrow;
+    } catch (e, stack) {
+      AppLogger.error('Error updating role', tag: 'RemoteUserManagement', error: e, stackTrace: stack);
+      throw AppException(message: 'Failed to update role: $e');
     }
   }
 
@@ -165,9 +186,11 @@ class RemoteUserManagementDatasource {
         },
       );
       return response.statusCode == 200;
-    } catch (e) {
-      print("Error saving permissions: $e");
-      return false;
+    } on AppException {
+      rethrow;
+    } catch (e, stack) {
+      AppLogger.error('Error saving role permissions', tag: 'RemoteUserManagement', error: e, stackTrace: stack);
+      throw AppException(message: 'Failed to save role permissions: $e');
     }
   }
 
@@ -180,9 +203,11 @@ class RemoteUserManagementDatasource {
         data: {'name': user.name, 'mobile': user.mobile, 'photo': user.photo},
       );
       return response.statusCode == 200;
-    } catch (e) {
-      print("Error updating profile: $e");
-      return false;
+    } on AppException {
+      rethrow;
+    } catch (e, stack) {
+      AppLogger.error('Error updating profile', tag: 'RemoteUserManagement', error: e, stackTrace: stack);
+      throw AppException(message: 'Failed to update profile: $e');
     }
   }
 
@@ -193,9 +218,11 @@ class RemoteUserManagementDatasource {
         data: {'oldPassword': oldPassword, 'newPassword': newPassword},
       );
       return response.statusCode == 200;
-    } catch (e) {
-      print("Error changing password: $e");
-      return false;
+    } on AppException {
+      rethrow;
+    } catch (e, stack) {
+      AppLogger.error('Error changing password', tag: 'RemoteUserManagement', error: e, stackTrace: stack);
+      throw AppException(message: 'Failed to change password: $e');
     }
   }
 }

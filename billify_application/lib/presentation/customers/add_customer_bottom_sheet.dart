@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:billify/core/utils/image_utils.dart';
+import 'package:billify/core/utils/validators.dart';
 import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:billify/providers/business_provider.dart';
@@ -114,7 +115,7 @@ class _AddCustomerBottomSheetState
                   border: OutlineInputBorder(),
                 ),
                 validator: (val) =>
-                    (val == null || val.isEmpty) ? 'Name is required' : null,
+                    Validators.validateRequired(val, 'Customer Name', minLength: 2),
               ),
               const SizedBox(height: 15),
               TextFormField(
@@ -125,8 +126,7 @@ class _AddCustomerBottomSheetState
                   prefixIcon: Icon(Icons.phone),
                   border: OutlineInputBorder(),
                 ),
-                validator: (val) =>
-                    (val == null || val.isEmpty) ? 'Phone is required' : null,
+                validator: Validators.validatePhone,
               ),
               const SizedBox(height: 15),
               TextFormField(

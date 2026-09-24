@@ -1,3 +1,4 @@
+import 'package:billify/core/utils/validators.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:billify/providers/business_provider.dart';
 import 'package:flutter/material.dart';
@@ -98,10 +99,7 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.currency_rupee),
                 ),
-                validator: (val) =>
-                    (val == null || double.tryParse(val) == null)
-                    ? 'Invalid amount'
-                    : null,
+                validator: Validators.validatePaymentAmount,
               ),
               const SizedBox(height: 15),
 

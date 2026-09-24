@@ -1,4 +1,5 @@
 import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/validators.dart';
 import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:flutter/material.dart';
@@ -124,11 +125,7 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
                     borderSide: BorderSide(color: color, width: 2),
                   ),
                 ),
-                validator: (val) {
-                  if (val == null || val.isEmpty) return 'Enter amount';
-                  if (double.tryParse(val) == null) return 'Invalid amount';
-                  return null;
-                },
+                validator: Validators.validatePaymentAmount,
               ),
               const SizedBox(height: 32),
 

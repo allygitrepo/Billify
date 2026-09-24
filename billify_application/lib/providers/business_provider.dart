@@ -10,12 +10,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 final businessRepositoryProvider = Provider<BusinessRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
   final user = ref.watch(authProvider).user;
-  final userId = (user?.businessOwnerId?.isNotEmpty == true)
-      ? user!.businessOwnerId!
-      : (user?.email?.isNotEmpty == true)
-          ? user!.email!
-          : user?.mobile?.isNotEmpty == true
-              ? user!.mobile!
+  final userId = (user?.businessOwnerId != null && user!.businessOwnerId!.isNotEmpty)
+      ? user.businessOwnerId!
+      : (user?.email != null && user!.email!.isNotEmpty)
+          ? user.email!
+          : (user?.mobile != null && user!.mobile!.isNotEmpty)
+              ? user.mobile!
               : 'guest';
   final datasource = LocalBusinessDatasource(storage, userId);
   final remoteDatasource = ref.watch(remoteBusinessDatasourceProvider);

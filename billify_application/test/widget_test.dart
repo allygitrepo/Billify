@@ -1,4 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:billify/core/errors/app_exception.dart';
+import 'package:billify/core/errors/app_failure.dart';
+import 'package:billify/core/errors/result.dart';
 import 'package:billify/core/utils/validators.dart';
 import 'package:billify/providers/billing_provider.dart';
 import 'package:billify/providers/state/product_state.dart';
@@ -7,11 +10,21 @@ import 'package:billify/data/models/product_model.dart';
 
 void main() {
   group('Validators Unit Tests', () {
+    test('validateRequired handles min and max length bounds', () {
+      expect(Validators.validateRequired('John Doe', 'Name'), isNull);
+      expect(Validators.validateRequired('', 'Name'), 'Name is required');
+      expect(Validators.validateRequired(null, 'Name'), 'Name is required');
+      expect(Validators.validateRequired('Ab', 'Name', minLength: 3), 'Name must be at least 3 characters');
+      expect(Validators.validateRequired('Very long name here', 'Name', maxLength: 10), 'Name cannot exceed 10 characters');
+    });
+
     test('validateEmail validates correctly', () {
       expect(Validators.validateEmail('test@example.com'), isNull);
       expect(Validators.validateEmail('invalid-email'), isNotNull);
       expect(Validators.validateEmail(''), isNotNull);
       expect(Validators.validateEmail(null), isNotNull);
+      expect(Validators.validateEmail(null, isOptional: true), isNull);
+      expect(Validators.validateEmail('', isOptional: true), isNull);
     });
 
     test('validatePhone validates 10-digit phone number', () {
@@ -20,6 +33,7 @@ void main() {
       expect(Validators.validatePhone('98765432100'), isNotNull);
       expect(Validators.validatePhone('98765abcde'), isNotNull);
       expect(Validators.validatePhone(null), isNotNull);
+      expect(Validators.validatePhone(null, isOptional: true), isNull);
     });
 
     test('validatePassword validates minimum 6 characters', () {
@@ -27,6 +41,86 @@ void main() {
       expect(Validators.validatePassword('password123'), isNull);
       expect(Validators.validatePassword('12345'), isNotNull);
       expect(Validators.validatePassword(null), isNotNull);
+    });
+
+    test('validateConfirmPassword ensures passwords match', () {
+      expect(Validators.validateConfirmPassword('pass123', 'pass123'), isNull);
+      expect(Validators.validateConfirmPassword('pass123', 'different'), 'Passwords do not match');
+      expect(Validators.validateConfirmPassword('', 'pass123'), 'Please confirm your password');
+      expect(Validators.validateConfirmPassword(null, 'pass123'), 'Please confirm your password');
+    });
+
+    test('validatePrice handles financial bounds and formatting', () {
+      expect(Validators.validatePrice('199.99'), isNull);
+      expect(Validators.validatePrice('0.00'), isNull);
+      expect(Validators.validatePrice('-10'), isNotNull);
+      expect(Validators.validatePrice('abc'), isNotNull);
+      expect(Validators.validatePrice('100.9999'), isNotNull);
+      expect(Validators.validatePrice('500', max: 200), isNotNull);
+      expect(Validators.validatePrice(null, isRequired: false), isNull);
+    });
+
+    test('validateStock validates packaged vs weighted items', () {
+      expect(Validators.validateStock('10'), isNull);
+      expect(Validators.validateStock('10.5', isWeighted: true), isNull);
+      expect(Validators.validateStock('10.5', isWeighted: false), 'Packaged stock must be a whole number');
+      expect(Validators.validateStock('-5'), isNotNull);
+      expect(Validators.validateStock('abc'), isNotNull);
+      expect(Validators.validateStock(null, isRequired: false), isNull);
+    });
+
+    test('validatePercentage validates range between 0 and 100', () {
+      expect(Validators.validatePercentage('18'), isNull);
+      expect(Validators.validatePercentage('0'), isNull);
+      expect(Validators.validatePercentage('100'), isNull);
+      expect(Validators.validatePercentage('-5'), isNotNull);
+      expect(Validators.validatePercentage('105'), isNotNull);
+      expect(Validators.validatePercentage('abc'), isNotNull);
+    });
+
+    test('validatePaymentAmount enforces positive values', () {
+      expect(Validators.validatePaymentAmount('500.00'), isNull);
+      expect(Validators.validatePaymentAmount('0.01'), isNull);
+      expect(Validators.validatePaymentAmount('0'), isNotNull);
+      expect(Validators.validatePaymentAmount('-50'), isNotNull);
+      expect(Validators.validatePaymentAmount('1000', maxAllowed: 500), isNotNull);
+    });
+
+    test('validateGstin validates Indian GSTIN format', () {
+      expect(Validators.validateGstin('22AAAAA0000A1Z5'), isNull);
+      expect(Validators.validateGstin('29ABCDE1234F2Z5'), isNull);
+      expect(Validators.validateGstin('INVALIDGSTIN'), isNotNull);
+      expect(Validators.validateGstin(null, isOptional: true), isNull);
+      expect(Validators.validateGstin('', isOptional: true), isNull);
+      expect(Validators.validateGstin('', isOptional: false), isNotNull);
+    });
+
+    test('validatePincode validates 6-digit postal code', () {
+      expect(Validators.validatePincode('395007'), isNull);
+      expect(Validators.validatePincode('110001'), isNull);
+      expect(Validators.validatePincode('012345'), isNotNull); // Cannot start with 0
+      expect(Validators.validatePincode('39500'), isNotNull); // 5 digits
+      expect(Validators.validatePincode('3950071'), isNotNull); // 7 digits
+      expect(Validators.validatePincode(null, isOptional: true), isNull);
+    });
+
+    test('validateBarcode validates alphanumeric identifiers', () {
+      expect(Validators.validateBarcode('SKU-1001'), isNull);
+      expect(Validators.validateBarcode('BARCODE_99'), isNull);
+      expect(Validators.validateBarcode('AB'), isNotNull); // too short
+      expect(Validators.validateBarcode('SKU#100'), isNotNull); // invalid special char
+      expect(Validators.validateBarcode(null, isOptional: true), isNull);
+    });
+
+    test('validateDateRange ensures chronologically valid ranges', () {
+      final now = DateTime.now();
+      final future = now.add(const Duration(days: 7));
+      final past = now.subtract(const Duration(days: 7));
+
+      expect(Validators.validateDateRange(past, future), isNull);
+      expect(Validators.validateDateRange(now, now), isNull);
+      expect(Validators.validateDateRange(future, past), 'Start date cannot be after end date');
+      expect(Validators.validateDateRange(null, future), isNull);
     });
   });
 
@@ -94,6 +188,31 @@ void main() {
       expect(state.filteredProducts.first.name, 'Organic Milk');
       expect(state.inStockCount, 1);
       expect(state.outOfStockCount, 1);
+    });
+  });
+
+  group('Result & AppException Unit Tests', () {
+    test('Success returns data correctly', () {
+      const Result<String, AppFailure> result = Success('Data Loaded');
+      expect(result.isSuccess, isTrue);
+      expect(result.dataOrNull, 'Data Loaded');
+      expect(result.failureOrNull, isNull);
+    });
+
+    test('Failure returns AppFailure correctly', () {
+      const Result<String, AppFailure> result = Failure(
+        NetworkFailure(message: 'Timeout'),
+      );
+      expect(result.isFailure, isTrue);
+      expect(result.dataOrNull, isNull);
+      expect(result.failureOrNull?.message, 'Timeout');
+    });
+
+    test('AppException maps status codes to appropriate failure type', () {
+      const authEx = AppException(message: 'Session Expired', statusCode: 401);
+      final failure = authEx.toFailure();
+      expect(failure, isA<AuthFailure>());
+      expect(failure.statusCode, 401);
     });
   });
 }

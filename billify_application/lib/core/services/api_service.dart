@@ -2,7 +2,10 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:billify/core/constants/api_endpoints.dart';
 import 'package:billify/core/constants/app_constants.dart';
+import 'package:billify/core/errors/app_exception.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/models/user_model.dart';
+import 'package:billify/providers/auth_provider.dart';
 import 'package:billify/providers/storage_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +17,7 @@ final apiServiceProvider = Provider<ApiService>((ref) {
 class ApiService {
   final Ref _ref;
   late final Dio _dio;
+
   ApiService(this._ref) {
     _dio = Dio(
       BaseOptions(
@@ -27,6 +31,7 @@ class ApiService {
       ),
     );
 
+    // Attach Auth & Context Interceptors
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -34,12 +39,11 @@ class ApiService {
 
           // 1. Attach Auth Token
           final token = storage.getString(AppConstants.keyToken);
-          if (token != null) {
+          if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
 
           // 2. Attach Current Business ID
-          // We get the current user first to resolve the correct key for storage
           final userJson = storage.getString(AppConstants.keyUserData);
           if (userJson != null) {
             try {
@@ -50,7 +54,6 @@ class ApiService {
                       ? user.email!
                       : user.mobile;
 
-              // Get the current business ID using the user-scoped key
               final businessId = storage.getString(
                 AppConstants.userKey(userId, AppConstants.keyCurrentBusinessId),
               );
@@ -59,52 +62,71 @@ class ApiService {
                 options.headers['x-business-id'] = businessId;
               }
             } catch (e) {
-              print("Error resolving business ID in ApiService: $e");
+              AppLogger.warning('Error resolving business ID for request: $e', tag: 'ApiService');
             }
           }
 
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          debugPrint(
-            "RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}",
+          AppLogger.debug(
+            'RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}',
+            tag: 'ApiService',
           );
           return handler.next(response);
         },
-        onError: (e, handler) {
-          debugPrint(
-            "ERROR[${e.response?.statusCode}] => PATH: ${e.requestOptions.path}\n"
-            "DATA: ${e.response?.data}",
+        onError: (DioException e, handler) async {
+          AppLogger.error(
+            'HTTP ERROR[${e.response?.statusCode}] => PATH: ${e.requestOptions.path}',
+            tag: 'ApiService',
+            error: e.response?.data ?? e.message,
           );
+
+          // Global 401 Unauthorized handling (Session Expiration)
           if (e.response?.statusCode == 401) {
-            debugPrint("Unauthorized access - 401");
+            AppLogger.warning('Session expired (401). Clearing auth session.', tag: 'ApiService');
+            try {
+              // Trigger clean logout
+              await _ref.read(authProvider.notifier).logout();
+            } catch (err) {
+              AppLogger.error('Failed to trigger auto-logout on 401: $err', tag: 'ApiService');
+            }
           }
+
           return handler.next(e);
         },
       ),
     );
 
-    // Add Detailed Request Logger
-    _dio.interceptors.add(
-      LogInterceptor(
-        requestHeader: true,
-        requestBody: true,
-        responseHeader: false,
-        responseBody: true,
-        error: true,
-        logPrint: (obj) => debugPrint(obj.toString()),
-      ),
-    );
+    // Attach request/response debug logger in development only
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        LogInterceptor(
+          requestHeader: true,
+          requestBody: true,
+          responseHeader: false,
+          responseBody: true,
+          error: true,
+          logPrint: (obj) => debugPrint(obj.toString()),
+        ),
+      );
+    }
   }
 
   Dio get instance => _dio;
 
-  // Helper methods
+  // Strongly typed HTTP Helper methods that translate DioExceptions to AppExceptions
   Future<Response> get(
     String path, {
     Map<String, dynamic>? queryParameters,
   }) async {
-    return await _dio.get(path, queryParameters: queryParameters);
+    try {
+      return await _dio.get(path, queryParameters: queryParameters);
+    } on DioException catch (e) {
+      throw AppException.fromDioError(e);
+    } catch (e) {
+      throw AppException(message: e.toString());
+    }
   }
 
   Future<Response> post(
@@ -112,7 +134,13 @@ class ApiService {
     dynamic data,
     Map<String, dynamic>? queryParameters,
   }) async {
-    return await _dio.post(path, data: data, queryParameters: queryParameters);
+    try {
+      return await _dio.post(path, data: data, queryParameters: queryParameters);
+    } on DioException catch (e) {
+      throw AppException.fromDioError(e);
+    } catch (e) {
+      throw AppException(message: e.toString());
+    }
   }
 
   Future<Response> put(
@@ -120,7 +148,13 @@ class ApiService {
     dynamic data,
     Map<String, dynamic>? queryParameters,
   }) async {
-    return await _dio.put(path, data: data, queryParameters: queryParameters);
+    try {
+      return await _dio.put(path, data: data, queryParameters: queryParameters);
+    } on DioException catch (e) {
+      throw AppException.fromDioError(e);
+    } catch (e) {
+      throw AppException(message: e.toString());
+    }
   }
 
   Future<Response> delete(
@@ -128,10 +162,16 @@ class ApiService {
     dynamic data,
     Map<String, dynamic>? queryParameters,
   }) async {
-    return await _dio.delete(
-      path,
-      data: data,
-      queryParameters: queryParameters,
-    );
+    try {
+      return await _dio.delete(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+      );
+    } on DioException catch (e) {
+      throw AppException.fromDioError(e);
+    } catch (e) {
+      throw AppException(message: e.toString());
+    }
   }
 }

@@ -3,6 +3,7 @@ import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/data/models/product_model.dart';
 import 'package:billify/data/models/uom_model.dart';
 import 'package:billify/data/models/user_permission.dart';
+import 'package:billify/presentation/widgets/status_badge.dart';
 import 'package:billify/providers/auth_provider.dart';
 import 'package:billify/providers/uom_provider.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +30,9 @@ class ProductListTile extends ConsumerWidget {
         .watch(authProvider)
         .hasPermission(PermissionModule.products, PermissionAction.delete);
 
+    final isOutOfStock = product.stock <= 0;
+    final isLowStock = product.stock > 0 && product.stock <= 5;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -38,7 +42,7 @@ class ProductListTile extends ConsumerWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: AppTheme.primaryTeal.withOpacity(0.1),
+            color: AppTheme.primaryTeal.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
             image: product.photo != null && product.photo!.isNotEmpty
                 ? DecorationImage(
@@ -54,44 +58,60 @@ class ProductListTile extends ConsumerWidget {
                 )
               : null,
         ),
-        title: Text(
-          product.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
+            Expanded(
+              child: Text(
+                product.name,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
             if (product.hasVariants)
-              Text(
-                '${product.variants.length} Variants',
-                style: const TextStyle(
-                  color: AppTheme.primaryTeal,
-                  fontWeight: FontWeight.w500,
-                ),
+              StatusBadge(
+                label: '${product.variants.length} Variants',
+                variant: BadgeVariant.info,
+                isSmall: true,
               )
+            else if (isOutOfStock)
+              StatusBadge.outOfStock(label: 'Out of Stock')
+            else if (isLowStock)
+              StatusBadge.lowStock(label: 'Low (${product.stock})')
             else
-              Consumer(
-                builder: (context, ref, child) {
-                  final uoms = ref.watch(uomProvider);
-                  final uom = uoms.firstWhere(
-                    (u) => u.id == product.uom,
-                    orElse: () => UomModel(
-                      id: product.uom,
-                      name: product.uom,
-                      shortCode: product.uom,
-                    ),
-                  );
-                  return Text(
-                    '${product.is_weighted ? "Price/Unit" : "Price"}: ₹${product.basePrice} | Stock: ${product.stock} ${uom.name}',
-                  );
-                },
-              ),
-            if (!product.hasVariants && product.barcode.isNotEmpty)
-              Text(
-                'Code: ${product.barcode}',
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
-              ),
+              StatusBadge.inStock(label: '₹${product.basePrice.toStringAsFixed(0)}'),
           ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!product.hasVariants)
+                Consumer(
+                  builder: (context, ref, child) {
+                    final uoms = ref.watch(uomProvider);
+                    final uom = uoms.firstWhere(
+                      (u) => u.id == product.uom,
+                      orElse: () => UomModel(
+                        id: product.uom,
+                        name: product.uom,
+                        shortCode: product.uom,
+                      ),
+                    );
+                    return Text(
+                      '${product.is_weighted ? "Price/Unit" : "Price"}: ₹${product.basePrice} | Stock: ${product.stock} ${uom.name}',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    );
+                  },
+                ),
+              if (!product.hasVariants && product.barcode.isNotEmpty)
+                Text(
+                  'Code: ${product.barcode}',
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+            ],
+          ),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,

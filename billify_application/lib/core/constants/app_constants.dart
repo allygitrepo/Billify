@@ -29,7 +29,9 @@ class AppConstants {
   );
   
   // Design Constants
+  static const double borderRadiusSmall = 8.0;
   static const double borderRadius = 12.0;
+  static const double borderRadiusLarge = 20.0;
   static const double padding = 16.0;
   static const double paddingLarge = 20.0;
 }

@@ -5,6 +5,7 @@ import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:billify/presentation/customers/add_customer_bottom_sheet.dart';
+import 'package:billify/presentation/widgets/app_search_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -58,28 +59,15 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by name or phone...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    ref.read(customerProvider.notifier).fetchCustomers();
-                  },
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onChanged: (val) {
-                ref.read(customerProvider.notifier).fetchCustomers(search: val);
-              },
-            ),
+          AppSearchBar(
+            controller: _searchController,
+            hintText: 'Search by name or phone...',
+            onChanged: (val) {
+              ref.read(customerProvider.notifier).fetchCustomers(search: val);
+            },
+            onClear: () {
+              ref.read(customerProvider.notifier).fetchCustomers();
+            },
           ),
           Expanded(
             child: customersAsync.when(

@@ -3,6 +3,7 @@ import 'package:billify/data/models/product_model.dart';
 import 'package:billify/data/models/user_permission.dart';
 import 'package:billify/presentation/product/widgets/product_form_bottom_sheet.dart';
 import 'package:billify/presentation/product/widgets/product_list_tile.dart';
+import 'package:billify/presentation/widgets/app_confirmation_dialog.dart';
 import 'package:billify/presentation/widgets/empty_state_view.dart';
 import 'package:billify/providers/auth_provider.dart';
 import 'package:billify/providers/category_provider.dart';
@@ -43,25 +44,12 @@ class _ProductManagementPageState
   }
 
   Future<void> _showDeleteDialog(ProductModel product) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Product'),
-        content: Text('Are you sure you want to delete "${product.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+    final confirmed = await AppConfirmationDialog.showDelete(
+      context,
+      itemName: product.name,
     );
 
-    if (confirmed == true) {
+    if (confirmed) {
       await ref.read(productProvider.notifier).deleteProduct(product.id);
     }
   }

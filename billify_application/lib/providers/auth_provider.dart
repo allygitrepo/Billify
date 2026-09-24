@@ -1,19 +1,15 @@
-import 'package:flutter/foundation.dart';
-import 'package:billify/data/datasources/auth_datasource.dart';
-import 'package:billify/data/models/user_model.dart';
-import 'package:billify/data/repositories/auth_repository.dart';
-import 'package:billify/providers/storage_provider.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'package:billify/providers/user_management_provider.dart';
-import 'package:billify/data/models/role_model.dart';
-import 'package:billify/data/models/user_permission.dart';
 import 'package:billify/core/constants/app_constants.dart';
-import 'package:billify/data/datasources/business_datasource.dart';
-import 'package:billify/data/repositories/business_repository.dart';
-import 'package:billify/providers/business_provider.dart';
-
+import 'package:billify/core/utils/app_logger.dart';
+import 'package:billify/data/datasources/auth_datasource.dart';
 import 'package:billify/data/datasources/remote_auth_datasource.dart';
+import 'package:billify/data/models/role_model.dart';
+import 'package:billify/data/models/user_model.dart';
+import 'package:billify/data/models/user_permission.dart';
+import 'package:billify/data/repositories/auth_repository.dart';
+import 'package:billify/providers/business_provider.dart';
+import 'package:billify/providers/storage_provider.dart';
+import 'package:billify/providers/user_management_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
@@ -96,8 +92,9 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> _loadRoleForUser(UserModel user) async {
     if (user.roleId == null) {
-      print(
-        "INFO: User has no roleId (Owner account). Granting full administrative permissions.",
+      AppLogger.info(
+        "User has no roleId (Owner account). Granting owner permissions.",
+        tag: 'AuthNotifier',
       );
       final ownerRole = RoleModel(
         id: 'owner_admin',
@@ -127,14 +124,11 @@ class AuthNotifier extends Notifier<AuthState> {
     );
 
     if (businessId == null || int.tryParse(businessId) == null) {
-      debugPrint(
-        "INFO: Business ID is null or non-numeric. Checking for Global Admin role...",
-      );
-
       // Check if it's a known Global Admin role (ID 1)
       if (user.roleId == '1' || user.roleId?.toLowerCase() == 'admin') {
-        debugPrint(
-          "SUCCESS: Global Admin detected (Role ID: 1). Granting full administrative access.",
+        AppLogger.info(
+          "Global Admin detected. Granting full administrative access.",
+          tag: 'AuthNotifier',
         );
         final fullAccessRole = RoleModel(
           id: 'global_admin',
@@ -151,14 +145,16 @@ class AuthNotifier extends Notifier<AuthState> {
         return;
       }
 
-      debugPrint(
-        "WARNING: No business context found for non-global user ${user.name}. Fallback to setup required.",
+      AppLogger.warning(
+        "No business context found for user ${user.name}.",
+        tag: 'AuthNotifier',
       );
       return;
     }
 
-    debugPrint(
-      "DEBUG: Retrieving permissions for Role ${user.roleId} in Business $businessId",
+    AppLogger.debug(
+      "Retrieving permissions for Role ${user.roleId} in Business $businessId",
+      tag: 'AuthNotifier',
     );
     state = state.copyWith(loadingMessage: "Retrieving role permissions...");
 
@@ -172,10 +168,11 @@ class AuthNotifier extends Notifier<AuthState> {
         currentRole: role,
         loadingMessage: "Role loaded: ${role.name}",
       );
-      debugPrint("SUCCESS: Permissions loaded for role: ${role.name}");
+      AppLogger.info("Permissions loaded for role: ${role.name}", tag: 'AuthNotifier');
     } catch (e) {
-      debugPrint(
-        "WARNING: Specific Role ${user.roleId} could not be loaded for user ${user.name}: $e",
+      AppLogger.warning(
+        "Specific Role ${user.roleId} could not be loaded for user ${user.name}: $e",
+        tag: 'AuthNotifier',
       );
       // Fail-closed security: Assign restricted permissions on failure rather than elevating to full Admin
       final restrictedRole = RoleModel(
@@ -214,7 +211,7 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> loginWithGoogle() async {
-    debugPrint('DEBUG: Starting Google Sign-In process...');
+    AppLogger.debug('Starting Google Sign-In process...', tag: 'AuthNotifier');
     // Reset state to clean slate while loading to ensure no stale data is visible
     state = AuthState(
       isLoading: true,
@@ -223,13 +220,9 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final repo = ref.read(authRepositoryProvider);
       final response = await repo.loginWithGoogle();
-      debugPrint(
-        'DEBUG: Google Sign-In response received in provider: $response',
-      );
       await _handleLoginResponse(response);
     } catch (e, stack) {
-      debugPrint('DEBUG: Google Sign-In provider caught error: $e');
-      debugPrint('DEBUG: Provider stack trace: $stack');
+      AppLogger.error('Google Sign-In failed', tag: 'AuthNotifier', error: e, stackTrace: stack);
       state = state.copyWith(
         isLoading: false,
         errorObject: e,
@@ -241,7 +234,7 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> _handleLoginResponse(Map<String, dynamic> response) async {
     final repo = ref.read(authRepositoryProvider);
     if (response['token'] != null) {
-      debugPrint('DEBUG: Auth token found in response. Finalizing login...');
+      AppLogger.info('Auth token verified. Finalizing login...', tag: 'AuthNotifier');
       final user = repo.getUser();
       state = state.copyWith(user: user, isLoggedIn: true);
 
@@ -255,9 +248,9 @@ class AuthNotifier extends Notifier<AuthState> {
         await ref.read(businessProvider.notifier).sync();
       }
       state = state.copyWith(isLoading: false, loadingMessage: null);
-      debugPrint('DEBUG: Login process completed successfully');
+      AppLogger.info('Login process completed successfully', tag: 'AuthNotifier');
     } else {
-      debugPrint('DEBUG: Login failed. Error message: ${response['message']}');
+      AppLogger.warning('Login failed: ${response['message']}', tag: 'AuthNotifier');
       state = state.copyWith(
         isLoading: false,
         error: response['message'] ?? 'Authentication failed',

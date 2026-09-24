@@ -66,7 +66,7 @@ class AnalyticsNotifier extends StateNotifier<AnalyticsState> {
     state = state.copyWith(isLoading: true);
 
     final invoices = _ref.read(invoiceProvider);
-    final products = _ref.read(productProvider);
+    final products = _ref.read(productProvider).products;
     final categories = _ref.read(categoryProvider);
     final customersAsync = _ref.read(customerProvider);
 

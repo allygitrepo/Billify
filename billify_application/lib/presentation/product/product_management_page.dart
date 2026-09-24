@@ -52,7 +52,7 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    final productList = ref.watch(productProvider);
+    final productList = ref.watch(productsListProvider);
     final categories = ref.watch(categoryProvider);
 
     // Filter products

@@ -220,7 +220,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   }
 
   void _showProductPicker() {
-    final allProducts = ref.read(productProvider);
+    final allProducts = ref.read(productsListProvider);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

@@ -280,7 +280,7 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
   }
 
   void _showProductPicker() {
-    final allProducts = ref.read(productProvider);
+    final allProducts = ref.read(productsListProvider);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -431,7 +431,7 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    final allProducts = ref.watch(productProvider);
+    final allProducts = ref.watch(productsListProvider);
     final history = ref.watch(stockHistoryProvider);
 
     return Scaffold(
@@ -1008,7 +1008,7 @@ class _HistoryItem extends ConsumerWidget {
 
     // Find product to get image
     final product = ref
-        .watch(productProvider)
+        .watch(productsListProvider)
         .where((p) => p.id == history.product_id)
         .firstOrNull;
 

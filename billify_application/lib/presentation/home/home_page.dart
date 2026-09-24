@@ -125,7 +125,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _buildDashboard() {
     final allInvoices = ref.watch(invoiceProvider);
     final invoiceNotifier = ref.watch(invoiceProvider.notifier);
-    final allProducts = ref.watch(productProvider);
+    final allProducts = ref.watch(productsListProvider);
     final business = ref.watch(businessProvider).currentBusiness;
     final authState = ref.watch(authProvider);
     final user = authState.user;

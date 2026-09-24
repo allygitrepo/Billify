@@ -2,11 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:billify/core/errors/app_exception.dart';
 import 'package:billify/core/errors/app_failure.dart';
 import 'package:billify/core/errors/result.dart';
+import 'package:billify/core/services/local_storage_service.dart';
 import 'package:billify/core/utils/validators.dart';
-import 'package:billify/providers/billing_provider.dart';
-import 'package:billify/providers/state/product_state.dart';
 import 'package:billify/data/models/cart_item_model.dart';
 import 'package:billify/data/models/product_model.dart';
+import 'package:billify/providers/billing_provider.dart';
+import 'package:billify/providers/state/product_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('Validators Unit Tests', () {
@@ -213,6 +215,41 @@ void main() {
       final failure = authEx.toFailure();
       expect(failure, isA<AuthFailure>());
       expect(failure.statusCode, 401);
+    });
+  });
+
+  group('LocalStorageService Unit Tests', () {
+    test('Handles JSON Map and List serialization cleanly', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final storage = LocalStorageService(prefs);
+
+      // 1. JSON Map
+      final userMap = {'id': 'user_101', 'name': 'John Merchant', 'active': true};
+      await storage.setJson('user_profile', userMap);
+      final retrieved = storage.getJson('user_profile');
+      expect(retrieved?['id'], 'user_101');
+      expect(retrieved?['active'], isTrue);
+
+      // 2. JSON List
+      final cart = [
+        {'id': '1', 'qty': 2},
+        {'id': '2', 'qty': 5},
+      ];
+      await storage.setJsonList('cart_cache', cart);
+      final retrievedCart = storage.getJsonList('cart_cache');
+      expect(retrievedCart?.length, 2);
+      expect(retrievedCart?.first['qty'], 2);
+
+      // 3. Clear by prefix
+      await storage.setString('biz_1_product_1', 'Milk');
+      await storage.setString('biz_1_product_2', 'Bread');
+      await storage.setString('biz_2_product_1', 'Apples');
+
+      final clearedCount = await storage.clearKeysWithPrefix('biz_1_');
+      expect(clearedCount, 2);
+      expect(storage.getString('biz_1_product_1'), isNull);
+      expect(storage.getString('biz_2_product_1'), 'Apples');
     });
   });
 }

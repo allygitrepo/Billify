@@ -44,9 +44,18 @@ class ProductListTile extends ConsumerWidget {
           decoration: BoxDecoration(
             color: AppTheme.primaryTeal.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
-            image: product.photo != null && product.photo!.isNotEmpty
+            image: ImageUtils.providerFromBase64(
+                      product.photo,
+                      cacheWidth: 96,
+                      cacheHeight: 96,
+                    ) !=
+                    null
                 ? DecorationImage(
-                    image: MemoryImage(ImageUtils.decodeBase64(product.photo!)),
+                    image: ImageUtils.providerFromBase64(
+                      product.photo,
+                      cacheWidth: 96,
+                      cacheHeight: 96,
+                    )!,
                     fit: BoxFit.cover,
                   )
                 : null,

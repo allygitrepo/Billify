@@ -1,3 +1,4 @@
+import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/core/utils/validators.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:billify/providers/business_provider.dart';
@@ -221,16 +222,13 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
 
       await ref.read(customerProvider.notifier).fetchCustomers();
       if (mounted) {
+        AppFeedback.unfocus();
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Transaction recorded successfully')),
-        );
+        AppFeedback.showSuccess(context, 'Transaction recorded successfully');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        AppFeedback.showError(context, 'Failed to record transaction: $e');
       }
     }
   }

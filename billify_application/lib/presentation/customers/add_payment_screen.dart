@@ -1,4 +1,5 @@
 import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/core/utils/validators.dart';
 import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/providers/customer_provider.dart';
@@ -54,21 +55,16 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
           );
 
       if (mounted) {
+        AppFeedback.unfocus();
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.isCredit ? 'Credit entry added' : 'Payment recorded',
-            ),
-            backgroundColor: widget.isCredit ? Colors.red : Colors.green,
-          ),
+        AppFeedback.showSuccess(
+          context,
+          widget.isCredit ? 'Credit entry added successfully' : 'Payment recorded successfully',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        AppFeedback.showError(context, 'Failed to record entry: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -83,7 +79,7 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('$title to ${widget.customer.name}'),
-        backgroundColor: color.withOpacity(0.1),
+        backgroundColor: color.withValues(alpha: 0.1),
         foregroundColor: color,
         elevation: 0,
       ),
@@ -119,7 +115,7 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
                     borderSide: BorderSide(color: color, width: 2),
                   ),
                   enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: color.withOpacity(0.3)),
+                    borderSide: BorderSide(color: color.withValues(alpha: 0.3)),
                   ),
                   focusedBorder: UnderlineInputBorder(
                     borderSide: BorderSide(color: color, width: 2),

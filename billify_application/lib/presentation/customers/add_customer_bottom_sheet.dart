@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/core/utils/validators.dart';
 import 'package:billify/data/models/customer_model.dart';
@@ -206,22 +207,19 @@ class _AddCustomerBottomSheetState
 
       await ref.read(customerProvider.notifier).saveCustomer(customer);
       if (mounted) {
+        AppFeedback.unfocus();
         Navigator.pop(context, true); // Return true to indicate change
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.initialCustomer != null
-                  ? 'Customer updated successfully'
-                  : 'Customer saved successfully',
-            ),
-          ),
+        AppFeedback.showSuccess(
+          context,
+          widget.initialCustomer != null
+              ? 'Customer updated successfully'
+              : 'Customer saved successfully',
         );
       }
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        AppFeedback.showError(context, 'Failed to save customer: $e');
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

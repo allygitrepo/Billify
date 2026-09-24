@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/core/utils/validators.dart';
 import 'package:billify/data/models/product_model.dart';
@@ -213,23 +214,19 @@ class _ProductFormBottomSheetState
         name: _nameController.text,
       );
 
+      AppFeedback.unfocus();
       await ref.read(productProvider.notifier).saveProduct(newProduct);
 
       if (mounted) {
         Navigator.pop(context, newProduct);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.product == null ? 'Product saved' : 'Product updated',
-            ),
-          ),
+        AppFeedback.showSuccess(
+          context,
+          widget.product == null ? 'Product added successfully' : 'Product updated successfully',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save product: $e')),
-        );
+        AppFeedback.showError(context, 'Failed to save product: $e');
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

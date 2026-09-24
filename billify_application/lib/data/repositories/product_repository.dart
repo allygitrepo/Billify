@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:billify/core/constants/app_constants.dart';
 import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/datasources/remote_product_datasource.dart';
 import 'package:billify/data/models/product_model.dart';
 import 'package:dio/dio.dart';
@@ -35,9 +35,9 @@ class ProductRepository {
         _productDataKey,
         jsonEncode(remoteProducts.map((e) => e.toJson()).toList()),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       // Failed to sync, fallback to local storage
-      print("Error fetching products: $e");
+      AppLogger.error("Error fetching products", error: e, stackTrace: stackTrace, tag: 'ProductRepository');
     }
   }
 
@@ -59,7 +59,7 @@ class ProductRepository {
 
     // 2. Try remote save if business ID is valid
     if (int.tryParse(_businessId) == null) {
-      print("Skipping remote product save: Business ID $_businessId is temporary.");
+      AppLogger.info("Skipping remote product save: Business ID $_businessId is temporary.", tag: 'ProductRepository');
       return;
     }
 
@@ -92,8 +92,8 @@ class ProductRepository {
           jsonEncode(currentProducts.map((e) => e.toJson()).toList()),
         );
       }
-    } on DioException catch (e) {
-      print("SAVE ERROR: ${e.response?.data ?? e.message}");
+    } on DioException catch (e, stackTrace) {
+      AppLogger.error("SAVE ERROR: ${e.response?.data ?? e.message}", error: e, stackTrace: stackTrace, tag: 'ProductRepository');
       // We don't rethrow here if it was already saved locally, 
       // but maybe we should if we want the user to know it's not on server.
       // For now, let's rethrow to maintain original behavior but keep local save.

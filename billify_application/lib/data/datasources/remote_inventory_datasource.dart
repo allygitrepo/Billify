@@ -1,5 +1,6 @@
 import 'package:billify/core/constants/api_endpoints.dart';
 import 'package:billify/core/services/api_service.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/models/stock_history_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,8 +27,8 @@ class RemoteInventoryDatasource {
         return logs.map((e) => StockHistoryModel.fromJson(e)).toList();
       }
       return [];
-    } catch (e) {
-      print("Error fetching inventory log: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error fetching inventory log", error: e, stackTrace: stackTrace, tag: 'RemoteInventoryDatasource');
       return [];
     }
   }
@@ -55,8 +56,8 @@ class RemoteInventoryDatasource {
         },
       );
       return response.statusCode == 200;
-    } catch (e) {
-      print("Error updating stock bulk: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error updating stock bulk", error: e, stackTrace: stackTrace, tag: 'RemoteInventoryDatasource');
       return false;
     }
   }

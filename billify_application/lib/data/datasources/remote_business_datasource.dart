@@ -1,5 +1,6 @@
 import 'package:billify/core/constants/api_endpoints.dart';
 import 'package:billify/core/services/api_service.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/models/business_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,8 +17,8 @@ class RemoteBusinessDatasource {
         return data.map((json) => BusinessModel.fromJson(json)).toList();
       }
       return [];
-    } catch (e) {
-      print("Error fetching businesses: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error fetching businesses", error: e, stackTrace: stackTrace, tag: 'RemoteBusinessDatasource');
       return [];
     }
   }
@@ -41,8 +42,8 @@ class RemoteBusinessDatasource {
         return BusinessModel.fromJson(response.data['business']);
       }
       return null;
-    } catch (e) {
-      print("Error creating business: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error creating business", error: e, stackTrace: stackTrace, tag: 'RemoteBusinessDatasource');
       return null;
     }
   }
@@ -66,8 +67,8 @@ class RemoteBusinessDatasource {
         return BusinessModel.fromJson(response.data['business']);
       }
       return null;
-    } catch (e) {
-      print("Error updating business: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error updating business", error: e, stackTrace: stackTrace, tag: 'RemoteBusinessDatasource');
       return null;
     }
   }

@@ -1,3 +1,4 @@
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/datasources/business_datasource.dart';
 import 'package:billify/data/datasources/remote_business_datasource.dart';
 import 'package:billify/data/models/business_model.dart';
@@ -31,8 +32,8 @@ class BusinessRepository {
           }
         }
       }
-    } catch (e) {
-      print("Error during remote business save: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error during remote business save", error: e, stackTrace: stackTrace, tag: 'BusinessRepository');
     }
 
     return true;

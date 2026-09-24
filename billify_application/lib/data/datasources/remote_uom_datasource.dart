@@ -1,5 +1,6 @@
 import 'package:billify/core/constants/api_endpoints.dart';
 import 'package:billify/core/services/api_service.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/models/uom_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,8 +23,8 @@ class RemoteUomDatasource {
         return data.map((e) => UomModel.fromJson(e)).toList();
       }
       return [];
-    } catch (e) {
-      print("Error fetching UOMs: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error fetching UOMs", error: e, stackTrace: stackTrace, tag: 'RemoteUomDatasource');
       return [];
     }
   }
@@ -31,7 +32,7 @@ class RemoteUomDatasource {
   Future<UomModel?> createUom(UomModel uom, String businessId) async {
     try {
       final response = await _apiService.post(
-        ApiEndpoints.uomsBase + '/create',
+        '${ApiEndpoints.uomsBase}/create',
         data: {
           'business_id': int.tryParse(businessId),
           'name': uom.name,
@@ -42,8 +43,8 @@ class RemoteUomDatasource {
         return UomModel.fromJson(response.data['uom']);
       }
       return null;
-    } catch (e) {
-      print("Error creating UOM: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error creating UOM", error: e, stackTrace: stackTrace, tag: 'RemoteUomDatasource');
       return null;
     }
   }
@@ -58,8 +59,8 @@ class RemoteUomDatasource {
         return UomModel.fromJson(response.data['uom']);
       }
       return null;
-    } catch (e) {
-      print("Error updating UOM: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error updating UOM", error: e, stackTrace: stackTrace, tag: 'RemoteUomDatasource');
       return null;
     }
   }
@@ -68,8 +69,8 @@ class RemoteUomDatasource {
     try {
       final response = await _apiService.delete(ApiEndpoints.deleteUom(id));
       return response.statusCode == 200;
-    } catch (e) {
-      print("Error deleting UOM: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error deleting UOM", error: e, stackTrace: stackTrace, tag: 'RemoteUomDatasource');
       return false;
     }
   }

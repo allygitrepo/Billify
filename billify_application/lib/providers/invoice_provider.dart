@@ -1,3 +1,4 @@
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/models/invoice_model.dart';
 import 'package:billify/data/datasources/remote_invoice_datasource.dart';
 import 'package:billify/data/repositories/invoice_repository.dart';
@@ -45,8 +46,8 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
       if (!_isDisposed) {
         state = invoices;
       }
-    } catch (e) {
-      print("Error loading invoices: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error loading invoices", error: e, stackTrace: stackTrace, tag: 'InvoiceNotifier');
     }
   }
 

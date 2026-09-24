@@ -1,5 +1,6 @@
 import 'package:billify/core/constants/api_endpoints.dart';
 import 'package:billify/core/services/api_service.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/models/invoice_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -74,7 +75,7 @@ class RemoteInvoiceDatasource {
       }).toList(),
     };
 
-    print('DEBUG: Sending CREATE_INVOICE body: $body');
+    AppLogger.debug('Sending CREATE_INVOICE body: $body', tag: 'RemoteInvoiceDatasource');
 
     final response = await _apiService.post(
       ApiEndpoints.createInvoice,
@@ -103,8 +104,8 @@ class RemoteInvoiceDatasource {
         return InvoiceModel.fromJson(response.data['invoice']);
       }
       return null;
-    } catch (e) {
-      print("Error fetching invoice by ID ($id): $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error fetching invoice by ID ($id)", error: e, stackTrace: stackTrace, tag: 'RemoteInvoiceDatasource');
       return null;
     }
   }

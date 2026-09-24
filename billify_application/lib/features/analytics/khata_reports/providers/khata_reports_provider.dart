@@ -1,3 +1,4 @@
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/features/analytics/khata_reports/models/khata_report_model.dart';
 import 'package:billify/features/analytics/khata_reports/services/khata_reports_service.dart';
 import 'package:billify/providers/business_provider.dart';
@@ -193,8 +194,8 @@ class KhataReportsNotifier extends StateNotifier<KhataReportsState> {
       } else {
         state = state.copyWith(dueList: [...state.dueList, ...moreItems]);
       }
-    } catch (e) {
-      print("Error fetching more due items: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error fetching more due items", error: e, stackTrace: stackTrace, tag: 'KhataReportsNotifier');
     }
   }
 }

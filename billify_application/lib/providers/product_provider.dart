@@ -212,7 +212,7 @@ final productProvider = NotifierProvider<ProductNotifier, ProductState>(
   ProductNotifier.new,
 );
 
-/// Convenience Provider exposing the raw List<ProductModel>
+/// Convenience Provider exposing the raw `List<ProductModel>`
 final productsListProvider = Provider<List<ProductModel>>((ref) {
   return ref.watch(productProvider).products;
 });

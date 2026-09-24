@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart' as gsi;
 
 import 'package:billify/core/constants/app_constants.dart';
 import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/datasources/auth_datasource.dart';
 import 'package:billify/data/datasources/remote_auth_datasource.dart';
 import 'package:billify/data/models/user_model.dart';
@@ -54,20 +55,17 @@ class AuthRepository {
           .authenticate();
 
       if (account == null) {
-        debugPrint('DEBUG: Google Sign-In cancelled by user');
+        AppLogger.debug('Google Sign-In cancelled by user', tag: 'AuthRepository');
         return {'success': false, 'message': 'User cancelled'};
       }
 
-      // Step 7: Debug logs
-      print("Google account: ${account.email}");
+      AppLogger.debug("Google account: ${account.email}", tag: 'AuthRepository');
 
       final gsi.GoogleSignInAuthentication auth = await account.authentication;
       final String? idToken = auth.idToken;
 
-      print("ID Token: $idToken");
-
       if (idToken == null) {
-        debugPrint('DEBUG: Failed to obtain idToken');
+        AppLogger.warning('Failed to obtain Google ID Token', tag: 'AuthRepository');
         return {
           'success': false,
           'message': 'Failed to obtain Google ID Token',

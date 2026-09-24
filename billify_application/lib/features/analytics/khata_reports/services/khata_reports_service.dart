@@ -1,5 +1,6 @@
 import 'package:billify/core/constants/api_endpoints.dart';
 import 'package:billify/core/services/api_service.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/features/analytics/khata_reports/models/khata_report_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -34,7 +35,7 @@ class KhataReportsService {
     String? branchId,
   }) async {
     final uri = ApiEndpoints.getKhataSummary(businessId);
-    print("Fetching Khata Summary from: $uri");
+    AppLogger.debug("Fetching Khata Summary from: $uri", tag: 'KhataReportsService');
     final response = await _apiService.get(
       uri,
       queryParameters: _buildParams(

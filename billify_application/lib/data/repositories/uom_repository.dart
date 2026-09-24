@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:billify/core/constants/app_constants.dart';
 import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/datasources/remote_uom_datasource.dart';
 import 'package:billify/data/models/uom_model.dart';
 
@@ -32,14 +33,14 @@ class UomRepository {
           jsonEncode(remoteUoms.map((e) => e.toJson()).toList()),
         );
       }
-    } catch (e) {
-      print("Error syncing UOMs: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error syncing UOMs", error: e, stackTrace: stackTrace, tag: 'UomRepository');
     }
   }
 
   Future<void> saveUom(UomModel uom) async {
     if (int.tryParse(_businessId) == null) {
-      print("Skipping remote UOM save: Business ID is temporary.");
+      AppLogger.info("Skipping remote UOM save: Business ID is temporary.", tag: 'UomRepository');
       return;
     }
     try {
@@ -69,8 +70,8 @@ class UomRepository {
           jsonEncode(uoms.map((e) => e.toJson()).toList()),
         );
       }
-    } catch (e) {
-      print("Error saving UOM: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error saving UOM", error: e, stackTrace: stackTrace, tag: 'UomRepository');
     }
   }
 
@@ -114,8 +115,8 @@ class UomRepository {
           jsonEncode(uoms.map((e) => e.toJson()).toList()),
         );
       }
-    } catch (e) {
-      print("Error deleting UOM: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error deleting UOM", error: e, stackTrace: stackTrace, tag: 'UomRepository');
     }
   }
 }

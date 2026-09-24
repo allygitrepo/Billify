@@ -1,3 +1,4 @@
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/models/business_model.dart';
 import 'package:billify/data/models/cart_item_model.dart';
 import 'package:billify/data/models/invoice_model.dart';
@@ -66,8 +67,9 @@ class BillingNotifier extends Notifier<BillingState> {
 
   bool addToCart(ProductModel product, {double? quantity}) {
     if (product.stock <= 0) {
-      print(
-        'DEBUG: Cannot add to cart - Product ${product.name} is out of stock!',
+      AppLogger.warning(
+        'Cannot add to cart - Product ${product.name} is out of stock!',
+        tag: 'BillingNotifier',
       );
       return false;
     }
@@ -88,7 +90,10 @@ class BillingNotifier extends Notifier<BillingState> {
       final existingItem = state.items[index];
       // Check if we have enough stock
       if (existingItem.quantity + qtyToAdd > product.stock) {
-        print('DEBUG: Cannot add more - Limited stock for ${product.name}');
+        AppLogger.warning(
+          'Cannot add more - Limited stock for ${product.name}',
+          tag: 'BillingNotifier',
+        );
         return false;
       }
       final updatedItems = List<CartItemModel>.from(state.items);
@@ -193,8 +198,9 @@ class BillingNotifier extends Notifier<BillingState> {
 
     // STOCK VALIDATION
     if (newQuantity > item.product.stock) {
-      print(
-        'DEBUG: Cannot update quantity - Exceeds stock (${item.product.stock})',
+      AppLogger.warning(
+        'Cannot update quantity - Exceeds stock (${item.product.stock})',
+        tag: 'BillingNotifier',
       );
       return false;
     }

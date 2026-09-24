@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:billify/core/constants/app_constants.dart';
 import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/datasources/remote_user_management_datasource.dart';
 import 'package:billify/data/models/role_model.dart';
 import 'package:billify/data/models/user_model.dart';
@@ -29,8 +30,8 @@ class UserManagementRepository {
       if (users.isNotEmpty) {
         await saveUsers(businessId, users);
       }
-    } catch (e) {
-      print("Error syncing staff data: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error syncing staff data", error: e, stackTrace: stackTrace, tag: 'UserManagementRepository');
     }
   }
 

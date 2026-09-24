@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:billify/core/constants/app_constants.dart';
 import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/datasources/remote_customer_datasource.dart';
 import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/data/models/ledger_model.dart';
@@ -39,8 +40,8 @@ class CustomerRepository {
         );
       }
       return remoteCustomers;
-    } catch (e) {
-      print("Error fetching customers: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error fetching customers", error: e, stackTrace: stackTrace, tag: 'CustomerRepository');
       if (search == null && page == 1) {
         return getLocalCustomers();
       }

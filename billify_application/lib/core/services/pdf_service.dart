@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/models/business_model.dart';
 import 'package:billify/data/models/invoice_model.dart';
 import 'package:billify/data/models/ledger_model.dart';
@@ -28,7 +29,7 @@ class PdfService {
         final Uint8List logoBytes = base64Decode(base64Data);
         logoImage = pw.MemoryImage(logoBytes);
       } catch (e) {
-        print("Error decoding logo: $e");
+        AppLogger.warning("Error decoding logo: $e", tag: 'PdfService');
       }
     }
 
@@ -259,7 +260,7 @@ class PdfService {
         final Uint8List logoBytes = base64Decode(base64Data);
         logoImage = pw.MemoryImage(logoBytes);
       } catch (e) {
-        print("Error decoding logo: $e");
+        AppLogger.warning("Error decoding logo: $e", tag: 'PdfService');
       }
     }
 

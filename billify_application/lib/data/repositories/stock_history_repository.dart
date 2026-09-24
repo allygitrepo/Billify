@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:billify/core/constants/app_constants.dart';
 import 'package:billify/core/services/local_storage_service.dart';
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/datasources/remote_inventory_datasource.dart';
 import 'package:billify/data/models/stock_history_model.dart';
 
@@ -32,8 +33,8 @@ class StockHistoryRepository {
             .toList();
         await _storage.setString(_stockHistoryKey, jsonEncode(jsonData));
       }
-    } catch (e) {
-      print("Error syncing stock history: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error syncing stock history", error: e, stackTrace: stackTrace, tag: 'StockHistoryRepository');
     }
   }
 

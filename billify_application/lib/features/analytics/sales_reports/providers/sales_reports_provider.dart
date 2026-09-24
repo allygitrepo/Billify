@@ -1,3 +1,4 @@
+import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/models/invoice_model.dart';
 import 'package:billify/features/analytics/sales_reports/models/sales_models.dart';
 import 'package:billify/features/analytics/sales_reports/services/sales_reports_service.dart';
@@ -219,8 +220,8 @@ class SalesReportsNotifier extends StateNotifier<SalesReportsState> {
       } else {
         state = state.copyWith(invoices: [...state.invoices, ...list]);
       }
-    } catch (e) {
-      print("Error fetching invoices: $e");
+    } catch (e, stackTrace) {
+      AppLogger.error("Error fetching invoices", error: e, stackTrace: stackTrace, tag: 'SalesReportsNotifier');
     }
   }
 }

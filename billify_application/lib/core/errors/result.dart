@@ -4,6 +4,12 @@ import 'package:billify/core/errors/app_failure.dart';
 sealed class Result<T, E extends AppFailure> {
   const Result();
 
+  /// Factory constructor for a successful result
+  const factory Result.success(T data) = Success<T, E>;
+
+  /// Factory constructor for a failed result
+  const factory Result.failure(E failure) = Failure<T, E>;
+
   /// True if operation succeeded and holds valid domain payload
   bool get isSuccess => this is Success<T, E>;
 
@@ -29,10 +35,29 @@ sealed class Result<T, E extends AppFailure> {
     throw StateError('Unhandled Result subtype: $runtimeType');
   }
 
+  /// Fold/catamorphism helper
+  R fold<R>({
+    required R Function(T data) onSuccess,
+    required R Function(E failure) onFailure,
+  }) {
+    if (this is Success<T, E>) {
+      return onSuccess((this as Success<T, E>).data);
+    }
+    return onFailure((this as Failure<T, E>).failure);
+  }
+
   /// Transform the success value while preserving the failure
   Result<R, E> map<R>(R Function(T data) transform) {
     if (this is Success<T, E>) {
       return Success(transform((this as Success<T, E>).data));
+    }
+    return Failure((this as Failure<T, E>).failure);
+  }
+
+  /// Chain computations that themselves return a Result
+  Result<R, E> flatMap<R>(Result<R, E> Function(T data) transform) {
+    if (this is Success<T, E>) {
+      return transform((this as Success<T, E>).data);
     }
     return Failure((this as Failure<T, E>).failure);
   }

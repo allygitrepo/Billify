@@ -53,6 +53,15 @@ class ValidationFailure extends AppFailure {
   });
 }
 
+/// Not found resource failures (404)
+class NotFoundFailure extends AppFailure {
+  const NotFoundFailure({
+    String message = 'The requested resource was not found.',
+    super.statusCode = 404,
+    super.cause,
+  }) : super(message: message);
+}
+
 /// Local database or persistent storage failures
 class CacheFailure extends AppFailure {
   const CacheFailure({

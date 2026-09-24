@@ -108,58 +108,60 @@ class BillingNotifier extends Notifier<BillingState> {
   }
 
   Future<InvoiceModel?> confirmInvoice(BusinessModel business) async {
-    if (state.items.isEmpty) return null;
+    if (state.items.isEmpty || state.isProcessing) return null;
 
-    // Generate placeholder ID (Server will assign correct sequential Number)
-    final invoiceId = 'pending_${DateTime.now().millisecondsSinceEpoch}';
-    final currentUser = ref.read(authProvider).user;
-    final staffName = currentUser?.name ?? 'Owner';
+    state = state.copyWith(isProcessing: true);
 
-    final invoice = InvoiceModel(
-      id: invoiceId,
-      date: DateTime.now(),
-      business: business,
-      items: state.items,
-      total_amount: state.subtotal,
-      tax_amount: state.calculateTax(business.tax_percentage),
-      gst_amount: state.calculateTax(business.gst_percentage),
-      final_amount: state.getTotal(
-        business.tax_percentage,
-        business.gst_percentage,
-      ),
-      staff_name: staffName,
-      customer_id: state.selectedCustomerId,
-      customer_type: state.customerType,
-      paid_amount: state.paidAmount,
-    );
+    try {
+      // Generate placeholder ID (Server will assign correct sequential Number)
+      final invoiceId = 'pending_${DateTime.now().millisecondsSinceEpoch}';
+      final currentUser = ref.read(authProvider).user;
+      final staffName = currentUser?.name ?? 'Owner';
 
-    // Save to server & history
-    final serverInvoice = await ref
-        .read(invoiceProvider.notifier)
-        .addInvoice(invoice);
-    print('DEBUG: Invoice saved on server. ID: ${serverInvoice.id}');
-
-    // Update customerProvider state synchronously before returning
-    ref.invalidate(customerProvider);
-    if (serverInvoice.customer_id != null) {
-      print(
-        'DEBUG: Forcing synchronous refresh of Customer Ledger for ID: ${serverInvoice.customer_id}',
+      final invoice = InvoiceModel(
+        id: invoiceId,
+        date: DateTime.now(),
+        business: business,
+        items: state.items,
+        total_amount: state.subtotal,
+        tax_amount: state.calculateTax(business.tax_percentage),
+        gst_amount: state.calculateTax(business.gst_percentage),
+        final_amount: state.getTotal(
+          business.tax_percentage,
+          business.gst_percentage,
+        ),
+        staff_name: staffName,
+        customer_id: state.selectedCustomerId,
+        customer_type: state.customerType,
+        paid_amount: state.paidAmount,
       );
-      // Await the actual refresh to ensure next screen has fresh data
-      await ref.refresh(
-        customerLedgerProvider(serverInvoice.customer_id!).future,
-      );
+
+      // Save to server & history
+      final serverInvoice = await ref
+          .read(invoiceProvider.notifier)
+          .addInvoice(invoice);
+
+      // Update customerProvider state synchronously before returning
+      ref.invalidate(customerProvider);
+      if (serverInvoice.customer_id != null) {
+        // Await the actual refresh to ensure next screen has fresh data
+        await ref.refresh(
+          customerLedgerProvider(serverInvoice.customer_id!).future,
+        );
+      }
+
+      // Sync products mathematically from the server
+      ref
+          .read(productProvider.notifier)
+          .fetchAndSyncProducts(); // Async background update
+
+      // Clear cart
+      clearCart();
+
+      return serverInvoice;
+    } finally {
+      state = state.copyWith(isProcessing: false);
     }
-
-    // Sync products mathematically from the server
-    ref
-        .read(productProvider.notifier)
-        .fetchAndSyncProducts(); // Async background update
-
-    // Clear cart
-    clearCart();
-
-    return serverInvoice;
   }
 
   void addByBarcode(String barcode, {Function(String)? onNotFound}) {

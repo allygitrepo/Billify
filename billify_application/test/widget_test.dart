@@ -1,30 +1,65 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:billify/main.dart';
+import 'package:billify/core/utils/validators.dart';
+import 'package:billify/providers/billing_provider.dart';
+import 'package:billify/data/models/cart_item_model.dart';
+import 'package:billify/data/models/product_model.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const BillifyApp());
+  group('Validators Unit Tests', () {
+    test('validateEmail validates correctly', () {
+      expect(Validators.validateEmail('test@example.com'), isNull);
+      expect(Validators.validateEmail('invalid-email'), isNotNull);
+      expect(Validators.validateEmail(''), isNotNull);
+      expect(Validators.validateEmail(null), isNotNull);
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    test('validatePhone validates 10-digit phone number', () {
+      expect(Validators.validatePhone('9876543210'), isNull);
+      expect(Validators.validatePhone('12345'), isNotNull);
+      expect(Validators.validatePhone('98765432100'), isNotNull);
+      expect(Validators.validatePhone('98765abcde'), isNotNull);
+      expect(Validators.validatePhone(null), isNotNull);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    test('validatePassword validates minimum 6 characters', () {
+      expect(Validators.validatePassword('123456'), isNull);
+      expect(Validators.validatePassword('password123'), isNull);
+      expect(Validators.validatePassword('12345'), isNotNull);
+      expect(Validators.validatePassword(null), isNotNull);
+    });
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  group('BillingState Calculations Unit Tests', () {
+    test('Calculates subtotal and tax percentages correctly', () {
+      const p1 = ProductModel(
+        id: '1',
+        name: 'Item A',
+        basePrice: 100.0,
+        stock: 10,
+        category: 'General',
+        uom: 'PCS',
+        barcode: '111',
+      );
+      const p2 = ProductModel(
+        id: '2',
+        name: 'Item B',
+        basePrice: 50.0,
+        stock: 5,
+        category: 'General',
+        uom: 'PCS',
+        barcode: '222',
+      );
+
+      final state = BillingState(
+        items: [
+          const CartItemModel(product: p1, quantity: 2), // 200.0
+          const CartItemModel(product: p2, quantity: 1), // 50.0
+        ],
+      );
+
+      expect(state.subtotal, 250.0);
+      expect(state.calculateTax(5.0), 12.5); // 5% of 250
+      expect(state.getTotal(5.0, 18.0), 250.0 + 12.5 + 45.0); // Subtotal + 5% + 18% = 307.5
+    });
   });
 }

@@ -1,5 +1,4 @@
 import 'package:billify/core/enums/stock_mode.dart';
-import 'dart:convert';
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/data/models/product_model.dart';
@@ -58,14 +57,26 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
   void initState() {
     super.initState();
     _selectedReason = _inReasons[0];
-    _searchController.addListener(() {
-      setState(() => _searchQuery = _searchController.text.toLowerCase());
-    });
-    _ledgerSearchController.addListener(() {
-      setState(
-        () => _ledgerSearchQuery = _ledgerSearchController.text.toLowerCase(),
-      );
-    });
+    _searchController.addListener(_onSearchChanged);
+    _ledgerSearchController.addListener(_onLedgerSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    setState(() => _searchQuery = _searchController.text.toLowerCase());
+  }
+
+  void _onLedgerSearchChanged() {
+    setState(() => _ledgerSearchQuery = _ledgerSearchController.text.toLowerCase());
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _ledgerSearchController.removeListener(_onLedgerSearchChanged);
+    _otherReasonController.dispose();
+    _searchController.dispose();
+    _ledgerSearchController.dispose();
+    super.dispose();
   }
 
   void _addItem(ProductModel product) {
@@ -815,8 +826,9 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
                             label: Text(filter),
                             selected: isSelected,
                             onSelected: (val) {
-                              if (val)
+                              if (val) {
                                 setState(() => _selectedLedgerFilter = filter);
+                              }
                             },
                             selectedColor: AppTheme.primaryTeal.withOpacity(
                               0.2,
@@ -866,14 +878,6 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _otherReasonController.dispose();
-    _searchController.dispose();
-    _ledgerSearchController.dispose();
-    super.dispose();
   }
 
   Widget _buildHistoryList(List<StockHistoryModel> history) {

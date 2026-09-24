@@ -175,26 +175,18 @@ class AuthNotifier extends Notifier<AuthState> {
       debugPrint("SUCCESS: Permissions loaded for role: ${role.name}");
     } catch (e) {
       debugPrint(
-        "WARNING: Role ${user.roleId} not found in business roles. Granting emergency fallback Admin access.",
+        "WARNING: Specific Role ${user.roleId} could not be loaded for user ${user.name}: $e",
       );
-      print(
-        "WARNING: Specific Role ${user.roleId} not found in business roles table.",
-      );
-      print(
-        "INFO: Granting full administrative access as fallback for user ${user.name} (Role ID: ${user.roleId})",
-      );
-
-      final fullAccessRole = RoleModel(
-        id: 'fallback_admin', // Standardized fallback ID
-        name: 'Admin',
-        permissions: {
-          for (var module in PermissionModule.values)
-            module: [PermissionAction.all],
-        },
+      // Fail-closed security: Assign restricted permissions on failure rather than elevating to full Admin
+      final restrictedRole = RoleModel(
+        id: 'restricted_user',
+        name: 'Restricted User',
+        permissions: {},
       );
       state = state.copyWith(
-        currentRole: fullAccessRole,
-        loadingMessage: "Ready as Administrator",
+        currentRole: restrictedRole,
+        loadingMessage: "Ready (Restricted permissions)",
+        error: "Unable to verify role permissions with server. Some features may be restricted.",
       );
     }
 

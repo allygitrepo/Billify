@@ -157,16 +157,68 @@ class ApiService {
     }
   }
 
+  Future<Response> patch(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.patch(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        cancelToken: cancelToken,
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw AppException.fromDioError(e);
+    } catch (e) {
+      throw AppException(message: e.toString());
+    }
+  }
+
   Future<Response> delete(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+    Options? options,
   }) async {
     try {
       return await _dio.delete(
         path,
         data: data,
         queryParameters: queryParameters,
+        cancelToken: cancelToken,
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw AppException.fromDioError(e);
+    } catch (e) {
+      throw AppException(message: e.toString());
+    }
+  }
+
+  /// Uploads multipart form data (e.g. photos, documents, receipts)
+  Future<Response> uploadFormData(
+    String path, {
+    required FormData formData,
+    ProgressCallback? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      return await _dio.post(
+        path,
+        data: formData,
+        onSendProgress: onSendProgress,
+        cancelToken: cancelToken,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
       );
     } on DioException catch (e) {
       throw AppException.fromDioError(e);

@@ -429,24 +429,6 @@ class _ProductFormBottomSheetState
                   },
                 ),
                 const SizedBox(height: 16),
-                if (settings.isVariantsEnabled && !_isWeighted) ...[
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: _hasVariants,
-                        activeColor: AppTheme.primaryTeal,
-                        onChanged: (val) =>
-                            setState(() => _hasVariants = val ?? false),
-                      ),
-                      const Text(
-                        'This product has variants',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
                 // Selling Type Selection
                 const Text(
                   'Selling Type',
@@ -463,8 +445,7 @@ class _ProductFormBottomSheetState
                         activeColor: AppTheme.primaryTeal,
                         contentPadding: EdgeInsets.zero,
                         onChanged: (val) => setState(() {
-                          _isWeighted = val!;
-                          if (_isWeighted) _hasVariants = false;
+                          _isWeighted = val ?? false;
                         }),
                       ),
                     ),
@@ -476,14 +457,30 @@ class _ProductFormBottomSheetState
                         activeColor: AppTheme.primaryTeal,
                         contentPadding: EdgeInsets.zero,
                         onChanged: (val) => setState(() {
-                          _isWeighted = val!;
-                          if (_isWeighted) _hasVariants = false;
+                          _isWeighted = val ?? true;
                         }),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
+                if (settings.isVariantsEnabled) ...[
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _hasVariants,
+                        activeColor: AppTheme.primaryTeal,
+                        onChanged: (val) =>
+                            setState(() => _hasVariants = val ?? false),
+                      ),
+                      const Text(
+                        'This product has variants',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 if (!_hasVariants) ...[
                   CustomTextField(
                     controller: _barcodeController,
@@ -538,9 +535,9 @@ class _ProductFormBottomSheetState
                   ),
                 ] else ...[
                   // Variants List Editor
-                  const Text(
-                    'Variants',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  Text(
+                    _isWeighted ? 'Variants (Loose / Weighted)' : 'Variants',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const SizedBox(height: 8),
                   ..._variants.asMap().entries.map((entry) {
@@ -563,7 +560,7 @@ class _ProductFormBottomSheetState
                               Expanded(
                                 child: CustomTextField(
                                   label: 'Variant Name',
-                                  hint: 'XL, Red, etc.',
+                                  hint: 'XL, Red, Premium, etc.',
                                   initialValue: variant.name,
                                   validator: (v) =>
                                       Validators.validateRequired(
@@ -604,7 +601,7 @@ class _ProductFormBottomSheetState
                               const SizedBox(width: 8),
                               Expanded(
                                 child: CustomTextField(
-                                  label: 'Price',
+                                  label: _isWeighted ? 'Price/Unit' : 'Price',
                                   keyboardType: TextInputType.number,
                                   initialValue: variant.price != 0
                                       ? (variant.price % 1 == 0
@@ -617,7 +614,7 @@ class _ProductFormBottomSheetState
                                       ),
                                   validator: (v) => Validators.validatePrice(
                                     v,
-                                    fieldName: 'Variant Price',
+                                    fieldName: _isWeighted ? 'Variant Price per Unit' : 'Variant Price',
                                   ),
                                 ),
                               ),
@@ -637,6 +634,7 @@ class _ProductFormBottomSheetState
                                           variant.id.length > 10)
                                       ? (v) => Validators.validateStock(
                                             v,
+                                            isWeighted: _isWeighted,
                                             isRequired: false,
                                           )
                                       : null,

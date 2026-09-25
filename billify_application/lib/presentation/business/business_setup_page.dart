@@ -412,9 +412,13 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
                   const SizedBox(height: 20),
                   CustomTextField(
                     controller: _phoneController,
-                    label: 'Business Phone',
+                    label: 'Business Phone (Optional)',
                     prefixIcon: Icons.phone,
-                    validator: Validators.validatePhone,
+                    validator: (v) => Validators.validatePhone(
+                      v,
+                      isOptional: true,
+                      exactLength: false,
+                    ),
                     keyboardType: TextInputType.phone,
                   ),
                   const SizedBox(height: 20),
@@ -436,18 +440,20 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
             ),
             const SizedBox(height: 20),
             SectionCard(
-              title: 'Tax Configuration',
+              title: 'Tax Configuration (Optional)',
               child: Row(
                 children: [
                   Expanded(
                     child: CustomTextField(
                       controller: _taxController,
                       label: 'Tax %',
+                      hint: '0',
                       keyboardType: TextInputType.number,
                       prefixIcon: Icons.percent,
                       validator: (v) => Validators.validatePercentage(
                         v,
                         fieldName: 'Tax',
+                        isOptional: true,
                         min: 0,
                         max: 100,
                       ),
@@ -458,11 +464,13 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
                     child: CustomTextField(
                       controller: _gstPercentController,
                       label: 'GST %',
+                      hint: '0',
                       keyboardType: TextInputType.number,
                       prefixIcon: Icons.receipt_long,
                       validator: (v) => Validators.validatePercentage(
                         v,
                         fieldName: 'GST',
+                        isOptional: true,
                         min: 0,
                         max: 100,
                       ),

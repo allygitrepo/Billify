@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/providers/business_provider.dart';
 import 'package:billify/providers/customer_provider.dart';
@@ -54,9 +55,7 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
             _contacts = [];
             _isLoading = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Contacts permission denied')),
-          );
+          AppFeedback.showWarning(context, 'Contacts permission denied');
         }
       }
     } catch (e) {
@@ -65,9 +64,7 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
           _contacts = [];
           _isLoading = false;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error fetching contacts: $e')));
+        AppFeedback.showError(context, 'Error fetching contacts: $e');
       }
     }
   }
@@ -263,9 +260,7 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
       if (result == true) {
         // Successully imported individually with details
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Customer added with extra details!')),
-          );
+          AppFeedback.showSuccess(context, 'Customer added with extra details!');
         }
       }
     });
@@ -305,28 +300,21 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
 
       if (toImport.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No new customers to import.')),
-          );
+          AppFeedback.showInfo(context, 'No new customers to import.');
         }
       } else {
         await ref.read(customerProvider.notifier).bulkImport(toImport);
         if (mounted) {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '${toImport.length} new customers imported successfully',
-              ),
-            ),
+          AppFeedback.showSuccess(
+            context,
+            '${toImport.length} new customers imported successfully',
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        AppFeedback.showError(context, e);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

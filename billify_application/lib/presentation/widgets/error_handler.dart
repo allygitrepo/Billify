@@ -1,3 +1,5 @@
+import 'package:billify/core/errors/app_exception.dart';
+import 'package:billify/core/errors/app_failure.dart';
 import 'package:billify/core/utils/app_feedback.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -5,12 +7,18 @@ import 'package:flutter/material.dart';
 class ErrorHandler {
   /// Convert technical errors to user-friendly messages
   static String getUserFriendlyMessage(dynamic error) {
+    if (error == null) return 'An unexpected error occurred. Please try again.';
+    if (error is AppException) return error.message;
+    if (error is AppFailure) return error.message;
     if (error is DioException) {
       return _handleDioError(error);
+    } else if (error is String) {
+      return error;
     } else if (error is Exception) {
       return _handleGenericException(error);
     } else {
-      return 'Something went wrong. Please try again.';
+      final str = error.toString();
+      return str.isNotEmpty ? str : 'Something went wrong. Please try again.';
     }
   }
 
@@ -29,7 +37,9 @@ class ErrorHandler {
         // Try to get the error message from the response body first
         final responseData = error.response?.data;
         if (responseData is Map && responseData['message'] != null) {
-          return responseData['message'];
+          return responseData['message'].toString();
+        } else if (responseData is String && responseData.isNotEmpty) {
+          return responseData;
         }
         return _handleHttpStatusError(error.response?.statusCode);
 
@@ -70,7 +80,7 @@ class ErrorHandler {
 
   /// Handle generic exceptions
   static String _handleGenericException(Exception error) {
-    final message = error.toString();
+    final message = error.toString().replaceFirst(RegExp(r'^Exception:\s*'), '').trim();
 
     // Check for common error patterns
     if (message.contains('SocketException') ||
@@ -80,6 +90,8 @@ class ErrorHandler {
       return 'Invalid data format. Please try again.';
     } else if (message.contains('TimeoutException')) {
       return 'Request timeout. Please try again.';
+    } else if (message.isNotEmpty && !message.startsWith('Instance of')) {
+      return message;
     } else {
       return 'Something went wrong. Please try again.';
     }

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:billify/core/constants/app_constants.dart';
 import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/datasources/auth_datasource.dart';
@@ -37,16 +38,24 @@ class AuthState {
     this.errorObject,
   });
 
+  bool get isOwnerOrAdmin {
+    return user?.roleId == '1' ||
+        user?.roleId == null ||
+        currentRole?.id == '1' ||
+        currentRole?.id == 'owner_admin' ||
+        currentRole?.id == 'global_admin' ||
+        currentRole?.id == 'fallback_admin' ||
+        currentRole?.name.toLowerCase() == 'admin' ||
+        currentRole?.name.toLowerCase() == 'owner';
+  }
+
   bool hasPermission(PermissionModule module, PermissionAction action) {
     if (!isLoggedIn) return false;
 
-    // 1. Global Admin Check (Role ID '1')
-    // 2. Owner/Initial Setup Check (Role ID null)
+    // 1. Global Admin Check (Role ID '1' or Role Name 'Admin')
+    // 2. Owner/Initial Setup Check (Role ID null or 'owner_admin')
     // 3. Fallback Admin Check (Internal IDs)
-    if (user?.roleId == '1' ||
-        user?.roleId == null ||
-        currentRole?.id == 'owner_admin' ||
-        currentRole?.id == 'fallback_admin') {
+    if (isOwnerOrAdmin) {
       return true;
     }
 
@@ -90,24 +99,14 @@ class AuthNotifier extends Notifier<AuthState> {
     return AuthState(user: user, isLoggedIn: isLoggedIn);
   }
 
-  Future<void> _loadRoleForUser(UserModel user) async {
-    if (user.roleId == null) {
-      AppLogger.info(
-        "User has no roleId (Owner account). Granting owner permissions.",
-        tag: 'AuthNotifier',
-      );
-      final ownerRole = RoleModel(
-        id: 'owner_admin',
-        name: 'Owner',
-        permissions: {
-          for (var module in PermissionModule.values)
-            module: [PermissionAction.all],
-        },
-      );
-      state = state.copyWith(currentRole: ownerRole);
-      return;
+  Future<void> reloadPermissions() async {
+    final user = state.user;
+    if (user != null) {
+      await _loadRoleForUser(user, forceRemote: true);
     }
+  }
 
+  Future<void> _loadRoleForUser(UserModel user, {bool forceRemote = false}) async {
     final repo = ref.read(userManagementRepositoryProvider);
     final storage = ref.read(localStorageServiceProvider);
 
@@ -118,18 +117,58 @@ class AuthNotifier extends Notifier<AuthState> {
             ? user.email!
             : user.mobile;
 
-    // 2. Resolve Business ID from Storage only to avoid Circular Dependency
+    // 2. Resolve Business ID from Storage or fallback from user business data
     String? businessId = storage.getString(
       AppConstants.userKey(userId, AppConstants.keyCurrentBusinessId),
     );
 
-    if (businessId == null || int.tryParse(businessId) == null) {
-      // Check if it's a known Global Admin role (ID 1)
-      if (user.roleId == '1' || user.roleId?.toLowerCase() == 'admin') {
+    String? fallbackRoleId;
+    String? fallbackRoleName;
+    final businessDataStr = storage.getString(
+      AppConstants.userKey(userId, AppConstants.keyBusinessData),
+    );
+    if (businessDataStr != null) {
+      try {
+        final List<dynamic> bList = jsonDecode(businessDataStr);
+        if (bList.isNotEmpty) {
+          final currentB = bList.firstWhere(
+            (b) => b['id']?.toString() == businessId,
+            orElse: () => bList.first,
+          );
+          businessId ??= currentB['id']?.toString();
+          fallbackRoleId = currentB['role_id']?.toString();
+          fallbackRoleName = currentB['role']?.toString();
+        }
+      } catch (_) {}
+    }
+
+    final effectiveRoleId = user.roleId ?? fallbackRoleId;
+
+    // 3. Check for Owner Account (no roleId and owns the business)
+    if (effectiveRoleId == null || effectiveRoleId.isEmpty) {
+      final isOwner = user.businessOwnerId == null ||
+          user.businessOwnerId == user.id ||
+          user.businessOwnerId == user.mobile;
+      if (isOwner) {
         AppLogger.info(
-          "Global Admin detected. Granting full administrative access.",
+          "User has no roleId (Owner account). Granting owner permissions.",
           tag: 'AuthNotifier',
         );
+        final ownerRole = RoleModel(
+          id: 'owner_admin',
+          name: 'Owner',
+          permissions: {
+            for (var module in PermissionModule.values)
+              module: [PermissionAction.all],
+          },
+        );
+        state = state.copyWith(currentRole: ownerRole);
+        return;
+      }
+    }
+
+    if (businessId == null || int.tryParse(businessId) == null) {
+      if (effectiveRoleId == '1' || effectiveRoleId?.toLowerCase() == 'admin') {
         final fullAccessRole = RoleModel(
           id: 'global_admin',
           name: 'Global Admin',
@@ -153,28 +192,55 @@ class AuthNotifier extends Notifier<AuthState> {
     }
 
     AppLogger.debug(
-      "Retrieving permissions for Role ${user.roleId} in Business $businessId",
+      "Retrieving permissions for Role $effectiveRoleId in Business $businessId",
       tag: 'AuthNotifier',
     );
     state = state.copyWith(loadingMessage: "Retrieving role permissions...");
 
     try {
-      final roles = await repo.getRoles(businessId);
-      // Comparison using toString() to handle potential int vs String mismatches
-      final role = roles.firstWhere(
-        (r) => r.id.toString() == user.roleId.toString(),
-      );
-      state = state.copyWith(
-        currentRole: role,
-        loadingMessage: "Role loaded: ${role.name}",
-      );
-      AppLogger.info("Permissions loaded for role: ${role.name}", tag: 'AuthNotifier');
+      final roles = await repo.getRoles(businessId, forceRemote: forceRemote || true);
+      RoleModel? matchedRole;
+
+      if (effectiveRoleId != null) {
+        matchedRole = roles
+            .where((r) => r.id.toString() == effectiveRoleId.toString())
+            .firstOrNull;
+      }
+
+      if (matchedRole == null && fallbackRoleName != null) {
+        matchedRole = roles
+            .where((r) => r.name.toLowerCase() == fallbackRoleName!.toLowerCase())
+            .firstOrNull;
+      }
+
+      // If still not matched, check if any role exists
+      matchedRole ??= roles.firstOrNull;
+
+      if (matchedRole != null) {
+        state = state.copyWith(
+          currentRole: matchedRole,
+          loadingMessage: "Role loaded: ${matchedRole.name}",
+        );
+        AppLogger.info(
+          "Permissions loaded for role: ${matchedRole.name} with ${matchedRole.permissions.length} modules",
+          tag: 'AuthNotifier',
+        );
+      } else {
+        final fallbackRole = RoleModel(
+          id: effectiveRoleId ?? 'staff_user',
+          name: fallbackRoleName ?? 'Staff',
+          permissions: {},
+        );
+        state = state.copyWith(
+          currentRole: fallbackRole,
+          loadingMessage: "Ready",
+        );
+      }
     } catch (e) {
       AppLogger.warning(
-        "Specific Role ${user.roleId} could not be loaded for user ${user.name}: $e",
+        "Specific Role $effectiveRoleId could not be loaded for user ${user.name}: $e",
         tag: 'AuthNotifier',
       );
-      // Fail-closed security: Assign restricted permissions on failure rather than elevating to full Admin
       final restrictedRole = RoleModel(
         id: 'restricted_user',
         name: 'Restricted User',
@@ -183,7 +249,6 @@ class AuthNotifier extends Notifier<AuthState> {
       state = state.copyWith(
         currentRole: restrictedRole,
         loadingMessage: "Ready (Restricted permissions)",
-        error: "Unable to verify role permissions with server. Some features may be restricted.",
       );
     }
 

@@ -98,6 +98,23 @@ const rolesController = {
                 return res.status(400).json({ message: "Invalid Business ID format" });
             }
 
+            const userId = req.user ? req.user.id : null;
+            if (userId) {
+                const UserBusiness = require("../users/user_businesses.model");
+                const Business = require("../businesses/businesses.model");
+
+                const isOwner = await Business.findOne({
+                    where: { id: numericBusinessId, owner_user_id: userId, status: true }
+                });
+                const isMember = await UserBusiness.findOne({
+                    where: { user_id: userId, business_id: numericBusinessId, status: true }
+                });
+
+                if (!isOwner && !isMember) {
+                    return res.status(403).json({ message: "Access denied to this business" });
+                }
+            }
+
             const roles = await Role.findAll({ 
                 where: { business_id: numericBusinessId, status: true },
                 include: [{ model: RolePermission, as: 'permissions' }]

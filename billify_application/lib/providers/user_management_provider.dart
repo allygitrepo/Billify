@@ -91,71 +91,84 @@ class UserManagementNotifier extends StateNotifier<UserManagementState> {
     }
   }
 
-  Future<void> addRole(RoleModel role) async {
-    if (_businessId == null) return;
-    state = state.copyWith(isLoading: true);
-    final newRole = await _repo.addRole(_businessId, role);
-    if (newRole != null) {
-      state = state.copyWith(
-        roles: [...state.roles, newRole],
-        isLoading: false,
-      );
-    } else {
-      state = state.copyWith(isLoading: false);
+  Future<bool> addRole(RoleModel role) async {
+    if (_businessId == null) return false;
+    try {
+      final newRole = await _repo.addRole(_businessId, role);
+      if (newRole != null) {
+        state = state.copyWith(
+          roles: [...state.roles, newRole],
+        );
+        return true;
+      }
+      return false;
+    } catch (e) {
+      rethrow;
     }
   }
 
-  Future<void> updateRole(RoleModel role) async {
-    if (_businessId == null) return;
-    state = state.copyWith(isLoading: true);
-    final success = await _repo.updateRole(_businessId, role);
-    if (success) {
-      final newRoles = state.roles
-          .map((e) => e.id == role.id ? role : e)
-          .toList();
-      state = state.copyWith(roles: newRoles, isLoading: false);
-    } else {
-      state = state.copyWith(isLoading: false);
+  Future<bool> updateRole(RoleModel role) async {
+    if (_businessId == null) return false;
+    try {
+      final success = await _repo.updateRole(_businessId, role);
+      if (success) {
+        final newRoles = state.roles
+            .map((e) => e.id == role.id ? role : e)
+            .toList();
+        state = state.copyWith(roles: newRoles);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      rethrow;
     }
   }
 
-  Future<void> addUser(UserModel user) async {
-    if (_businessId == null) return;
-    state = state.copyWith(isLoading: true);
-    final newUser = await _repo.addUser(_businessId, user);
-    if (newUser != null) {
-      state = state.copyWith(
-        users: [...state.users, newUser],
-        isLoading: false,
-      );
-    } else {
-      state = state.copyWith(isLoading: false);
+  Future<bool> addUser(UserModel user) async {
+    if (_businessId == null) return false;
+    try {
+      final newUser = await _repo.addUser(_businessId, user);
+      if (newUser != null) {
+        state = state.copyWith(
+          users: [...state.users, newUser],
+        );
+        return true;
+      }
+      return false;
+    } catch (e) {
+      rethrow;
     }
   }
 
-  Future<void> updateUser(UserModel user) async {
-    if (_businessId == null || user.id == null) return;
-    state = state.copyWith(isLoading: true);
-    final success = await _repo.updateUser(_businessId, user);
-    if (success) {
-      final newUsers = state.users
-          .map((e) => e.id == user.id ? user : e)
-          .toList();
-      state = state.copyWith(users: newUsers, isLoading: false);
-    } else {
-      state = state.copyWith(isLoading: false);
+  Future<bool> updateUser(UserModel user) async {
+    if (_businessId == null || user.id == null) return false;
+    try {
+      final success = await _repo.updateUser(_businessId, user);
+      if (success) {
+        final newUsers = state.users
+            .map((e) => e.id == user.id ? user : e)
+            .toList();
+        state = state.copyWith(users: newUsers);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      rethrow;
     }
   }
 
-  Future<void> deleteUser(String userId) async {
-    if (_businessId == null) return;
-    state = state.copyWith(isLoading: true);
-    final success = await _repo.deleteUser(_businessId, userId);
-    if (success) {
-      final newUsers = state.users.where((u) => u.id != userId).toList();
-      state = state.copyWith(users: newUsers, isLoading: false);
-    } else {
-      state = state.copyWith(isLoading: false);
+  Future<bool> deleteUser(String userId) async {
+    if (_businessId == null) return false;
+    try {
+      final success = await _repo.deleteUser(_businessId, userId);
+      if (success) {
+        final newUsers = state.users.where((u) => u.id != userId).toList();
+        state = state.copyWith(users: newUsers);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      rethrow;
     }
   }
 }

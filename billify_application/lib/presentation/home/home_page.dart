@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/presentation/billing/scanner_screen.dart';
@@ -146,7 +146,12 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return SafeArea(
       child: RefreshIndicator(
-        onRefresh: () => ref.read(invoiceProvider.notifier).loadInvoices(),
+        onRefresh: () async {
+          await Future.wait([
+            ref.read(authProvider.notifier).reloadPermissions(),
+            ref.read(invoiceProvider.notifier).loadInvoices(),
+          ]);
+        },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -158,19 +163,33 @@ class _HomePageState extends ConsumerState<HomePage> {
                 user: user,
                 onTap: () => _showBusinessSwitcher(context),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
+
+              // Show Quick Actions module grid only for staff users (Owners already have the full dashboard)
+              if (!authState.isOwnerOrAdmin) ...[
+                _buildModulesGrid(context, authState),
+                const SizedBox(height: 24),
+              ],
 
               if (authState.hasPermission(
                 PermissionModule.dashboard,
                 PermissionAction.view,
               )) ...[
+                const Text(
+                  'Sales Overview',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisCount: 3,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  childAspectRatio: 0.85, // Slightly taller for text breathing room
+                  childAspectRatio: 0.85,
                   children: [
                     StatCard(
                       title: 'Today\'s Sales',
@@ -278,6 +297,218 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildModulesGrid(BuildContext context, AuthState authState) {
+    final List<_ModuleItem> modules = [];
+
+    if (authState.hasPermission(
+      PermissionModule.billing,
+      PermissionAction.view,
+    )) {
+      modules.add(_ModuleItem(
+        title: 'Scan & Bill',
+        subtitle: 'Quick POS billing',
+        icon: Icons.qr_code_scanner_rounded,
+        gradient: const [Color(0xFF00B4D8), Color(0xFF0077B6)],
+        onTap: () => Navigator.pushNamed(context, '/scanner'),
+      ));
+      modules.add(_ModuleItem(
+        title: 'Invoices',
+        subtitle: 'History & receipts',
+        icon: Icons.receipt_long_rounded,
+        gradient: const [Color(0xFF48CAE4), Color(0xFF023E8A)],
+        onTap: () => Navigator.pushNamed(context, '/invoice-history'),
+      ));
+    }
+
+    if (authState.hasPermission(
+      PermissionModule.products,
+      PermissionAction.view,
+    )) {
+      modules.add(_ModuleItem(
+        title: 'Products',
+        subtitle: 'Manage catalog',
+        icon: Icons.inventory_2_rounded,
+        gradient: const [Color(0xFF8338EC), Color(0xFF5A189A)],
+        onTap: () => Navigator.pushNamed(context, '/products'),
+      ));
+    }
+
+    if (authState.hasPermission(
+      PermissionModule.inventory,
+      PermissionAction.view,
+    )) {
+      modules.add(_ModuleItem(
+        title: 'Inventory',
+        subtitle: 'Stock levels',
+        icon: Icons.warehouse_rounded,
+        gradient: const [Color(0xFFFF9F1C), Color(0xFFF77F00)],
+        onTap: () => Navigator.pushNamed(context, '/stock-management'),
+      ));
+    }
+
+    if (ref.watch(featureSettingsProvider).isCategoryEnabled &&
+        authState.hasPermission(
+          PermissionModule.categories,
+          PermissionAction.view,
+        )) {
+      modules.add(_ModuleItem(
+        title: 'Categories',
+        subtitle: 'Product groups',
+        icon: Icons.category_rounded,
+        gradient: const [Color(0xFF06D6A0), Color(0xFF058C42)],
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const CategoryManagementPage(),
+          ),
+        ),
+      ));
+    }
+
+    if (authState.hasPermission(
+      PermissionModule.customers,
+      PermissionAction.view,
+    )) {
+      modules.add(_ModuleItem(
+        title: 'Customers',
+        subtitle: 'Contacts & accounts',
+        icon: Icons.people_alt_rounded,
+        gradient: const [Color(0xFFFF006E), Color(0xFFC77DFF)],
+        onTap: () => Navigator.pushNamed(context, '/customers'),
+      ));
+    }
+
+    if (authState.hasPermission(
+      PermissionModule.payments,
+      PermissionAction.view,
+    )) {
+      modules.add(_ModuleItem(
+        title: 'Khata / Ledger',
+        subtitle: 'Credit & payments',
+        icon: Icons.account_balance_wallet_rounded,
+        gradient: const [Color(0xFF118AB2), Color(0xFF073B4C)],
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const KhataDashboardScreen(),
+          ),
+        ),
+      ));
+    }
+
+    if (authState.hasPermission(
+      PermissionModule.uom,
+      PermissionAction.view,
+    )) {
+      modules.add(_ModuleItem(
+        title: 'Units (UOM)',
+        subtitle: 'Measurement units',
+        icon: Icons.straighten_rounded,
+        gradient: const [Color(0xFF3A86FF), Color(0xFF03045E)],
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const UomManagementPage(),
+          ),
+        ),
+      ));
+    }
+
+    if (authState.hasPermission(
+          PermissionModule.analytics,
+          PermissionAction.view,
+        ) ||
+        authState.hasPermission(
+          PermissionModule.reports,
+          PermissionAction.view,
+        )) {
+      modules.add(_ModuleItem(
+        title: 'Reports',
+        subtitle: 'Sales & analytics',
+        icon: Icons.analytics_rounded,
+        gradient: const [Color(0xFF7209B7), Color(0xFF3F37C9)],
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const AnalyticsDashboardScreen(),
+          ),
+        ),
+      ));
+    }
+
+    if (authState.hasPermission(
+      PermissionModule.userManagement,
+      PermissionAction.view,
+    )) {
+      modules.add(_ModuleItem(
+        title: 'Staff Management',
+        subtitle: 'Users & roles',
+        icon: Icons.badge_rounded,
+        gradient: const [Color(0xFF00B4D8), Color(0xFF0077B6)],
+        onTap: () => Navigator.pushNamed(context, '/user-management'),
+      ));
+    }
+
+    if (modules.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withOpacity(0.5),
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.shield_outlined, size: 48, color: Colors.grey[400]),
+            const SizedBox(height: 12),
+            const Text(
+              'No Modules Assigned',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Your role does not currently have permissions enabled for any modules. Please contact your business owner to assign module permissions.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Quick Actions',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.5,
+          ),
+          itemCount: modules.length,
+          itemBuilder: (context, index) {
+            return _ModuleCard(item: modules[index]);
+          },
+        ),
+      ],
     );
   }
 
@@ -419,8 +650,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                   .read(businessProvider.notifier)
                   .switchBusiness(targetBusiness.id);
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Switched to ${targetBusiness.name}')),
+                AppFeedback.showSuccess(
+                  context,
+                  'Switched to ${targetBusiness.name}',
                 );
               }
             },
@@ -909,6 +1141,102 @@ class _QuickMenuItem extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
       ],
+    );
+  }
+}
+
+class _ModuleItem {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final List<Color> gradient;
+  final VoidCallback onTap;
+
+  const _ModuleItem({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.gradient,
+    required this.onTap,
+  });
+}
+
+class _ModuleCard extends StatelessWidget {
+  final _ModuleItem item;
+
+  const _ModuleCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: item.onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.black.withOpacity(0.06),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: item.gradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(item.icon, color: Colors.white, size: 20),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.subtitle,
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 10,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

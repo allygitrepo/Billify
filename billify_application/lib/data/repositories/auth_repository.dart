@@ -105,8 +105,16 @@ class AuthRepository {
       // 1. Save token
       await _storage.setString(AppConstants.keyToken, response['token']);
 
-      // 2. Save user data
-      final user = UserModel.fromJson(response['user']);
+      // 2. Save user data (extract role_id from business mapping if not directly on user)
+      var user = UserModel.fromJson(response['user']);
+      if ((user.roleId == null || user.roleId!.isEmpty) &&
+          response['businesses'] != null &&
+          (response['businesses'] as List).isNotEmpty) {
+        final bRoleId = response['businesses'][0]['role_id']?.toString();
+        if (bRoleId != null && bRoleId.isNotEmpty) {
+          user = user.copyWith(roleId: bRoleId);
+        }
+      }
       await _localDatasource.setAsLoggedInUser(user);
 
       // 3. Save initial business data correctly scoped to user

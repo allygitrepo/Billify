@@ -1,5 +1,6 @@
 import 'package:billify/core/enums/stock_mode.dart';
 import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/data/models/product_model.dart';
 import 'package:billify/data/models/user_permission.dart';
 import 'package:billify/presentation/billing/widgets/weight_input_sheet.dart';
@@ -332,12 +333,9 @@ class _StockAdjustmentTabState extends ConsumerState<StockAdjustmentTab> {
                                   onTap: () {
                                     if (_mode == StockMode.outMode &&
                                         v.stock <= 0) {
-                                      ScaffoldMessenger.of(
+                                      AppFeedback.showError(
                                         context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Product out of stock'),
-                                        ),
+                                        'Product is out of stock',
                                       );
                                       return;
                                     }
@@ -375,10 +373,9 @@ class _StockAdjustmentTabState extends ConsumerState<StockAdjustmentTab> {
                         ),
                         onTap: () {
                           if (_mode == StockMode.outMode && p.stock <= 0) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Product out of stock'),
-                              ),
+                            AppFeedback.showError(
+                              context,
+                              'Product is out of stock',
                             );
                             return;
                           }

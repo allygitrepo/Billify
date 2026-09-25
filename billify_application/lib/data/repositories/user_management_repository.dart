@@ -37,12 +37,24 @@ class UserManagementRepository {
 
   // ============ Role Management ============
 
-  Future<List<RoleModel>> getRoles(String businessId) async {
-    final rolesJson = _storage.getString(_getRoleKey(businessId));
-    if (rolesJson == null) return [];
+  Future<List<RoleModel>> getRoles(String businessId, {bool forceRemote = false}) async {
+    if (!forceRemote) {
+      final rolesJson = _storage.getString(_getRoleKey(businessId));
+      if (rolesJson != null) {
+        try {
+          final List<dynamic> decoded = jsonDecode(rolesJson);
+          final localRoles =
+              decoded.map((e) => RoleModel.fromJson(e)).toList();
+          if (localRoles.isNotEmpty) return localRoles;
+        } catch (_) {}
+      }
+    }
     try {
-      final List<dynamic> decoded = jsonDecode(rolesJson);
-      return decoded.map((e) => RoleModel.fromJson(e)).toList();
+      final roles = await _remoteDatasource.getRoles(businessId);
+      if (roles.isNotEmpty) {
+        await saveRoles(businessId, roles);
+      }
+      return roles;
     } catch (_) {
       return [];
     }

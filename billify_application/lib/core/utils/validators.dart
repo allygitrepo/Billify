@@ -49,14 +49,33 @@ class Validators {
     return null;
   }
 
-  /// Validates mobile phone number (defaults to 10 digits)
-  static String? validatePhone(String? value, {int length = 10, bool isOptional = false}) {
+  /// Validates mobile/business phone number (supports exact 10 digits or flexible length)
+  static String? validatePhone(
+    String? value, {
+    int length = 10,
+    int minLength = 7,
+    int maxLength = 15,
+    bool isOptional = false,
+    bool exactLength = true,
+  }) {
     if (value == null || value.trim().isEmpty) {
       return isOptional ? null : 'Phone number is required';
     }
     final trimmed = value.trim();
-    if (trimmed.length != length || !_digitsOnlyRegex.hasMatch(trimmed)) {
-      return 'Phone number must be exactly $length digits';
+    final digitsOnly = trimmed.replaceAll(RegExp(r'\D'), '');
+
+    if (digitsOnly.isEmpty) {
+      return 'Enter a valid phone number';
+    }
+
+    if (exactLength) {
+      if (digitsOnly.length != length || !_digitsOnlyRegex.hasMatch(trimmed)) {
+        return 'Phone number must be exactly $length digits';
+      }
+    } else {
+      if (digitsOnly.length < minLength || digitsOnly.length > maxLength) {
+        return 'Phone number must be between $minLength and $maxLength digits';
+      }
     }
     return null;
   }
@@ -138,11 +157,12 @@ class Validators {
   static String? validatePercentage(
     String? value, {
     String fieldName = 'Tax',
+    bool isOptional = true,
     double min = 0.0,
     double max = 100.0,
   }) {
     if (value == null || value.trim().isEmpty) {
-      return '$fieldName percentage is required';
+      return isOptional ? null : '$fieldName percentage is required';
     }
     final parsed = double.tryParse(value.trim());
     if (parsed == null) {

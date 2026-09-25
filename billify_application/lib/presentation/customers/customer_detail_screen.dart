@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/data/models/ledger_model.dart';
@@ -98,9 +98,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
                   );
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
+                    AppFeedback.showError(context, e);
                   }
                 } finally {
                   if (mounted) setState(() => _isSharing = false);
@@ -492,19 +490,16 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Invoice details not found on server (#$searchId)'),
-            ),
+          AppFeedback.showError(
+            context,
+            'Invoice details not found on server (#$searchId)',
           );
         }
       }
     } catch (e) {
       if (context.mounted) {
         Navigator.pop(context); // Close loading dialog
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error fetching receipt: $e')));
+        AppFeedback.showError(context, e);
       }
     }
   }
@@ -548,17 +543,14 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
                 if (context.mounted) {
                   Navigator.pop(context); // Close dialog
                   Navigator.pop(context); // Go back to list
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Customer deleted successfully'),
-                    ),
+                  AppFeedback.showSuccess(
+                    context,
+                    'Customer deleted successfully',
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error deleting customer: $e')),
-                  );
+                  AppFeedback.showError(context, e);
                 }
               }
             },

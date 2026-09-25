@@ -11,25 +11,54 @@ class RoleModel {
     required this.permissions,
   });
 
-  static Map<PermissionModule, List<PermissionAction>> parsePermissions(Map<String, dynamic> rawPermissions) {
+  static Map<PermissionModule, List<PermissionAction>> parsePermissions(
+      Map<String, dynamic> rawPermissions) {
     final Map<PermissionModule, List<PermissionAction>> permissionsMap = {};
     rawPermissions.forEach((key, value) {
       try {
-        final module = PermissionModule.values.firstWhere((e) => e.name == key || e.label == key);
-        
+        final module = PermissionModule.fromString(key);
+        if (module == null) return;
+
         if (value is List) {
-          final actions = value.map((e) => PermissionAction.values.firstWhere((a) => a.name == e)).toList();
+          final List<PermissionAction> actions = [];
+          for (var item in value) {
+            final action = PermissionAction.fromString(item.toString());
+            if (action != null && !actions.contains(action)) {
+              actions.add(action);
+            }
+          }
           permissionsMap[module] = actions;
         } else if (value is Map) {
           final List<PermissionAction> actions = [];
-          if (value['can_view'] == true) actions.add(PermissionAction.view);
-          if (value['can_add'] == true) actions.add(PermissionAction.add);
-          if (value['can_update'] == true) actions.add(PermissionAction.update);
-          if (value['can_delete'] == true) actions.add(PermissionAction.delete);
-          if (value['can_export'] == true) actions.add(PermissionAction.export);
-          if (value['can_bulk_upload'] == true) actions.add(PermissionAction.bulkUpload);
-          if (value['can_download'] == true) actions.add(PermissionAction.download);
-          if (value['can_print'] == true) actions.add(PermissionAction.print);
+          if (value['can_view'] == true || value['view'] == true) {
+            actions.add(PermissionAction.view);
+          }
+          if (value['can_add'] == true || value['add'] == true) {
+            actions.add(PermissionAction.add);
+          }
+          if (value['can_update'] == true || value['update'] == true) {
+            actions.add(PermissionAction.update);
+          }
+          if (value['can_delete'] == true || value['delete'] == true) {
+            actions.add(PermissionAction.delete);
+          }
+          if (value['can_export'] == true || value['export'] == true) {
+            actions.add(PermissionAction.export);
+          }
+          if (value['can_bulk_upload'] == true ||
+              value['bulk_upload'] == true ||
+              value['import'] == true) {
+            actions.add(PermissionAction.bulkUpload);
+          }
+          if (value['can_download'] == true || value['download'] == true) {
+            actions.add(PermissionAction.download);
+          }
+          if (value['can_print'] == true || value['print'] == true) {
+            actions.add(PermissionAction.print);
+          }
+          if (value['all'] == true || value['can_all'] == true) {
+            actions.add(PermissionAction.all);
+          }
           permissionsMap[module] = actions;
         }
       } catch (_) {}
@@ -40,20 +69,22 @@ class RoleModel {
   factory RoleModel.fromJson(Map<String, dynamic> json) {
     final dynamic rawPermissions = json['permissions'];
     Map<PermissionModule, List<PermissionAction>> permissionsMap = {};
-    
+
     if (rawPermissions is Map<String, dynamic>) {
-       permissionsMap = parsePermissions(rawPermissions);
+      permissionsMap = parsePermissions(rawPermissions);
     } else if (rawPermissions is List) {
-       // Convert List of permission objects to Map
-       final Map<String, dynamic> convertedMap = {};
-       for (var item in rawPermissions) {
-         if (item is Map<String, dynamic> && item['module_name'] != null) {
-           convertedMap[item['module_name']] = item;
-         }
-       }
-       permissionsMap = parsePermissions(convertedMap);
+      final Map<String, dynamic> convertedMap = {};
+      for (var item in rawPermissions) {
+        if (item is Map<String, dynamic>) {
+          final modName = item['module_name'] ?? item['module'] ?? item['name'];
+          if (modName != null) {
+            convertedMap[modName.toString()] = item;
+          }
+        }
+      }
+      permissionsMap = parsePermissions(convertedMap);
     }
-        
+
     return RoleModel(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',

@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'package:billify/core/routes/app_routes.dart';
 import 'package:billify/core/routes/route_arguments.dart';
+import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/providers/customer_provider.dart';
@@ -132,12 +132,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                                   await launchUrl(launchUri);
                                 } else {
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Could not launch dialer',
-                                        ),
-                                      ),
+                                    AppFeedback.showError(
+                                      context,
+                                      'Could not launch dialer',
                                     );
                                   }
                                 }

@@ -23,67 +23,117 @@ class _PermissionMatrixWidgetState extends State<PermissionMatrixWidget> {
   @override
   void initState() {
     super.initState();
-    _permissions = Map.from(widget.initialPermissions);
+    _initPermissions();
+  }
+
+  @override
+  void didUpdateWidget(covariant PermissionMatrixWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialPermissions != oldWidget.initialPermissions) {
+      _initPermissions();
+    }
+  }
+
+  void _initPermissions() {
+    _permissions = {};
+    widget.initialPermissions.forEach((module, actions) {
+      _permissions[module] = List<PermissionAction>.from(actions);
+    });
   }
 
   void _togglePermission(PermissionModule module, PermissionAction action) {
     setState(() {
       final modulePermissions = _permissions[module] ?? [];
+      final updatedList = List<PermissionAction>.from(modulePermissions);
+
       if (action == PermissionAction.all) {
-        if (modulePermissions.contains(PermissionAction.all)) {
+        if (updatedList.contains(PermissionAction.all)) {
           _permissions[module] = [];
         } else {
           _permissions[module] = [PermissionAction.all];
         }
       } else {
-        if (modulePermissions.contains(action)) {
-          modulePermissions.remove(action);
-          modulePermissions.remove(PermissionAction.all);
+        if (updatedList.contains(action)) {
+          updatedList.remove(action);
+          updatedList.remove(PermissionAction.all);
         } else {
-          modulePermissions.add(action);
-          // If all individual actions are selected, we could automatically select 'All'
-          // but for simplicity we keep them separate as per typical UI
+          updatedList.add(action);
         }
-        _permissions[module] = modulePermissions;
+        _permissions[module] = updatedList;
       }
     });
+    // Immediately notify parent with the new state for instant in-memory draft tracking
     widget.onPermissionsChanged(_permissions);
   }
 
   @override
   Widget build(BuildContext context) {
     final actions = PermissionAction.values;
+    final modules = [
+      PermissionModule.dashboard,
+      PermissionModule.products,
+      PermissionModule.categories,
+      PermissionModule.billing,
+      PermissionModule.inventory,
+      PermissionModule.businesses,
+      PermissionModule.uom,
+      PermissionModule.userManagement,
+      PermissionModule.customers,
+      PermissionModule.payments,
+      PermissionModule.analytics,
+    ];
 
     return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columnSpacing: 20,
-        headingTextStyle: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).textTheme.titleSmall?.color,
-        ),
-        columns: [
-          const DataColumn(label: Text('Module')),
-          ...actions.map((a) => DataColumn(label: Text(a.label))),
-        ],
-        rows:
-            [
-              PermissionModule.dashboard,
-              PermissionModule.products,
-              PermissionModule.categories,
-              PermissionModule.billing,
-              PermissionModule.inventory,
-              PermissionModule.businesses,
-              PermissionModule.uom,
-              PermissionModule.userManagement,
-              PermissionModule.customers,
-              PermissionModule.payments,
-              PermissionModule.analytics,
-            ].map((module) {
+      scrollDirection: Axis.vertical,
+      physics: const BouncingScrollPhysics(),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 24),
+          child: DataTable(
+            columnSpacing: 24,
+            headingRowHeight: 48,
+            dataRowMinHeight: 48,
+            dataRowMaxHeight: 52,
+            headingTextStyle: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: Theme.of(context).textTheme.titleSmall?.color,
+            ),
+            columns: [
+              const DataColumn(
+                label: Text(
+                  'Module',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              ...actions.map(
+                (a) => DataColumn(
+                  label: Text(
+                    a.label,
+                    style: TextStyle(
+                      fontWeight: a == PermissionAction.all
+                          ? FontWeight.bold
+                          : FontWeight.w600,
+                      color: a == PermissionAction.all
+                          ? AppTheme.primaryTeal
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            rows: modules.map((module) {
               final modulePermissions = _permissions[module] ?? [];
               return DataRow(
                 cells: [
-                  DataCell(Text(module.label)),
+                  DataCell(
+                    Text(
+                      module.label,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ),
                   ...actions.map((action) {
                     final isSelected =
                         modulePermissions.contains(action) ||
@@ -93,6 +143,10 @@ class _PermissionMatrixWidgetState extends State<PermissionMatrixWidget> {
                       Checkbox(
                         value: isSelected,
                         activeColor: AppTheme.primaryTeal,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         onChanged: (_) => _togglePermission(module, action),
                       ),
                     );
@@ -100,6 +154,8 @@ class _PermissionMatrixWidgetState extends State<PermissionMatrixWidget> {
                 ],
               );
             }).toList(),
+          ),
+        ),
       ),
     );
   }

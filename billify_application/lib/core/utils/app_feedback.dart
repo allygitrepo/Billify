@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'package:billify/core/errors/app_exception.dart';
 import 'package:billify/core/errors/app_failure.dart';
 import 'package:billify/core/theme/app_theme.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -37,13 +39,30 @@ class AppFeedback {
     if (!context.mounted) return;
     HapticFeedback.heavyImpact();
 
-    final String message;
+    String message;
     if (error is AppFailure) {
       message = error.message;
+    } else if (error is AppException) {
+      message = error.message;
+    } else if (error is DioException) {
+      message = AppException.fromDioError(error).message;
     } else if (error is String) {
       message = error;
+    } else if (error != null) {
+      message = error.toString();
     } else {
-      message = error?.toString() ?? 'An unexpected error occurred';
+      message = 'An unexpected error occurred. Please try again.';
+    }
+
+    // Clean up redundant technical Dart/Flutter exception prefixes
+    message = message
+        .replaceFirst(RegExp(r'^Exception:\s*', caseSensitive: false), '')
+        .replaceFirst(RegExp(r'^AppException:\s*', caseSensitive: false), '')
+        .replaceFirst(RegExp(r'^Error:\s*', caseSensitive: false), '')
+        .trim();
+
+    if (message.isEmpty) {
+      message = 'An unexpected error occurred. Please try again.';
     }
 
     _showOverlayToast(

@@ -1,5 +1,6 @@
 import 'package:billify/core/services/pdf_service.dart';
 import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/data/models/business_model.dart';
 import 'package:billify/data/models/cart_item_model.dart';
 import 'package:billify/data/models/customer_model.dart';
@@ -168,11 +169,9 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
 
   void _setMode(String mode) {
     if (mode == 'KHATA' && widget.customerType != 'REGULAR') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a customer first for Khata (Credit)'),
-          backgroundColor: Colors.orange,
-        ),
+      AppFeedback.showWarning(
+        context,
+        'Please select a customer first for Khata (Credit)',
       );
       return;
     }
@@ -763,14 +762,9 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                         );
                                       } catch (e) {
                                         if (mounted) {
-                                          ScaffoldMessenger.of(
+                                          AppFeedback.showError(
                                             context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                'Error sharing: $e',
-                                              ),
-                                            ),
+                                            'Error sharing PDF: $e',
                                           );
                                         }
                                       } finally {
@@ -865,13 +859,15 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                       _savedInvoice = invoice;
                                       _isSaving = false;
                                     });
+                                    AppFeedback.showSuccess(
+                                      context,
+                                      'Invoice saved successfully',
+                                    );
                                   } else {
                                     setState(() => _isSaving = false);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Failed to save invoice'),
-                                        backgroundColor: Colors.red,
-                                      ),
+                                    AppFeedback.showError(
+                                      context,
+                                      'Failed to save invoice',
                                     );
                                   }
                                 }

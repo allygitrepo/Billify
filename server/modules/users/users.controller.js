@@ -4,6 +4,7 @@ const Business = require("../businesses/businesses.model");
 const Role = require("../roles/roles.model");
 const bcrypt = require("bcryptjs");
 const sequelize = require("../../config/db");
+const { Op } = require("sequelize");
 
 const usersController = {
     // ============ Get All Users for a Business ============
@@ -48,18 +49,38 @@ const usersController = {
             const { name, email, password, role_id, business_id, mobile, photo } = req.body;
 
             if (!name || !mobile || !password || !role_id || !business_id) {
+                await t.rollback();
                 return res.status(400).json({ message: "Missing required fields" });
             }
 
             const cleanEmail = email && email.trim() !== "" ? email.trim() : null;
+            const cleanMobile = mobile ? mobile.trim() : null;
 
             // 1. Check if user already exists
-            let user = null;
-            if (cleanEmail) {
-                user = await User.findOne({ where: { email: cleanEmail } });
-            }
-            if (!user && mobile) {
-                user = await User.findOne({ where: { mobile } });
+            const queryConditions = [];
+            if (cleanMobile) queryConditions.push({ mobile: cleanMobile });
+            if (cleanEmail) queryConditions.push({ email: cleanEmail });
+
+            let user = await User.findOne({
+                where: {
+                    [Op.or]: queryConditions
+                }
+            });
+
+            if (user) {
+                // Check if this existing user is registered as a Business Owner
+                const ownsBusiness = await Business.findOne({
+                    where: { owner_user_id: user.id, status: true }
+                });
+
+                const isOwnerRole = user.role_id === null || user.role_id === 1;
+
+                if (ownsBusiness || isOwnerRole) {
+                    await t.rollback();
+                    return res.status(400).json({
+                        message: "This phone number is already registered as a business owner and cannot be added as a staff member."
+                    });
+                }
             }
 
             if (!user) {
@@ -68,7 +89,7 @@ const usersController = {
                 user = await User.create({
                     name,
                     email: cleanEmail,
-                    mobile,
+                    mobile: cleanMobile,
                     photo,
                     password: hashedPassword,
                     role_id: role_id // Default role

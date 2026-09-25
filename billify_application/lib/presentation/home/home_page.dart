@@ -673,182 +673,196 @@ class _HomePageState extends ConsumerState<HomePage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) {
         final authState = ref.watch(authProvider);
         return Material(
           color: Theme.of(context).scaffoldBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           clipBehavior: Clip.antiAlias,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2),
+          child: SafeArea(
+            top: false,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.75,
+              ),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 14,
+                      crossAxisSpacing: 14,
+                      childAspectRatio: 0.92,
+                      children: [
+                        if (authState.hasPermission(
+                          PermissionModule.inventory,
+                          PermissionAction.view,
+                        ))
+                          _QuickMenuItem(
+                            icon: Icons.inventory_2_outlined,
+                            label: 'Inventory',
+                            color: Colors.orange,
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.pushNamed(context, '/stock-management');
+                            },
+                          ),
+                        if (authState.hasPermission(
+                          PermissionModule.billing,
+                          PermissionAction.view,
+                        ))
+                          _QuickMenuItem(
+                            icon: Icons.receipt_long,
+                            label: 'Invoices',
+                            color: Colors.blue,
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.pushNamed(context, '/invoice-history');
+                            },
+                          ),
+                        if (authState.hasPermission(
+                          PermissionModule.products,
+                          PermissionAction.view,
+                        ))
+                          _QuickMenuItem(
+                            icon: Icons.add_circle_outline,
+                            label: 'Products',
+                            color: Colors.purple,
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.pushNamed(context, '/products');
+                            },
+                          ),
+                        if (ref.watch(featureSettingsProvider).isCategoryEnabled &&
+                            authState.hasPermission(
+                              PermissionModule.categories,
+                              PermissionAction.view,
+                            ))
+                          _QuickMenuItem(
+                            icon: Icons.category_outlined,
+                            label: 'Categories',
+                            color: Colors.teal,
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const CategoryManagementPage(),
+                                ),
+                              );
+                            },
+                          ),
+                        if (authState.hasPermission(
+                          PermissionModule.userManagement,
+                          PermissionAction.view,
+                        ))
+                          _QuickMenuItem(
+                            icon: Icons.person_add_alt_1_outlined,
+                            label: 'Staff',
+                            color: Colors.teal,
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.pushNamed(context, '/user-management');
+                            },
+                          ),
+                        if (authState.hasPermission(
+                          PermissionModule.uom,
+                          PermissionAction.view,
+                        ))
+                          _QuickMenuItem(
+                            icon: Icons.straighten,
+                            label: 'UOM',
+                            color: Colors.indigo,
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const UomManagementPage(),
+                                ),
+                              );
+                            },
+                          ),
+                        if (authState.hasPermission(
+                          PermissionModule.customers,
+                          PermissionAction.view,
+                        ))
+                          _QuickMenuItem(
+                            icon: Icons.people_alt_outlined,
+                            label: 'Customers',
+                            color: Colors.pink,
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.pushNamed(context, '/customers');
+                            },
+                          ),
+                        if (authState.hasPermission(
+                          PermissionModule.payments,
+                          PermissionAction.view,
+                        ))
+                          _QuickMenuItem(
+                            icon: Icons.account_balance_wallet_outlined,
+                            label: 'Khata',
+                            color: Colors.cyan,
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const KhataDashboardScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        if (authState.hasPermission(
+                          PermissionModule.analytics,
+                          PermissionAction.view,
+                        ))
+                          _QuickMenuItem(
+                            icon: Icons.analytics,
+                            label: 'Reports',
+                            color: Colors.indigo,
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const AnalyticsDashboardScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-
-              GridView.count(
-                shrinkWrap: true,
-                crossAxisCount: 3,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20,
-                children: [
-                  if (authState.hasPermission(
-                    PermissionModule.inventory,
-                    PermissionAction.view,
-                  ))
-                    _QuickMenuItem(
-                      icon: Icons.inventory_2_outlined,
-                      label: 'Inventory',
-                      color: Colors.orange,
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/stock-management');
-                      },
-                    ),
-                  if (authState.hasPermission(
-                    PermissionModule.billing,
-                    PermissionAction.view,
-                  ))
-                    _QuickMenuItem(
-                      icon: Icons.receipt_long,
-                      label: 'Invoices',
-                      color: Colors.blue,
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/invoice-history');
-                      },
-                    ),
-                  if (authState.hasPermission(
-                    PermissionModule.products,
-                    PermissionAction.view,
-                  ))
-                    _QuickMenuItem(
-                      icon: Icons.add_circle_outline,
-                      label: 'Products',
-                      color: Colors.purple,
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/products');
-                      },
-                    ),
-                  if (ref.watch(featureSettingsProvider).isCategoryEnabled &&
-                      authState.hasPermission(
-                        PermissionModule.categories,
-                        PermissionAction.view,
-                      ))
-                    _QuickMenuItem(
-                      icon: Icons.category_outlined,
-                      label: 'Categories',
-                      color: Colors.teal,
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CategoryManagementPage(),
-                          ),
-                        );
-                      },
-                    ),
-                  if (authState.hasPermission(
-                    PermissionModule.userManagement,
-                    PermissionAction.view,
-                  ))
-                    _QuickMenuItem(
-                      icon: Icons.person_add_alt_1_outlined,
-                      label: 'Staff',
-                      color: Colors.teal,
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/user-management');
-                      },
-                    ),
-                  if (authState.hasPermission(
-                    PermissionModule.uom,
-                    PermissionAction.view,
-                  ))
-                    _QuickMenuItem(
-                      icon: Icons.straighten,
-                      label: 'UOM',
-                      color: Colors.indigo,
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const UomManagementPage(),
-                          ),
-                        );
-                      },
-                    ),
-                  if (authState.hasPermission(
-                    PermissionModule.customers,
-                    PermissionAction.view,
-                  ))
-                    _QuickMenuItem(
-                      icon: Icons.people_alt_outlined,
-                      label: 'Customers',
-                      color: Colors.pink,
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/customers');
-                      },
-                    ),
-                  if (authState.hasPermission(
-                    PermissionModule.payments,
-                    PermissionAction.view,
-                  ))
-                    _QuickMenuItem(
-                      icon: Icons.account_balance_wallet_outlined,
-                      label: 'Khata',
-                      color: Colors.cyan,
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const KhataDashboardScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  if (authState.hasPermission(
-                    PermissionModule.analytics,
-                    PermissionAction.view,
-                  ))
-                    _QuickMenuItem(
-                      icon: Icons.analytics,
-                      label: 'Reports',
-                      color: Colors.indigo,
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const AnalyticsDashboardScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                ],
-              ),
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
   Future<bool?> _showExitDialog(BuildContext context) {
     return showDialog<bool>(
@@ -1121,24 +1135,30 @@ class _QuickMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            width: 52,
+            height: 52,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(18),
             ),
-            child: Icon(icon, color: color, size: 30),
+            child: Icon(icon, color: color, size: 26),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );

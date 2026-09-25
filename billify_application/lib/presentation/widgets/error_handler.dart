@@ -1,3 +1,4 @@
+import 'package:billify/core/utils/app_feedback.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
@@ -84,47 +85,23 @@ class ErrorHandler {
     }
   }
 
-  /// Show user-friendly error message in a SnackBar
+  /// Show user-friendly error message in a top overlay toast
   static void showErrorSnackBar(BuildContext context, dynamic error) {
     if (!context.mounted) return;
     final message = getUserFriendlyMessage(error);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red.shade600,
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'Dismiss',
-          textColor: Colors.white,
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
-        ),
-      ),
-    );
+    AppFeedback.showError(context, message);
   }
 
-  /// Show success message in a SnackBar
+  /// Show success message in a top overlay toast
   static void showSuccessSnackBar(BuildContext context, String message) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    AppFeedback.showSuccess(context, message);
   }
 
-  /// Show info message in a SnackBar
+  /// Show info message in a top overlay toast
   static void showInfoSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.blue.shade600,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (!context.mounted) return;
+    AppFeedback.showInfo(context, message);
   }
 
   /// Check if error indicates network connectivity issues

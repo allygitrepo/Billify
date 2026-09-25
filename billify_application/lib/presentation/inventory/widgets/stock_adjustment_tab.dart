@@ -578,23 +578,31 @@ class _StockAdjustmentTabState extends ConsumerState<StockAdjustmentTab> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _selectedReason,
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                      border: InputBorder.none,
-                      prefixIcon: Icon(Icons.info_outline, size: 18),
-                    ),
-                    items: (_mode == StockMode.inMode ? _inReasons : _outReasons)
-                        .map(
-                          (r) => DropdownMenuItem(
-                            value: r,
-                            child: Text(r, style: const TextStyle(fontSize: 14)),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (val) => setState(() => _selectedReason = val),
+                  Builder(
+                    builder: (context) {
+                      final reasonList = (_mode == StockMode.inMode ? _inReasons : _outReasons).toSet().toList();
+                      final effectiveReason = reasonList.contains(_selectedReason) ? _selectedReason : (reasonList.isNotEmpty ? reasonList.first : null);
+
+                      return DropdownButtonFormField<String>(
+                        key: ValueKey('stock_reason_${effectiveReason}_${_mode.name}'),
+                        value: effectiveReason,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                          border: InputBorder.none,
+                          prefixIcon: Icon(Icons.info_outline, size: 18),
+                        ),
+                        items: reasonList
+                            .map(
+                              (r) => DropdownMenuItem(
+                                value: r,
+                                child: Text(r, style: const TextStyle(fontSize: 14)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (val) => setState(() => _selectedReason = val),
+                      );
+                    },
                   ),
                   if (_selectedReason == 'Other') ...[
                     const SizedBox(height: 12),

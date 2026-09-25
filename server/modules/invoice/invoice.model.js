@@ -12,6 +12,7 @@ const Invoice = sequelize.define("Invoice", {
     total_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     discount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     tax_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    gst_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     final_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     paid_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 }, // New field to track credit
     payment_mode: { type: DataTypes.STRING, defaultValue: 'Cash' }, // 'Cash', 'UPI', 'Card'

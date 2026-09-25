@@ -70,17 +70,48 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
     final currentBusiness =
         ref.read(businessProvider).currentBusiness ?? widget.business;
 
+    final taxPercent = currentBusiness.tax_percentage > 0
+        ? currentBusiness.tax_percentage
+        : widget.business.tax_percentage;
+    final gstPercent = currentBusiness.gst_percentage > 0
+        ? currentBusiness.gst_percentage
+        : widget.business.gst_percentage;
+
+    final effectiveTaxAmount = widget.taxAmount > 0
+        ? widget.taxAmount
+        : (widget.subtotal * (taxPercent / 100));
+    final effectiveGstAmount = widget.gstAmount > 0
+        ? widget.gstAmount
+        : (widget.subtotal * (gstPercent / 100));
+    final effectiveTotal = widget.total > widget.subtotal
+        ? widget.total
+        : (widget.subtotal + effectiveTaxAmount + effectiveGstAmount);
+
     if (widget.invoice != null) {
-      return widget.invoice!.copyWith(business: currentBusiness);
+      return widget.invoice!.copyWith(
+        business: currentBusiness,
+        tax_amount: widget.invoice!.tax_amount > 0
+            ? widget.invoice!.tax_amount
+            : effectiveTaxAmount,
+        gst_amount: widget.invoice!.gst_amount > 0
+            ? widget.invoice!.gst_amount
+            : effectiveGstAmount,
+        final_amount: widget.invoice!.final_amount > 0
+            ? widget.invoice!.final_amount
+            : effectiveTotal,
+      );
     }
 
-    final paid = double.tryParse(_paidController.text) ??
-        (widget.initialPaidAmount ?? widget.total);
+    final paid =
+        double.tryParse(_paidController.text) ??
+        (widget.initialPaidAmount ?? effectiveTotal);
 
-    final resolvedCustomerName = widget.customer?.name ??
+    final resolvedCustomerName =
+        widget.customer?.name ??
         ref.read(billingProvider).customerName ??
         (widget.customerId != null ? 'Regular Customer' : 'Walk-in Customer');
-    final resolvedCustomerPhone = widget.customer?.phoneNumber ??
+    final resolvedCustomerPhone =
+        widget.customer?.phoneNumber ??
         ref.read(billingProvider).customerPhone ??
         '';
 
@@ -88,14 +119,14 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
       id: widget.invoiceId,
       date: widget.invoiceDate ?? DateTime.now(),
       business: currentBusiness,
-      items: (widget.items as List).map((e) {
+      items: widget.items.map((e) {
         if (e is CartItemModel) return e;
         return CartItemModel.fromJson(e as Map<String, dynamic>);
       }).toList(),
       total_amount: widget.subtotal,
-      tax_amount: widget.taxAmount,
-      gst_amount: widget.gstAmount,
-      final_amount: widget.total,
+      tax_amount: effectiveTaxAmount,
+      gst_amount: effectiveGstAmount,
+      final_amount: effectiveTotal,
       staff_name: 'Owner',
       customer_id: widget.customerId,
       customer_type: widget.customerType,
@@ -109,14 +140,12 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
   @override
   void initState() {
     super.initState();
-    final rawMode = widget.invoice?.payment_mode ??
-        widget.initialPaymentMode ??
-        'CASH';
+    final rawMode =
+        widget.invoice?.payment_mode ?? widget.initialPaymentMode ?? 'CASH';
     _paymentMode = rawMode.toUpperCase();
 
-    final initialPaid = widget.invoice?.paid_amount ??
-        widget.initialPaidAmount ??
-        widget.total;
+    final initialPaid =
+        widget.invoice?.paid_amount ?? widget.initialPaidAmount ?? widget.total;
     _paidController = TextEditingController(
       text: initialPaid.toStringAsFixed(2),
     );
@@ -165,6 +194,23 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
   Widget build(BuildContext context) {
     final businessState = ref.watch(businessProvider);
     final business = businessState.currentBusiness ?? widget.business;
+
+    final taxPercent = business.tax_percentage > 0
+        ? business.tax_percentage
+        : widget.business.tax_percentage;
+    final gstPercent = business.gst_percentage > 0
+        ? business.gst_percentage
+        : widget.business.gst_percentage;
+
+    final effectiveTaxAmount = widget.taxAmount > 0
+        ? widget.taxAmount
+        : (widget.subtotal * (taxPercent / 100));
+    final effectiveGstAmount = widget.gstAmount > 0
+        ? widget.gstAmount
+        : (widget.subtotal * (gstPercent / 100));
+    final effectiveTotal = widget.total > widget.subtotal
+        ? widget.total
+        : (widget.subtotal + effectiveTaxAmount + effectiveGstAmount);
 
     final now = widget.invoiceDate ?? DateTime.now();
     final dateFormat = DateFormat('dd-MM-yyyy');
@@ -228,18 +274,23 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
               Consumer(
                 builder: (context, ref, _) {
                   final customers = ref.watch(customerProvider).value ?? [];
-                  final custId = widget.customerId ?? widget.invoice?.customer_id;
-                  final customer = widget.customer ??
+                  final custId =
+                      widget.customerId ?? widget.invoice?.customer_id;
+                  final customer =
+                      widget.customer ??
                       customers.where((c) => c.id == custId).firstOrNull;
 
-                  final customerName = customer?.name ??
+                  final customerName =
+                      customer?.name ??
                       widget.invoice?.customer_name ??
                       ref.watch(billingProvider).customerName;
-                  final customerPhone = customer?.phoneNumber ??
+                  final customerPhone =
+                      customer?.phoneNumber ??
                       widget.invoice?.customer_phone ??
                       ref.watch(billingProvider).customerPhone;
 
-                  final hasCustomer = (customerName != null &&
+                  final hasCustomer =
+                      (customerName != null &&
                           customerName.isNotEmpty &&
                           customerName != 'Walk-in Customer') ||
                       (customerPhone != null && customerPhone.isNotEmpty) ||
@@ -417,15 +468,15 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
 
               // Totals
               _PriceRow(label: 'SUBTOTAL', value: widget.subtotal),
-              if (widget.business.tax_percentage > 0)
+              if (effectiveTaxAmount > 0 || taxPercent > 0)
                 _PriceRow(
-                  label: 'TAX (${widget.business.tax_percentage}%)',
-                  value: widget.taxAmount,
+                  label: taxPercent > 0 ? 'TAX ($taxPercent%)' : 'TAX',
+                  value: effectiveTaxAmount,
                 ),
-              if (widget.business.gst_percentage > 0)
+              if (effectiveGstAmount > 0 || gstPercent > 0)
                 _PriceRow(
-                  label: 'GST (${widget.business.gst_percentage}%)',
-                  value: widget.gstAmount,
+                  label: gstPercent > 0 ? 'GST ($gstPercent%)' : 'GST',
+                  value: effectiveGstAmount,
                 ),
               const Text(
                 '-----------------------------------------',
@@ -433,7 +484,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
               ),
               _PriceRow(
                 label: 'GRAND TOTAL',
-                value: widget.total,
+                value: effectiveTotal,
                 isBold: true,
                 fontSize: 14,
               ),
@@ -451,7 +502,8 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                 ),
                 _PriceRow(
                   label: 'AMOUNT PAID',
-                  value: widget.invoice?.paid_amount ??
+                  value:
+                      widget.invoice?.paid_amount ??
                       double.tryParse(_paidController.text) ??
                       widget.total,
                   isBold: true,
@@ -676,10 +728,12 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                       final customers = ref.watch(customerProvider).value ?? [];
                       final custId =
                           widget.customerId ?? widget.invoice?.customer_id;
-                      final customer = widget.customer ??
+                      final customer =
+                          widget.customer ??
                           customers.where((c) => c.id == custId).firstOrNull;
 
-                      final phone = customer?.phoneNumber ??
+                      final phone =
+                          customer?.phoneNumber ??
                           widget.invoice?.customer_phone ??
                           ref.watch(billingProvider).customerPhone;
 
@@ -704,7 +758,8 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                             );
                                         await Share.shareXFiles(
                                           [XFile(pdfFile.path)],
-                                          text: 'Invoice No: ${inv.id}\nAmount: ₹${inv.final_amount.toStringAsFixed(2)}\nThank you for shopping with us!',
+                                          text:
+                                              'Invoice No: ${inv.id}\nAmount: ₹${inv.final_amount.toStringAsFixed(2)}\nThank you for shopping with us!',
                                         );
                                       } catch (e) {
                                         if (mounted) {

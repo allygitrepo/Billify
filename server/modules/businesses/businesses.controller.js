@@ -63,6 +63,9 @@ const businessController = {
             }
 
             // 1. Create Business
+            const taxVal = req.body.taxPercentage !== undefined ? req.body.taxPercentage : (req.body.tax !== undefined ? req.body.tax : 0);
+            const gstVal = req.body.gstPercentage !== undefined ? req.body.gstPercentage : (req.body.gst_percentage !== undefined ? req.body.gst_percentage : 0);
+
             const business = await Business.create({
                 owner_user_id: userId,
                 name: businessName,
@@ -70,9 +73,9 @@ const businessController = {
                 gstin: gstin || '',
                 address: address || '',
                 business_logo: photo || '',
-                tax: String(req.body.taxPercentage || 0),
-                gst_percentage: req.body.gstPercentage || 0,
-                invoice_prefix: req.body.invoicePrefix || 'INV'
+                tax: String(taxVal),
+                gst_percentage: parseFloat(gstVal) || 0,
+                invoice_prefix: req.body.invoicePrefix || req.body.invoice_prefix || 'INV'
             }, { transaction: t });
 
             // 2. Resolve Admin Role
@@ -98,10 +101,10 @@ const businessController = {
                 business_address: address || '',
                 gst_number: gstin || '',
                 business_logo: photo || '',
-                tax_percentage: 0,
-                gst_percentage: 0,
+                tax_percentage: parseFloat(taxVal) || 0,
+                gst_percentage: parseFloat(gstVal) || 0,
                 currency: 'INR',
-                invoice_prefix: 'INV',
+                invoice_prefix: req.body.invoicePrefix || req.body.invoice_prefix || 'INV',
                 starting_invoice_number: 1,
                 invoice_format: 'thermal',
                 footer_note: '',
@@ -144,15 +147,18 @@ const businessController = {
                 return res.status(404).json({ message: "Business not found" });
             }
 
+            const taxInput = tax !== undefined ? tax : req.body.taxPercentage;
+            const gstInput = gst_percentage !== undefined ? gst_percentage : req.body.gstPercentage;
+
             await business.update({
                 name: name !== undefined ? name : business.name,
                 phone: phone !== undefined ? phone : business.phone,
                 gstin: gstin !== undefined ? gstin : business.gstin,
                 address: address !== undefined ? address : business.address,
                 business_logo: photo !== undefined ? photo : business.business_logo,
-                tax: tax !== undefined ? String(tax) : business.tax,
-                gst_percentage: gst_percentage !== undefined ? gst_percentage : business.gst_percentage,
-                invoice_prefix: invoice_prefix !== undefined ? invoice_prefix : business.invoice_prefix,
+                tax: taxInput !== undefined ? String(taxInput) : business.tax,
+                gst_percentage: gstInput !== undefined ? parseFloat(gstInput) : business.gst_percentage,
+                invoice_prefix: invoice_prefix !== undefined ? invoice_prefix : (req.body.invoicePrefix || business.invoice_prefix),
                 status: status !== undefined ? status : business.status
             });
 
@@ -166,9 +172,9 @@ const businessController = {
                     gst_number: gstin || settings.gst_number,
                     business_address: address || settings.business_address,
                     business_logo: photo || settings.business_logo,
-                    tax_percentage: tax !== undefined ? tax : settings.tax_percentage,
-                    gst_percentage: gst_percentage !== undefined ? gst_percentage : settings.gst_percentage,
-                    invoice_prefix: invoice_prefix || settings.invoice_prefix
+                    tax_percentage: taxInput !== undefined ? parseFloat(taxInput) : settings.tax_percentage,
+                    gst_percentage: gstInput !== undefined ? parseFloat(gstInput) : settings.gst_percentage,
+                    invoice_prefix: invoice_prefix || req.body.invoicePrefix || settings.invoice_prefix
                 });
             }
 

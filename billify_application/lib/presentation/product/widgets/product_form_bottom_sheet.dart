@@ -3,6 +3,7 @@ import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/core/utils/validators.dart';
+import 'package:billify/data/models/category_model.dart';
 import 'package:billify/data/models/product_model.dart';
 import 'package:billify/data/models/product_variant_model.dart';
 import 'package:billify/data/models/uom_model.dart';
@@ -245,6 +246,58 @@ class _ProductFormBottomSheetState
     final categories = ref.watch(categoryProvider);
     final uoms = ref.watch(uomProvider);
 
+    // 1. Prepare unique, de-duplicated categories
+    final uniqueCategoriesMap = <String, CategoryModel>{};
+    for (final c in categories) {
+      if (c.id != null && c.id!.isNotEmpty) {
+        uniqueCategoriesMap[c.id!] = c;
+      }
+    }
+    final categoryList = uniqueCategoriesMap.values.toList();
+    final effectiveCategoryId =
+        (categoryList.any((c) => c.id == _selectedCategoryId))
+            ? _selectedCategoryId
+            : null;
+
+    // 2. Prepare unique, de-duplicated UOMs
+    final uniqueUomsMap = <String, UomModel>{};
+    for (final u in uoms) {
+      if (u.id.isNotEmpty && !uniqueUomsMap.containsKey(u.id)) {
+        uniqueUomsMap[u.id] = u;
+      }
+    }
+
+    if (uniqueUomsMap.isEmpty) {
+      uniqueUomsMap['pcs'] =
+          UomModel(id: 'pcs', name: 'Pieces', shortCode: 'pcs');
+      uniqueUomsMap['kg'] =
+          UomModel(id: 'kg', name: 'Kilograms', shortCode: 'kg');
+      uniqueUomsMap['litre'] =
+          UomModel(id: 'litre', name: 'Litres', shortCode: 'ltr');
+    }
+
+    // Resolve matching UOM for _selectedUomId
+    String effectiveUomId = _selectedUomId;
+    if (!uniqueUomsMap.containsKey(effectiveUomId)) {
+      final match = uniqueUomsMap.values.where((u) =>
+          u.shortCode.toLowerCase() == _selectedUomId.toLowerCase() ||
+          u.name.toLowerCase() == _selectedUomId.toLowerCase() ||
+          u.id.toLowerCase() == _selectedUomId.toLowerCase()).firstOrNull;
+      if (match != null) {
+        effectiveUomId = match.id;
+      } else if (uniqueUomsMap.isNotEmpty) {
+        effectiveUomId = uniqueUomsMap.keys.first;
+      } else {
+        uniqueUomsMap[effectiveUomId] = UomModel(
+          id: effectiveUomId,
+          name: effectiveUomId.toUpperCase(),
+          shortCode: effectiveUomId,
+        );
+      }
+    }
+
+    final uomList = uniqueUomsMap.values.toList();
+
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -328,7 +381,8 @@ class _ProductFormBottomSheetState
                 const SizedBox(height: 16),
                 if (settings.isCategoryEnabled) ...[
                   DropdownButtonFormField<String>(
-                    value: _selectedCategoryId,
+                    key: ValueKey('category_dropdown_${effectiveCategoryId}_${categoryList.length}'),
+                    value: effectiveCategoryId,
                     decoration: InputDecoration(
                       prefixIcon: const Icon(Icons.category_outlined),
                       filled: true,
@@ -343,7 +397,7 @@ class _ProductFormBottomSheetState
                         value: null,
                         child: Text('Select Category'),
                       ),
-                      ...categories.map(
+                      ...categoryList.map(
                         (c) => DropdownMenuItem(value: c.id, child: Text(c.name)),
                       ),
                     ],
@@ -353,7 +407,8 @@ class _ProductFormBottomSheetState
                   const SizedBox(height: 16),
                 ],
                 DropdownButtonFormField<String>(
-                  value: _selectedUomId,
+                  key: ValueKey('uom_dropdown_${effectiveUomId}_${uomList.length}'),
+                  value: effectiveUomId,
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.straighten),
                     filled: true,
@@ -363,8 +418,11 @@ class _ProductFormBottomSheetState
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  items: uoms
-                      .map((u) => DropdownMenuItem(value: u.id, child: Text(u.name)))
+                  items: uomList
+                      .map((u) => DropdownMenuItem<String>(
+                            value: u.id,
+                            child: Text(u.name.isNotEmpty ? u.name : u.shortCode),
+                          ))
                       .toList(),
                   onChanged: (val) {
                     if (val != null) setState(() => _selectedUomId = val);

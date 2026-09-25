@@ -449,9 +449,33 @@ class PdfService {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text("Tax:", style: const pw.TextStyle(fontSize: 7)),
+                  pw.Text(
+                    invoice.business.tax_percentage > 0
+                        ? "Tax (${invoice.business.tax_percentage}%):"
+                        : "Tax:",
+                    style: const pw.TextStyle(fontSize: 7),
+                  ),
                   pw.Text(
                     "Rs ${invoice.tax_amount.toStringAsFixed(2)}",
+                    style: const pw.TextStyle(fontSize: 7),
+                  ),
+                ],
+              ),
+            ],
+
+            if (invoice.gst_amount > 0) ...[
+              pw.SizedBox(height: 1),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    invoice.business.gst_percentage > 0
+                        ? "GST (${invoice.business.gst_percentage}%):"
+                        : "GST:",
+                    style: const pw.TextStyle(fontSize: 7),
+                  ),
+                  pw.Text(
+                    "Rs ${invoice.gst_amount.toStringAsFixed(2)}",
                     style: const pw.TextStyle(fontSize: 7),
                   ),
                 ],

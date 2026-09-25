@@ -1,4 +1,5 @@
 import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/data/models/category_model.dart';
 import 'package:billify/data/models/product_model.dart';
 import 'package:billify/data/models/user_permission.dart';
 import 'package:billify/presentation/product/widgets/product_form_bottom_sheet.dart';
@@ -116,36 +117,52 @@ class _ProductManagementPageState
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedCategoryId,
-                    isExpanded: true,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 12,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).cardColor,
-                      hintText: 'Category',
-                    ),
-                    items: [
-                      const DropdownMenuItem<String>(
-                        value: null,
-                        child: Text('All'),
-                      ),
-                      ...categories.map(
-                        (c) => DropdownMenuItem(
-                          value: c.id,
-                          child: Text(c.name, overflow: TextOverflow.ellipsis),
+                  child: Builder(
+                    builder: (context) {
+                      final uniqueCats = <String, CategoryModel>{};
+                      for (final c in categories) {
+                        if (c.id != null && c.id!.isNotEmpty && !uniqueCats.containsKey(c.id!)) {
+                          uniqueCats[c.id!] = c;
+                        }
+                      }
+                      final categoryList = uniqueCats.values.toList();
+                      final effectiveCatId = (_selectedCategoryId != null && uniqueCats.containsKey(_selectedCategoryId))
+                          ? _selectedCategoryId
+                          : null;
+
+                      return DropdownButtonFormField<String>(
+                        key: ValueKey('cat_filter_${effectiveCatId}_${categoryList.length}'),
+                        value: effectiveCatId,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Theme.of(context).cardColor,
+                          hintText: 'Category',
                         ),
-                      ),
-                    ],
-                    onChanged: (val) =>
-                        setState(() => _selectedCategoryId = val),
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: null,
+                            child: Text('All'),
+                          ),
+                          ...categoryList.map(
+                            (c) => DropdownMenuItem(
+                              value: c.id,
+                              child: Text(c.name, overflow: TextOverflow.ellipsis),
+                            ),
+                          ),
+                        ],
+                        onChanged: (val) =>
+                            setState(() => _selectedCategoryId = val),
+                      );
+                    },
                   ),
                 ),
               ],

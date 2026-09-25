@@ -1,5 +1,6 @@
 import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/core/utils/validators.dart';
+import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:billify/providers/business_provider.dart';
 import 'package:flutter/material.dart';
@@ -63,25 +64,39 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
 
               // Customer Dropdown
               customersAsync.when(
-                data: (customers) => DropdownButtonFormField<int>(
-                  value: _selectedCustomerId,
-                  decoration: const InputDecoration(
-                    labelText: 'Select Customer',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
-                  ),
-                  items: customers
-                      .map(
-                        (c) =>
-                            DropdownMenuItem(value: c.id, child: Text(c.name)),
-                      )
-                      .toList(),
-                  onChanged: widget.customerId != null
-                      ? null
-                      : (val) => setState(() => _selectedCustomerId = val),
-                  validator: (val) =>
-                      val == null ? 'Please select a customer' : null,
-                ),
+                data: (customers) {
+                  final uniqueCusts = <int, Customer>{};
+                  for (final c in customers) {
+                    if (c.id != null && !uniqueCusts.containsKey(c.id!)) {
+                      uniqueCusts[c.id!] = c;
+                    }
+                  }
+                  final custList = uniqueCusts.values.toList();
+                  final effectiveCustId = (_selectedCustomerId != null && uniqueCusts.containsKey(_selectedCustomerId))
+                      ? _selectedCustomerId
+                      : null;
+
+                  return DropdownButtonFormField<int>(
+                    key: ValueKey('customer_dropdown_${effectiveCustId}_${custList.length}'),
+                    value: effectiveCustId,
+                    decoration: const InputDecoration(
+                      labelText: 'Select Customer',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person),
+                    ),
+                    items: custList
+                        .map(
+                          (c) =>
+                              DropdownMenuItem(value: c.id, child: Text(c.name)),
+                        )
+                        .toList(),
+                    onChanged: widget.customerId != null
+                        ? null
+                        : (val) => setState(() => _selectedCustomerId = val),
+                    validator: (val) =>
+                        val == null ? 'Please select a customer' : null,
+                  );
+                },
                 loading: () => const LinearProgressIndicator(),
                 error: (e, s) => Text('Error loading customers: $e'),
               ),
@@ -106,7 +121,8 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
 
               // Method
               DropdownButtonFormField<String>(
-                value: _paymentMethod,
+                key: ValueKey('payment_method_${_methods.contains(_paymentMethod) ? _paymentMethod : _methods.first}'),
+                value: _methods.contains(_paymentMethod) ? _paymentMethod : _methods.first,
                 decoration: const InputDecoration(
                   labelText: 'Payment Method',
                   border: OutlineInputBorder(),

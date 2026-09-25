@@ -90,13 +90,13 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
     final double baseQuantity = enteredValue / conversionFactor;
     final double subtotal = baseQuantity * widget.product.price_per_unit;
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      child: Column(
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
@@ -234,8 +234,9 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
           const SizedBox(height: 16),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _UnitToggleButton extends StatelessWidget {

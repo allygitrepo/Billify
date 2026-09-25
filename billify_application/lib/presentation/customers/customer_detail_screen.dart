@@ -482,8 +482,12 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
               gstAmount: invoice.gst_amount,
               total: invoice.final_amount,
               invoiceId: invoice.id,
+              invoiceDate: invoice.date,
+              initialPaidAmount: invoice.paid_amount,
+              initialPaymentMode: invoice.payment_mode,
               customerId: invoice.customer_id,
               customerType: invoice.customer_type,
+              invoice: invoice,
               isViewOnly: true,
             ),
           );

@@ -138,5 +138,33 @@ void main() {
       expect(find.text('Customer Form Body'), findsOneWidget);
       expect(find.byIcon(Icons.close), findsOneWidget);
     });
+
+    testWidgets('AppBottomSheet.show renders modal with ListTile without Material ancestor warning', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () {
+                  AppBottomSheet.show(
+                    context: context,
+                    builder: (ctx) => const ListTile(
+                      title: Text('Modal Option 1'),
+                    ),
+                  );
+                },
+                child: const Text('Open Modal'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Modal'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Modal Option 1'), findsOneWidget);
+      expect(find.byType(ListTile), findsOneWidget);
+    });
   });
 }

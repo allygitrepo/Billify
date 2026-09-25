@@ -2,6 +2,7 @@ import 'package:billify/core/services/pdf_service.dart';
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/data/models/business_model.dart';
 import 'package:billify/data/models/cart_item_model.dart';
+import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/providers/billing_provider.dart';
 import 'package:billify/providers/business_provider.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +23,7 @@ class ThermalInvoiceDialog extends ConsumerStatefulWidget {
   final String invoiceId;
   final int? customerId;
   final String? customerType;
+  final Customer? customer;
 
   const ThermalInvoiceDialog({
     super.key,
@@ -34,6 +36,7 @@ class ThermalInvoiceDialog extends ConsumerStatefulWidget {
     required this.invoiceId,
     this.customerId,
     this.customerType = 'WALKIN',
+    this.customer,
     this.isViewOnly = false,
     this.invoiceDate,
     this.initialPaidAmount,
@@ -71,6 +74,16 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
       return widget.invoice!.copyWith(business: currentBusiness);
     }
 
+    final paid = double.tryParse(_paidController.text) ??
+        (widget.initialPaidAmount ?? widget.total);
+
+    final resolvedCustomerName = widget.customer?.name ??
+        ref.read(billingProvider).customerName ??
+        (widget.customerId != null ? 'Regular Customer' : 'Walk-in Customer');
+    final resolvedCustomerPhone = widget.customer?.phoneNumber ??
+        ref.read(billingProvider).customerPhone ??
+        '';
+
     return InvoiceModel(
       id: widget.invoiceId,
       date: widget.invoiceDate ?? DateTime.now(),
@@ -86,20 +99,29 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
       staff_name: 'Owner',
       customer_id: widget.customerId,
       customer_type: widget.customerType,
-      paid_amount: widget.initialPaidAmount ?? widget.total,
-      payment_mode: widget.initialPaymentMode ?? 'Cash',
+      customer_name: resolvedCustomerName,
+      customer_phone: resolvedCustomerPhone,
+      paid_amount: paid,
+      payment_mode: _paymentMode,
     );
   }
 
   @override
   void initState() {
     super.initState();
-    _paymentMode = (widget.initialPaymentMode ?? 'CASH').toUpperCase();
-    final initialPaid = widget.initialPaidAmount ?? widget.total;
+    final rawMode = widget.invoice?.payment_mode ??
+        widget.initialPaymentMode ??
+        'CASH';
+    _paymentMode = rawMode.toUpperCase();
+
+    final initialPaid = widget.invoice?.paid_amount ??
+        widget.initialPaidAmount ??
+        widget.total;
     _paidController = TextEditingController(
       text: initialPaid.toStringAsFixed(2),
     );
-    _remaining = widget.total - initialPaid;
+    final totalAmt = widget.invoice?.final_amount ?? widget.total;
+    _remaining = (totalAmt - initialPaid).clamp(0.0, double.infinity);
   }
 
   @override
@@ -111,7 +133,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
   void _updateRemaining(String val) {
     final paid = double.tryParse(val) ?? 0.0;
     setState(() {
-      _remaining = widget.total - paid;
+      _remaining = (widget.total - paid).clamp(0.0, double.infinity);
     });
   }
 
@@ -135,7 +157,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
         _paidController.text = '0.00';
         _remaining = widget.total;
       }
-      // If SPLIT, we keep the current text but allow editing
+      // If SPLIT, keep current text but allow editing
     });
   }
 
@@ -203,39 +225,54 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                 textAlign: TextAlign.center,
               ),
 
-              if (widget.customerType == 'REGULAR' && widget.customerId != null)
-                Consumer(
-                  builder: (context, ref, _) {
-                    final customers = ref.watch(customerProvider).value ?? [];
-                    final customer = customers
-                        .where((c) => c.id == widget.customerId)
-                        .firstOrNull;
-                    return Column(
-                      children: [
-                        const Text(
-                          '-----------------------------------------',
-                          style: TextStyle(color: Colors.black38),
+              Consumer(
+                builder: (context, ref, _) {
+                  final customers = ref.watch(customerProvider).value ?? [];
+                  final custId = widget.customerId ?? widget.invoice?.customer_id;
+                  final customer = widget.customer ??
+                      customers.where((c) => c.id == custId).firstOrNull;
+
+                  final customerName = customer?.name ??
+                      widget.invoice?.customer_name ??
+                      ref.watch(billingProvider).customerName;
+                  final customerPhone = customer?.phoneNumber ??
+                      widget.invoice?.customer_phone ??
+                      ref.watch(billingProvider).customerPhone;
+
+                  final hasCustomer = (customerName != null &&
+                          customerName.isNotEmpty &&
+                          customerName != 'Walk-in Customer') ||
+                      (customerPhone != null && customerPhone.isNotEmpty) ||
+                      widget.customerType == 'REGULAR';
+
+                  if (!hasCustomer) return const SizedBox.shrink();
+
+                  return Column(
+                    children: [
+                      const Text(
+                        '-----------------------------------------',
+                        style: TextStyle(color: Colors.black38),
+                      ),
+                      Text(
+                        'CUSTOMER: ${(customerName ?? 'REGULAR CUSTOMER').toUpperCase()}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
                         ),
+                      ),
+                      if (customerPhone != null && customerPhone.isNotEmpty)
                         Text(
-                          'CUSTOMER: ${customer?.name.toUpperCase() ?? 'REGULAR'}',
+                          'Phone: $customerPhone',
                           style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            fontSize: 10,
+                            color: Colors.black87,
                           ),
                         ),
-                        if (customer?.phoneNumber != null)
-                          Text(
-                            'Phone: ${customer?.phoneNumber}',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.black87,
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
+                    ],
+                  );
+                },
+              ),
               const Text(
                 '-----------------------------------------',
                 style: TextStyle(color: Colors.black38),
@@ -405,8 +442,47 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                 style: TextStyle(color: Colors.black38),
               ),
 
-              // Payment Mode Selection
-              if (!widget.isViewOnly) ...[
+              // Payment Section
+              if (_isConfirmed || widget.isViewOnly) ...[
+                _PriceRow(
+                  label: 'PAYMENT MODE',
+                  valueString: _paymentMode.toUpperCase(),
+                  isBold: true,
+                ),
+                _PriceRow(
+                  label: 'AMOUNT PAID',
+                  value: widget.invoice?.paid_amount ??
+                      double.tryParse(_paidController.text) ??
+                      widget.total,
+                  isBold: true,
+                ),
+                if (_remaining > 0.01)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'REMAINING TO KHATA',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                        Text(
+                          '₹${_remaining.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ] else ...[
+                // Payment Mode Selection
                 Column(
                   children: [
                     const Text(
@@ -452,114 +528,112 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                     ),
                   ],
                 ),
-              ],
-
-              const SizedBox(height: 16),
-
-              // Summary of Payment based on mode
-              if (_paymentMode == 'CASH')
-                const Center(
-                  child: Text(
-                    'FULL PAYMENT RECEIVED',
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                )
-              else if (_paymentMode == 'KHATA' && isRegular) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'TOTAL BAL. TO KHATA',
+                const SizedBox(height: 16),
+                // Interactive Summary based on mode
+                if (_paymentMode == 'CASH')
+                  const Center(
+                    child: Text(
+                      'FULL PAYMENT RECEIVED (CASH)',
                       style: TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
                         fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
                       ),
                     ),
-                    Text(
-                      '₹${widget.total.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
+                  )
+                else if (_paymentMode == 'KHATA' && isRegular) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'TOTAL BAL. TO KHATA',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ] else if (_paymentMode == 'SPLIT' && isRegular) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'AMOUNT PAID (CASH)',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 80,
-                      height: 25,
-                      child: TextField(
-                        controller: _paidController,
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.right,
-                        autofocus: true,
+                      Text(
+                        '₹${widget.total.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else if (_paymentMode == 'SPLIT' && isRegular) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'AMOUNT PAID (CASH)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
                           color: Colors.black,
                         ),
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                          border: UnderlineInputBorder(),
-                          hintText: '0.00',
-                          prefixText: '₹',
+                      ),
+                      SizedBox(
+                        width: 80,
+                        height: 25,
+                        child: TextField(
+                          controller: _paidController,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.right,
+                          autofocus: true,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                            border: UnderlineInputBorder(),
+                            hintText: '0.00',
+                            prefixText: '₹',
+                          ),
+                          onChanged: _updateRemaining,
                         ),
-                        onChanged: _updateRemaining,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'REMAINING TO KHATA',
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'REMAINING TO KHATA',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                      Text(
+                        '₹${_remaining.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else if (_paymentMode != 'CASH' && !isRegular)
+                  const Center(
+                    child: Text(
+                      'REGULAR CUSTOMER NEEDED',
                       style: TextStyle(
+                        color: Colors.orange,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Colors.red,
                       ),
-                    ),
-                    Text(
-                      '₹${_remaining.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                    ),
-                  ],
-                ),
-              ] else if (_paymentMode != 'CASH' && !isRegular)
-                const Center(
-                  child: Text(
-                    'REGULAR CUSTOMER NEEDED',
-                    style: TextStyle(
-                      color: Colors.orange,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
+              ],
 
               const Text(
                 '-----------------------------------------',
@@ -593,17 +667,23 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                   ),
                   const SizedBox(height: 20),
                 ],
-                if (widget.customerType == 'REGULAR' &&
-                    widget.customerId != null)
+                if (widget.customerType == 'REGULAR' ||
+                    widget.customerId != null ||
+                    widget.customer != null ||
+                    widget.invoice?.customer_id != null)
                   Consumer(
                     builder: (context, ref, _) {
                       final customers = ref.watch(customerProvider).value ?? [];
-                      final customer = customers
-                          .where((c) => c.id == widget.customerId)
-                          .firstOrNull;
+                      final custId =
+                          widget.customerId ?? widget.invoice?.customer_id;
+                      final customer = widget.customer ??
+                          customers.where((c) => c.id == custId).firstOrNull;
 
-                      if (customer?.phoneNumber == null ||
-                          customer!.phoneNumber.isEmpty) {
+                      final phone = customer?.phoneNumber ??
+                          widget.invoice?.customer_phone ??
+                          ref.watch(billingProvider).customerPhone;
+
+                      if (phone == null || phone.isEmpty) {
                         return const SizedBox.shrink();
                       }
 
@@ -714,7 +794,10 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                     0.0;
                                 ref
                                     .read(billingProvider.notifier)
-                                    .setPaidAmount(paid);
+                                    .setPaymentDetails(
+                                      paidAmount: paid,
+                                      paymentMode: _paymentMode,
+                                    );
 
                                 final invoice = await ref
                                     .read(billingProvider.notifier)
@@ -791,19 +874,23 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
 
 class _PriceRow extends StatelessWidget {
   final String label;
-  final double value;
+  final double? value;
+  final String? valueString;
   final bool isBold;
   final double fontSize;
 
   const _PriceRow({
     required this.label,
-    required this.value,
+    this.value,
+    this.valueString,
     this.isBold = false,
     this.fontSize = 12,
   });
 
   @override
   Widget build(BuildContext context) {
+    final displayVal =
+        valueString ?? (value != null ? '₹${value!.toStringAsFixed(2)}' : '');
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -818,7 +905,7 @@ class _PriceRow extends StatelessWidget {
             ),
           ),
           Text(
-            '₹${value.toStringAsFixed(2)}',
+            displayVal,
             style: TextStyle(
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
               fontSize: fontSize,

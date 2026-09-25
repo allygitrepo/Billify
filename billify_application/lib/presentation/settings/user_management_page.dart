@@ -327,19 +327,20 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Container(
-          height: MediaQuery.of(context).size.height * 0.85,
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          ),
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 24,
-            right: 24,
-            top: 24,
-          ),
-          child: Form(
+        builder: (context, setSheetState) => Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          clipBehavior: Clip.antiAlias,
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.85,
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 24,
+                right: 24,
+                top: 24,
+              ),
+              child: Form(
             key: formKey,
             child: SingleChildScrollView(
               child: Column(
@@ -573,8 +574,10 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
           ),
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   void _showRoleBottomSheet() {
     final formKey = GlobalKey<FormState>();
@@ -584,18 +587,18 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 24,
-          right: 24,
-          top: 24,
-        ),
-        child: Form(
+      builder: (context) => Material(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
+          ),
+          child: Form(
           key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -662,7 +665,8 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   @override

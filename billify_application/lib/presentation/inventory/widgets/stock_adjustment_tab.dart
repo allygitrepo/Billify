@@ -160,13 +160,13 @@ class _StockAdjustmentTabState extends ConsumerState<StockAdjustmentTab> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
+      builder: (context) => Material(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        clipBehavior: Clip.antiAlias,
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.7,
+          child: Column(
           children: [
             const SizedBox(height: 12),
             Container(
@@ -199,7 +199,8 @@ class _StockAdjustmentTabState extends ConsumerState<StockAdjustmentTab> {
           ],
         ),
       ),
-    );
+    ),
+  );
 
     if (result != null) {
       final product = ref.read(productProvider.notifier).findByBarcode(result);
@@ -260,10 +261,14 @@ class _StockAdjustmentTabState extends ConsumerState<StockAdjustmentTab> {
                 );
           }).toList();
 
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.8,
-            padding: const EdgeInsets.all(20),
-            child: Column(
+          return Material(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            clipBehavior: Clip.antiAlias,
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.8,
+              padding: const EdgeInsets.all(20),
+              child: Column(
               children: [
                 const Text(
                   'Select Product',
@@ -386,10 +391,11 @@ class _StockAdjustmentTabState extends ConsumerState<StockAdjustmentTab> {
                 ),
               ],
             ),
-          );
-        },
-      ),
-    );
+          ),
+        );
+      },
+    ),
+  );
   }
 
   @override

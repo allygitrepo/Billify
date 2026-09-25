@@ -14,14 +14,20 @@ class BillingState {
   final bool isProcessing;
   final int? selectedCustomerId;
   final String customerType; // 'WALKIN', 'REGULAR'
+  final String? customerName;
+  final String? customerPhone;
   final double paidAmount;
+  final String paymentMode; // 'CASH', 'KHATA', 'SPLIT'
 
   BillingState({
     this.items = const [],
     this.isProcessing = false,
     this.selectedCustomerId,
     this.customerType = 'WALKIN',
+    this.customerName,
+    this.customerPhone,
     this.paidAmount = 0.0,
+    this.paymentMode = 'CASH',
   });
 
   double get subtotal => items.fold(0, (sum, item) => sum + item.subtotal);
@@ -39,14 +45,20 @@ class BillingState {
     bool? isProcessing,
     int? selectedCustomerId,
     String? customerType,
+    String? customerName,
+    String? customerPhone,
     double? paidAmount,
+    String? paymentMode,
   }) {
     return BillingState(
       items: items ?? this.items,
       isProcessing: isProcessing ?? this.isProcessing,
       selectedCustomerId: selectedCustomerId ?? this.selectedCustomerId,
       customerType: customerType ?? this.customerType,
+      customerName: customerName ?? this.customerName,
+      customerPhone: customerPhone ?? this.customerPhone,
       paidAmount: paidAmount ?? this.paidAmount,
+      paymentMode: paymentMode ?? this.paymentMode,
     );
   }
 }
@@ -57,12 +69,24 @@ class BillingNotifier extends Notifier<BillingState> {
     return BillingState();
   }
 
-  void setCustomer(int? id, String type) {
-    state = state.copyWith(selectedCustomerId: id, customerType: type);
+  void setCustomer(int? id, String type, {String? name, String? phone}) {
+    state = state.copyWith(
+      selectedCustomerId: id,
+      customerType: type,
+      customerName: name,
+      customerPhone: phone,
+    );
   }
 
   void setPaidAmount(double amount) {
     state = state.copyWith(paidAmount: amount);
+  }
+
+  void setPaymentDetails({
+    required double paidAmount,
+    required String paymentMode,
+  }) {
+    state = state.copyWith(paidAmount: paidAmount, paymentMode: paymentMode);
   }
 
   bool addToCart(ProductModel product, {double? quantity}) {
@@ -138,7 +162,10 @@ class BillingNotifier extends Notifier<BillingState> {
         staff_name: staffName,
         customer_id: state.selectedCustomerId,
         customer_type: state.customerType,
+        customer_name: state.customerName,
+        customer_phone: state.customerPhone,
         paid_amount: state.paidAmount,
+        payment_mode: state.paymentMode,
       );
 
       // Save to server & history
@@ -149,10 +176,7 @@ class BillingNotifier extends Notifier<BillingState> {
       // Update customerProvider state synchronously before returning
       ref.invalidate(customerProvider);
       if (serverInvoice.customer_id != null) {
-        // Await the actual refresh to ensure next screen has fresh data
-        await ref.refresh(
-          customerLedgerProvider(serverInvoice.customer_id!).future,
-        );
+        ref.invalidate(customerLedgerProvider(serverInvoice.customer_id!));
       }
 
       // Sync products mathematically from the server

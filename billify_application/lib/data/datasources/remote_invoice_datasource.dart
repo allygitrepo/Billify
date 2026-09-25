@@ -33,9 +33,11 @@ class RemoteInvoiceDatasource {
     String? userId,
   ) async {
     final double totalTaxes = (invoice.tax_amount) + (invoice.gst_amount);
-    final String mode = (invoice.paid_amount >= invoice.final_amount)
-        ? 'Cash'
-        : (invoice.paid_amount <= 0 ? 'Khata' : 'Split');
+    final String mode = invoice.payment_mode.isNotEmpty
+        ? invoice.payment_mode
+        : ((invoice.paid_amount >= invoice.final_amount)
+            ? 'Cash'
+            : (invoice.paid_amount <= 0 ? 'Khata' : 'Split'));
     final String status = (invoice.paid_amount >= invoice.final_amount)
         ? 'Paid'
         : 'Pending';
@@ -44,10 +46,11 @@ class RemoteInvoiceDatasource {
       'business_id': businessId,
       'customer_id': invoice.customer_id,
       'customer_type': invoice.customer_type,
-      'customer_name': invoice.customer_id != null
-          ? 'Regular Customer'
-          : 'Walk-in Customer',
-      'customer_phone': '',
+      'customer_name': invoice.customer_name ??
+          (invoice.customer_id != null
+              ? 'Regular Customer'
+              : 'Walk-in Customer'),
+      'customer_phone': invoice.customer_phone ?? '',
       'total_amount': invoice.total_amount,
       'discount': 0,
       'tax_amount': totalTaxes,
@@ -90,6 +93,12 @@ class RemoteInvoiceDatasource {
         date: serverData['createdAt'] != null
             ? DateTime.parse(serverData['createdAt'])
             : invoice.date,
+        paid_amount: double.tryParse(serverData['paid_amount']?.toString() ?? '') ??
+            invoice.paid_amount,
+        payment_mode: serverData['payment_mode'] ?? mode,
+        status: serverData['status'] ?? status,
+        customer_name: serverData['customer_name'] ?? invoice.customer_name,
+        customer_phone: serverData['customer_phone'] ?? invoice.customer_phone,
       );
     }
     return null;

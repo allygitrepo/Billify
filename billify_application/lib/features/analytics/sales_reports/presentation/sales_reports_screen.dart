@@ -105,9 +105,14 @@ class SalesReportsScreen extends ConsumerWidget {
   void _showExportOptions(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
+      backgroundColor: Colors.transparent,
+      builder: (context) => Material(
+        color: Theme.of(context).cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
@@ -141,8 +146,9 @@ class SalesReportsScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _LoadingShimmer extends StatelessWidget {

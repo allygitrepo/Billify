@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/core/utils/validators.dart';
@@ -53,27 +52,42 @@ class _AddCustomerBottomSheetState
   @override
   Widget build(BuildContext context) {
     final bool isEditing = widget.initialCustomer?.id != null;
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 20,
-        right: 20,
-        top: 20,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                isEditing ? 'Edit Customer Details' : 'Add New Customer',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          left: 20,
+          right: 20,
+          top: 12,
+        ),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
+                const SizedBox(height: 16),
+                Text(
+                  isEditing ? 'Edit Customer Details' : 'Add New Customer',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
               if (!isEditing)
                 OutlinedButton.icon(
                   onPressed: () {
@@ -181,8 +195,9 @@ class _AddCustomerBottomSheetState
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> _saveCustomer() async {
     if (!_formKey.currentState!.validate()) return;

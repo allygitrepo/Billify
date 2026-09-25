@@ -45,6 +45,17 @@ const invoiceController = {
             // 2. Generate Sequential Invoice Number
             const invoice_number = await getNextSequenceNumber(business_id);
 
+            // Auto-populate customer details if customer_id exists
+            let finalCustomerName = customer_name;
+            let finalCustomerPhone = customer_phone;
+            if (customer_id && (!finalCustomerName || !finalCustomerPhone)) {
+                const customerObj = await Customer.findByPk(customer_id, { transaction: t });
+                if (customerObj) {
+                    finalCustomerName = finalCustomerName || customerObj.name;
+                    finalCustomerPhone = finalCustomerPhone || customerObj.phone_number;
+                }
+            }
+
             // 2. Create Invoice
             const invoice = await Invoice.create({
                 business_id,
@@ -52,14 +63,14 @@ const invoiceController = {
                 customer_id,
                 customer_type: customer_type || 'WALKIN',
                 invoice_number,
-                customer_name,
-                customer_phone,
+                customer_name: finalCustomerName,
+                customer_phone: finalCustomerPhone,
                 total_amount,
                 discount,
                 tax_amount,
                 final_amount,
                 paid_amount: paid_amount || 0,
-                payment_mode,
+                payment_mode: payment_mode || 'Cash',
                 status: status || 'Paid'
             }, { transaction: t });
 
@@ -67,25 +78,41 @@ const invoiceController = {
             if (customer_type === 'REGULAR' && customer_id) {
                 const customer = await Customer.findByPk(customer_id, { transaction: t });
                 if (customer) {
-                    const creditAmount = parseFloat(final_amount) - parseFloat(paid_amount || 0);
+                    const totalInvoiceAmount = parseFloat(final_amount) || 0;
+                    const paid = parseFloat(paid_amount) || 0;
                     
-                    if (creditAmount > 0) {
-                        // Create a "credit" payment entry (customer owes)
+                    // a. Record full invoice sale as credit (what customer purchased)
+                    if (totalInvoiceAmount > 0) {
                         await Payment.create({
                             business_id,
                             customer_id,
-                            amount: creditAmount,
+                            amount: totalInvoiceAmount,
                             type: 'credit',
-                            payment_method: payment_mode,
+                            payment_method: payment_mode || 'Cash',
                             note: `Invoice #${invoice_number}`,
                             reference_invoice_id: invoice.id,
                             created_by: user_id
                         }, { transaction: t });
-
-                        // Update customer remaining balance
-                        const newBalance = parseFloat(customer.remaining_balance) + creditAmount;
-                        await customer.update({ remaining_balance: newBalance }, { transaction: t });
                     }
+
+                    // b. If customer paid anything (cash received / split), record as debit (payment received)
+                    if (paid > 0) {
+                        await Payment.create({
+                            business_id,
+                            customer_id,
+                            amount: paid,
+                            type: 'debit',
+                            payment_method: payment_mode || 'Cash',
+                            note: `Paid for Invoice #${invoice_number}`,
+                            reference_invoice_id: invoice.id,
+                            created_by: user_id
+                        }, { transaction: t });
+                    }
+
+                    // c. Update customer remaining balance
+                    const balanceChange = totalInvoiceAmount - paid;
+                    const newBalance = parseFloat(customer.remaining_balance || 0) + balanceChange;
+                    await customer.update({ remaining_balance: newBalance }, { transaction: t });
                 }
             }
 
@@ -169,11 +196,24 @@ const invoiceController = {
                     reference_no: invoice_number // Use generating invoice number as reference
                 }, { transaction: t });
             }
+            const completeInvoice = await Invoice.findByPk(invoice.id, {
+                include: [
+                    { 
+                        model: InvoiceItem, 
+                        as: 'items',
+                        include: [{ model: Product, as: 'product' }]
+                    },
+                    { model: User, as: 'user' },
+                    { model: Customer, as: 'customer' },
+                    { model: Business, as: 'business' }
+                ],
+                transaction: t
+            });
 
             await t.commit();
             return res.status(201).json({
                 message: "Invoice created successfully",
-                invoice
+                invoice: completeInvoice || invoice
             });
         } catch (error) {
             await t.rollback();

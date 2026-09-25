@@ -287,13 +287,13 @@ class _HomePageState extends ConsumerState<HomePage> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
+      builder: (context) => Material(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -395,8 +395,9 @@ class _HomePageState extends ConsumerState<HomePage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _showSwitchConfirmation(BuildContext context, dynamic targetBusiness) {
     showDialog(
@@ -442,13 +443,13 @@ class _HomePageState extends ConsumerState<HomePage> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         final authState = ref.watch(authProvider);
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          ),
-          child: Column(
+        return Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
@@ -611,10 +612,11 @@ class _HomePageState extends ConsumerState<HomePage> {
               const SizedBox(height: 24),
             ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   Future<bool?> _showExitDialog(BuildContext context) {
     return showDialog<bool>(

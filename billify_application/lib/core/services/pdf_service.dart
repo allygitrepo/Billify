@@ -347,9 +347,10 @@ class PdfService {
               ],
             ),
 
-            if (invoice.customer_name != null) ...[
+            if (invoice.customer_name != null && invoice.customer_name!.isNotEmpty) ...[
               pw.SizedBox(height: 2),
               pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text(
                     "Bill To: ",
@@ -358,9 +359,22 @@ class PdfService {
                       fontSize: 7,
                     ),
                   ),
-                  pw.Text(
-                    invoice.customer_name!,
-                    style: const pw.TextStyle(fontSize: 7),
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          invoice.customer_name!,
+                          style: const pw.TextStyle(fontSize: 7),
+                        ),
+                        if (invoice.customer_phone != null &&
+                            invoice.customer_phone!.isNotEmpty)
+                          pw.Text(
+                            "Ph: ${invoice.customer_phone}",
+                            style: const pw.TextStyle(fontSize: 7),
+                          ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -473,6 +487,45 @@ class PdfService {
                 ],
               ),
             ),
+
+            pw.SizedBox(height: 3),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text("Payment Mode:", style: const pw.TextStyle(fontSize: 7)),
+                pw.Text(
+                  invoice.payment_mode.toUpperCase(),
+                  style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 1),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text("Amount Paid:", style: const pw.TextStyle(fontSize: 7)),
+                pw.Text(
+                  "Rs ${invoice.paid_amount.toStringAsFixed(2)}",
+                  style: const pw.TextStyle(fontSize: 7),
+                ),
+              ],
+            ),
+            if (invoice.final_amount > invoice.paid_amount) ...[
+              pw.SizedBox(height: 1),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    "Balance to Khata:",
+                    style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold),
+                  ),
+                  pw.Text(
+                    "Rs ${(invoice.final_amount - invoice.paid_amount).toStringAsFixed(2)}",
+                    style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold),
+                  ),
+                ],
+              ),
+            ],
 
             pw.SizedBox(height: 8),
 

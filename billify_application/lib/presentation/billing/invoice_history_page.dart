@@ -359,6 +359,7 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
         initialPaymentMode: invoice.payment_mode,
         customerId: invoice.customer_id,
         customerType: invoice.customer_type,
+        invoice: invoice,
         isViewOnly: true,
       ),
     );

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/presentation/billing/thermal_invoice_dialog.dart';
@@ -15,9 +14,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:billify/data/models/user_permission.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:billify/providers/auth_provider.dart';
-import 'package:billify/providers/invoice_provider.dart';
 import 'package:billify/presentation/billing/widgets/weight_input_sheet.dart';
-import 'package:billify/presentation/widgets/error_handler.dart';
+import 'package:billify/presentation/customers/add_customer_bottom_sheet.dart';
+import 'package:billify/data/models/customer_model.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
   const ScannerScreen({super.key});
@@ -173,17 +172,25 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => _CustomerSelectorSheet(
         onSelected: (customerId, customerType) {
-          ref
-              .read(billingProvider.notifier)
-              .setCustomer(customerId, customerType);
+          final customer = ref
+              .read(customerProvider)
+              .value
+              ?.where((c) => c.id == customerId)
+              .firstOrNull;
+          ref.read(billingProvider.notifier).setCustomer(
+            customerId,
+            customerType,
+            name: customer?.name,
+            phone: customer?.phoneNumber,
+          );
           Navigator.pop(sheetContext);
-          _showInvoice(ref, context);
+          _showInvoice(ref, context, customer: customer);
         },
       ),
     );
   }
 
-  void _showInvoice(WidgetRef ref, BuildContext context) {
+  void _showInvoice(WidgetRef ref, BuildContext context, {Customer? customer}) {
     final billingState = ref.read(billingProvider);
     final businessState = ref.read(businessProvider);
     final currentBusiness = businessState.currentBusiness;
@@ -216,6 +223,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
         initialPaymentMode: 'CASH',
         customerId: billingState.selectedCustomerId,
         customerType: billingState.customerType,
+        customer: customer,
       ),
     );
   }
@@ -488,120 +496,217 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   }
 }
 
-class _CustomerSelectorSheet extends ConsumerWidget {
+class _CustomerSelectorSheet extends ConsumerStatefulWidget {
   final Function(int?, String) onSelected;
 
   const _CustomerSelectorSheet({required this.onSelected});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final customersAsync = ref.watch(customerProvider);
-    final customers = customersAsync.value ?? [];
+  ConsumerState<_CustomerSelectorSheet> createState() =>
+      _CustomerSelectorSheetState();
+}
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Theme.of(context).dividerColor.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Text(
-                  'Select Customer',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          ListTile(
-            leading: const CircleAvatar(
-              backgroundColor: AppTheme.primaryTeal,
-              child: Icon(Icons.person_outline, color: Colors.white),
-            ),
-            title: const Text('Walk-in Customer'),
-            subtitle: const Text('Default for quick sales'),
-            onTap: () => onSelected(null, 'WALKIN'),
-          ),
-          const Divider(),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search or filter customers...',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
+class _CustomerSelectorSheetState
+    extends ConsumerState<_CustomerSelectorSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openAddCustomer() async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const AddCustomerBottomSheet(),
+    );
+    if (result == true) {
+      await ref.read(customerProvider.notifier).fetchCustomers();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final customersAsync = ref.watch(customerProvider);
+    final allCustomers = customersAsync.value ?? [];
+    final customers = allCustomers.where((c) {
+      if (_searchQuery.isEmpty) return true;
+      final query = _searchQuery.toLowerCase();
+      return c.name.toLowerCase().contains(query) ||
+          c.phoneNumber.toLowerCase().contains(query);
+    }).toList();
+
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.75,
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(2),
               ),
-              onChanged: (val) {
-                // Implement local filter or logic if needed
-              },
             ),
-          ),
-          Expanded(
-            child: customers.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('No customers found'),
-                        const SizedBox(height: 8),
-                        TextButton.icon(
-                          onPressed: () {
-                            // Navigate to add customer or import
-                          },
-                          icon: const Icon(Icons.add),
-                          label: const Text('Add New Customer'),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: customers.length,
-                    itemBuilder: (context, index) {
-                      final customer = customers[index];
-                      return ListTile(
-                        leading: CircleAvatar(child: Text(customer.name[0])),
-                        title: Text(customer.name),
-                        subtitle: Text(customer.phoneNumber),
-                        trailing: Text(
-                          'Bal: ₹${customer.remainingBalance.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            color: customer.remainingBalance >= 0
-                                ? Colors.red
-                                : Colors.green,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        onTap: () => onSelected(customer.id, 'REGULAR'),
-                      );
-                    },
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: [
+                  Text(
+                    'Select Customer',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
-          ),
-        ],
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.person_add_alt_1,
+                      color: AppTheme.primaryTeal,
+                    ),
+                    tooltip: 'Add New Customer',
+                    onPressed: _openAddCustomer,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: AppTheme.primaryTeal,
+                child: Icon(Icons.person_outline, color: Colors.white),
+              ),
+              title: const Text('Walk-in Customer'),
+              subtitle: const Text('Default for quick sales'),
+              onTap: () => widget.onSelected(null, 'WALKIN'),
+            ),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search or filter customers...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 20),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surface,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onChanged: (val) {
+                  setState(() => _searchQuery = val.trim());
+                },
+              ),
+            ),
+            Expanded(
+              child: customersAsync.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.primaryTeal,
+                      ),
+                    )
+                  : customers.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _searchQuery.isEmpty
+                                    ? 'No customers found'
+                                    : 'No matching customers found',
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                onPressed: _openAddCustomer,
+                                icon: const Icon(Icons.add, color: Colors.white),
+                                label: const Text(
+                                  'Add New Customer',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryTeal,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: customers.length,
+                          itemBuilder: (context, index) {
+                            final customer = customers[index];
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: AppTheme.primaryTeal
+                                    .withValues(alpha: 0.2),
+                                child: Text(
+                                  customer.name.isNotEmpty
+                                      ? customer.name[0].toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(
+                                    color: AppTheme.primaryTeal,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                customer.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              subtitle: Text(customer.phoneNumber),
+                              trailing: Text(
+                                'Bal: ₹${customer.remainingBalance.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  color: customer.remainingBalance > 0
+                                      ? Colors.red
+                                      : customer.remainingBalance < 0
+                                          ? Colors.green
+                                          : Colors.grey,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              onTap: () =>
+                                  widget.onSelected(customer.id, 'REGULAR'),
+                            );
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -720,13 +825,13 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final billingState = ref.watch(billingProvider);
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.85,
+        child: Column(
         children: [
           const SizedBox(height: 12),
           Container(
@@ -826,7 +931,7 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
                               onSelected: widget.onSelected,
                               isVariant: true,
                             );
-                          }).toList(),
+                          }),
                           const Divider(height: 24),
                         ],
                       );
@@ -835,8 +940,9 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _ProductListTile extends ConsumerWidget {

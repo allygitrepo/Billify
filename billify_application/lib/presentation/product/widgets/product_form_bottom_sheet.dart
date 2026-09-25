@@ -74,18 +74,23 @@ class _ProductFormBottomSheetState
       text: p?.barcode ?? widget.initialBarcode ?? '',
     );
     _nameController = TextEditingController(text: p?.name ?? '');
+    String formatNum(double? val) {
+      if (val == null || val == 0) return '';
+      return val % 1 == 0 ? val.toInt().toString() : val.toString();
+    }
+
     _priceController = TextEditingController(
-      text: p != null && p.basePrice != 0 ? p.basePrice.toString() : '',
+      text: p != null ? formatNum(p.basePrice) : '',
     );
     _stockController = TextEditingController(
-      text: p != null && p.openingStock != 0 ? p.openingStock.toString() : '',
+      text: p != null ? formatNum(p.openingStock) : '',
     );
 
     _isWeighted = p?.is_weighted ?? false;
     _pricePerUnitController = TextEditingController(
       text: p?.price_per_unit != null && p!.price_per_unit > 0
-          ? p.price_per_unit.toString()
-          : (_isWeighted ? p?.basePrice.toString() ?? '' : ''),
+          ? formatNum(p.price_per_unit)
+          : (_isWeighted ? (p != null ? formatNum(p.basePrice) : '') : ''),
     );
 
     _selectedCategoryId = p?.category_id;
@@ -199,7 +204,8 @@ class _ProductFormBottomSheetState
             : 0.0,
         openingStock: _hasVariants
             ? 0.0
-            : (double.tryParse(_stockController.text) ?? 0.0),
+            : (p?.openingStock ??
+                (double.tryParse(_stockController.text) ?? 0.0)),
         currentStock: _hasVariants
             ? 0.0
             : (p?.currentStock ??
@@ -239,15 +245,15 @@ class _ProductFormBottomSheetState
     final categories = ref.watch(categoryProvider);
     final uoms = ref.watch(uomProvider);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Form(
@@ -464,11 +470,13 @@ class _ProductFormBottomSheetState
                     enabled: widget.product == null,
                     keyboardType: TextInputType.number,
                     prefixIcon: Icons.inventory_2_outlined,
-                    validator: (v) => Validators.validateStock(
-                      v,
-                      isWeighted: _isWeighted,
-                      isRequired: false,
-                    ),
+                    validator: widget.product == null
+                        ? (v) => Validators.validateStock(
+                              v,
+                              isWeighted: _isWeighted,
+                              isRequired: false,
+                            )
+                        : null,
                   ),
                 ] else ...[
                   // Variants List Editor
@@ -541,7 +549,9 @@ class _ProductFormBottomSheetState
                                   label: 'Price',
                                   keyboardType: TextInputType.number,
                                   initialValue: variant.price != 0
-                                      ? variant.price.toString()
+                                      ? (variant.price % 1 == 0
+                                          ? variant.price.toInt().toString()
+                                          : variant.price.toString())
                                       : '',
                                   onChanged: (v) => _variants[idx] =
                                       _variants[idx].copyWith(
@@ -559,14 +569,19 @@ class _ProductFormBottomSheetState
                                   label: 'Stock',
                                   keyboardType: TextInputType.number,
                                   initialValue: variant.openingStock != 0
-                                      ? variant.openingStock.toString()
+                                      ? (variant.openingStock % 1 == 0
+                                          ? variant.openingStock.toInt().toString()
+                                          : variant.openingStock.toString())
                                       : '',
                                   enabled: widget.product == null ||
                                       variant.id.length > 10,
-                                  validator: (v) => Validators.validateStock(
-                                    v,
-                                    isRequired: false,
-                                  ),
+                                  validator: (widget.product == null ||
+                                          variant.id.length > 10)
+                                      ? (v) => Validators.validateStock(
+                                            v,
+                                            isRequired: false,
+                                          )
+                                      : null,
                                   onChanged: (v) => _variants[idx] =
                                       _variants[idx].copyWith(
                                         openingStock:
@@ -601,12 +616,12 @@ class _ProductFormBottomSheetState
                   isLoading: _isSaving,
                   onPressed: _handleSave,
                 ),
-                const SizedBox(height: 16),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

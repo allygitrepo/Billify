@@ -33,17 +33,18 @@ class AppBottomSheet extends StatelessWidget {
       enableDrag: enableDrag,
       isDismissible: isDismissible,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(ctx).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppConstants.borderRadiusLarge),
+      builder: (ctx) => Material(
+        color: Theme.of(ctx).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppConstants.borderRadiusLarge),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
+          child: builder(ctx),
         ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-        ),
-        child: builder(ctx),
       ),
     );
   }

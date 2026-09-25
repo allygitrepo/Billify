@@ -7,6 +7,7 @@ class Validators {
 
   /// Regex Patterns
   static final RegExp _digitsOnlyRegex = RegExp(r'^[0-9]+$');
+  static final RegExp _wholeNumberRegex = RegExp(r'^\d+(\.0+)?$');
   static final RegExp _decimalNumberRegex = RegExp(r'^\d+(\.\d{1,3})?$');
   static final RegExp _pincodeRegex = RegExp(r'^[1-9][0-9]{5}$');
   static final RegExp _gstinRegex = RegExp(r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$');
@@ -124,7 +125,7 @@ class Validators {
     if (parsed == null) {
       return 'Enter a valid stock number';
     }
-    if (!isWeighted && !_digitsOnlyRegex.hasMatch(trimmed)) {
+    if (!isWeighted && !_wholeNumberRegex.hasMatch(trimmed)) {
       return 'Packaged stock must be a whole number';
     }
     if (parsed < min) {

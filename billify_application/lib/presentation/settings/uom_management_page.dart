@@ -106,15 +106,15 @@ class UomManagementPage extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: SingleChildScrollView(
+      builder: (context) => Material(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -197,7 +197,8 @@ class UomManagementPage extends ConsumerWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   void _showDeleteDialog(BuildContext context, WidgetRef ref, UomModel uom) {

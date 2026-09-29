@@ -1,4 +1,5 @@
 import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/services/ad_service.dart';
 import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/core/utils/validators.dart';
 import 'package:billify/data/models/customer_model.dart';
@@ -56,10 +57,17 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
 
       if (mounted) {
         AppFeedback.unfocus();
-        Navigator.pop(context);
         AppFeedback.showSuccess(
           context,
-          widget.isCredit ? 'Credit entry added successfully' : 'Payment recorded successfully',
+          widget.isCredit
+              ? 'Credit entry added successfully'
+              : 'Payment recorded successfully',
+        );
+        AdService.instance.showInterstitialAd(
+          placement: 'khata_payment_saved',
+          onDismissed: () {
+            if (mounted) Navigator.pop(context);
+          },
         );
       }
     } catch (e) {

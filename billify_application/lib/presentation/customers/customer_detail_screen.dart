@@ -1,3 +1,4 @@
+import 'package:billify/core/services/ad_service.dart';
 import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/data/models/customer_model.dart';
@@ -72,40 +73,49 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
                   icon: const Icon(Icons.share),
                   tooltip: 'Share Statement',
                   onPressed: () async {
-                    final customer = ledgerAsync.value!.customer;
+                    final customer = ledgerAsync.value?.customer;
                     final business = ref.read(businessProvider).currentBusiness;
-                
-                if (business == null) return;
+                    final ledgerData = ledgerAsync.value;
 
-                setState(() => _isSharing = true);
-                try {
-                  // Get invoices for this customer to include items in PDF
-                  final allInvoices = ref.read(invoiceProvider);
-                  final customerInvoices = allInvoices.where(
-                    (inv) => inv.customer_id == widget.customerId
-                  ).toList();
+                    if (customer == null || business == null || ledgerData == null) return;
 
-                  // Generate PDF
-                  final pdfFile = await PdfService.generateCustomerLedgerPdf(
-                    ledgerData: ledgerAsync.value!,
-                    invoices: customerInvoices,
-                    business: business,
-                  );
+                    setState(() => _isSharing = true);
 
-                  // Share Statement PDF
-                  await Share.shareXFiles(
-                    [XFile(pdfFile.path)],
-                    text: 'Statement for ${customer.name}\nOutstanding Balance: ₹${ledgerAsync.value!.summary.remainingBalance.toStringAsFixed(2)}',
-                  );
-                } catch (e) {
-                  if (mounted) {
-                    AppFeedback.showError(context, e);
-                  }
-                } finally {
-                  if (mounted) setState(() => _isSharing = false);
-                }
-              },
-            ),
+                    // Show ad first; after ad is closed/dismissed, generate and open the share dialog
+                    await AdService.instance.showInterstitialAd(
+                      placement: 'share_statement',
+                      onDismissed: () async {
+                        try {
+                          // Get invoices for this customer to include items in PDF
+                          final allInvoices = ref.read(invoiceProvider);
+                          final customerInvoices = allInvoices.where(
+                            (inv) => inv.customer_id == widget.customerId,
+                          ).toList();
+
+                          // Generate PDF
+                          final pdfFile = await PdfService.generateCustomerLedgerPdf(
+                            ledgerData: ledgerData,
+                            invoices: customerInvoices,
+                            business: business,
+                          );
+
+                          // Share Statement PDF
+                          await Share.shareXFiles(
+                            [XFile(pdfFile.path)],
+                            text:
+                                'Statement for ${customer.name}\nOutstanding Balance: ₹${ledgerData.summary.remainingBalance.toStringAsFixed(2)}',
+                          );
+                        } catch (e) {
+                          if (mounted) {
+                            AppFeedback.showError(context, e);
+                          }
+                        } finally {
+                          if (mounted) setState(() => _isSharing = false);
+                        }
+                      },
+                    );
+                  },
+                ),
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
             tooltip: 'Delete Customer',

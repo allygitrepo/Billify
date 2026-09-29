@@ -1,3 +1,4 @@
+import 'package:billify/core/services/ad_service.dart';
 import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/core/utils/validators.dart';
 import 'package:billify/data/models/customer_model.dart';
@@ -239,8 +240,13 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
       await ref.read(customerProvider.notifier).fetchCustomers();
       if (mounted) {
         AppFeedback.unfocus();
-        Navigator.pop(context);
         AppFeedback.showSuccess(context, 'Transaction recorded successfully');
+        AdService.instance.showInterstitialAd(
+          placement: 'payment_recorded',
+          onDismissed: () {
+            if (mounted) Navigator.pop(context);
+          },
+        );
       }
     } catch (e) {
       if (mounted) {

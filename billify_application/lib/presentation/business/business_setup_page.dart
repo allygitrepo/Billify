@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:billify/core/services/ad_service.dart';
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/core/utils/validators.dart';
@@ -226,6 +227,9 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Switched to ${targetBusiness.name}')),
+                );
+                AdService.instance.showInterstitialAd(
+                  placement: 'business_switched',
                 );
               }
             },

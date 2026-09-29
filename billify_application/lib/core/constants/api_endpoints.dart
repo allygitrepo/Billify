@@ -1,7 +1,8 @@
 class ApiEndpoints {
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://192.168.1.8:3004/billify',
+    // defaultValue: 'http://192.168.1.8:3004/billify',
+    defaultValue: 'https://silverapi.allysoftsolutions.com/billify',
   );
 
   // Auth Endpoints

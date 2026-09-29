@@ -49,5 +49,7 @@
 	<string>This app needs camera access to scan barcodes for products and billing.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>This app requires contacts access to import customers for faster billing.</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
 </dict>
 </plist>

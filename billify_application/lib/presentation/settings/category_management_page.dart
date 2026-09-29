@@ -1,5 +1,6 @@
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/data/models/category_model.dart';
+import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:billify/presentation/widgets/custom_text_field.dart';
 import 'package:billify/providers/category_provider.dart';
 import 'package:billify/providers/product_provider.dart';
@@ -94,6 +95,9 @@ class CategoryManagementPage extends ConsumerWidget {
                 );
               },
             ),
+      bottomNavigationBar: const SafeArea(
+        child: AppBannerAd(),
+      ),
       floatingActionButton:
           ref
               .watch(authProvider)

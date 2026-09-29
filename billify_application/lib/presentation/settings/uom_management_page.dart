@@ -1,5 +1,6 @@
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/data/models/uom_model.dart';
+import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:billify/presentation/widgets/custom_text_field.dart';
 import 'package:billify/providers/uom_provider.dart';
 import 'package:billify/data/models/user_permission.dart';
@@ -81,6 +82,9 @@ class UomManagementPage extends ConsumerWidget {
                 );
               },
             ),
+      bottomNavigationBar: const SafeArea(
+        child: AppBannerAd(),
+      ),
       floatingActionButton:
           ref
               .watch(authProvider)

@@ -10,6 +10,7 @@ import 'package:billify/core/services/pdf_service.dart';
 import 'package:billify/presentation/customers/add_customer_bottom_sheet.dart';
 import 'package:billify/presentation/customers/add_payment_screen.dart';
 import 'package:billify/presentation/billing/thermal_invoice_dialog.dart';
+import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:billify/providers/invoice_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -422,6 +423,8 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
               'dd MMM yyyy',
             ).format(customer.createdAt ?? DateTime.now()),
           ),
+          const SizedBox(height: 24),
+          const Center(child: AppBannerAd()),
         ],
       ),
     );

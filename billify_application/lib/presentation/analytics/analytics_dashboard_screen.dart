@@ -1,6 +1,7 @@
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/presentation/analytics/widgets/analytics_widgets.dart';
 import 'package:billify/presentation/home/widgets/dashboard_components.dart';
+import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:billify/providers/analytics_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +24,9 @@ class AnalyticsDashboardScreen extends ConsumerWidget {
             onPressed: () => notifier.refresh(),
           ),
         ],
+      ),
+      bottomNavigationBar: const SafeArea(
+        child: AppBannerAd(),
       ),
       body: state.isLoading
           ? const _LoadingShimmer()

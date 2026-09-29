@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:billify/core/routes/app_router.dart';
 import 'package:billify/core/routes/app_routes.dart';
+import 'package:billify/core/services/ad_service.dart';
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/presentation/widgets/app_crash_fallback_view.dart';
@@ -41,6 +42,9 @@ void main() async {
 
   // 4. Initialize Local Storage
   final prefs = await SharedPreferences.getInstance();
+
+  // 5. Initialize Google Mobile Ads asynchronously
+  AdService.instance.initialize();
 
   AppLogger.info('Billify POS initialized successfully', tag: 'Bootstrap');
 

@@ -2,6 +2,7 @@ import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/presentation/widgets/full_screen_image_viewer.dart';
 import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:billify/presentation/widgets/error_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -386,6 +387,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
               ),
             ),
+      bottomNavigationBar: const SafeArea(
+        child: AppBannerAd(),
+      ),
     );
   }
 }

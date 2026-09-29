@@ -4,6 +4,7 @@ import 'package:billify/data/models/product_model.dart';
 import 'package:billify/data/models/user_permission.dart';
 import 'package:billify/presentation/product/widgets/product_form_bottom_sheet.dart';
 import 'package:billify/presentation/product/widgets/product_list_tile.dart';
+import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:billify/presentation/widgets/app_confirmation_dialog.dart';
 import 'package:billify/presentation/widgets/empty_state_view.dart';
 import 'package:billify/providers/auth_provider.dart';
@@ -204,6 +205,9 @@ class _ProductManagementPageState
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: const SafeArea(
+        child: AppBannerAd(),
       ),
       floatingActionButton: canAdd
           ? FloatingActionButton(

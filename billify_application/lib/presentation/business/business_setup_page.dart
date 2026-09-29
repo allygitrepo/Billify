@@ -4,6 +4,7 @@ import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/core/utils/validators.dart';
 import 'package:billify/providers/state/business_state.dart';
 import 'package:billify/data/models/business_model.dart';
+import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:billify/presentation/widgets/custom_button.dart';
 import 'package:billify/presentation/widgets/custom_text_field.dart';
 import 'package:billify/presentation/widgets/image_picker_widget.dart';
@@ -274,6 +275,11 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
               : _buildBusinessList(context, businessState),
         ),
       ),
+      bottomNavigationBar: _isRegistrationMode
+          ? null
+          : const SafeArea(
+              child: AppBannerAd(),
+            ),
       floatingActionButton: !_isFormView && businessState.businesses.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: _addNewBusiness,

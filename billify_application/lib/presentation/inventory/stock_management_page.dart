@@ -2,6 +2,7 @@ import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/presentation/inventory/widgets/stock_adjustment_tab.dart';
 import 'package:billify/presentation/inventory/widgets/stock_history_tab.dart';
 import 'package:billify/presentation/inventory/widgets/stock_portfolio_tab.dart';
+import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:billify/providers/product_provider.dart';
 import 'package:billify/providers/stock_history_provider.dart';
 import 'package:flutter/material.dart';
@@ -33,6 +34,9 @@ class _StockManagementPageState extends ConsumerState<StockManagementPage> {
             },
           ),
         ],
+      ),
+      bottomNavigationBar: const SafeArea(
+        child: AppBannerAd(),
       ),
       body: Column(
         children: [

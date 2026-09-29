@@ -2,6 +2,7 @@ import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/data/models/customer_model.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:billify/presentation/customers/customer_detail_screen.dart';
+import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,6 +32,9 @@ class _KhataDashboardScreenState extends ConsumerState<KhataDashboardScreen> {
       appBar: AppBar(
         title: const Text('Khata Dashboard'),
         elevation: 0,
+      ),
+      bottomNavigationBar: const SafeArea(
+        child: AppBannerAd(),
       ),
       body: customersAsync.when(
         data: (customers) {

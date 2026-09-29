@@ -1,4 +1,5 @@
 import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:billify/presentation/widgets/section_card.dart';
 import 'package:billify/providers/auth_provider.dart';
 import 'package:billify/providers/business_provider.dart';
@@ -176,6 +177,9 @@ class SettingsPage extends ConsumerWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 24),
+            const Center(child: AppBannerAd()),
+            const SizedBox(height: 16),
           ],
         ),
       ),

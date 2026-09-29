@@ -4,6 +4,7 @@ import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/data/models/role_model.dart';
 import 'package:billify/data/models/user_model.dart';
 import 'package:billify/presentation/settings/widgets/permission_matrix_widget.dart';
+import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:billify/providers/auth_provider.dart';
 import 'package:billify/providers/user_management_provider.dart';
 import 'package:billify/data/models/user_permission.dart';
@@ -144,6 +145,9 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
                 _buildRolesAndPermissions(state.roles),
               ],
             ),
+      bottomNavigationBar: const SafeArea(
+        child: AppBannerAd(),
+      ),
       floatingActionButton: _tabController.index == 0 && canAddUser
           ? FloatingActionButton.extended(
               onPressed: () => _showUserBottomSheet(null),

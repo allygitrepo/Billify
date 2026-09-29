@@ -2,6 +2,7 @@ import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/data/models/invoice_model.dart';
 import 'package:billify/presentation/billing/thermal_invoice_dialog.dart';
 import 'package:billify/providers/invoice_provider.dart';
+import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:billify/providers/customer_provider.dart';
@@ -56,6 +57,9 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Invoice History')),
+      bottomNavigationBar: const SafeArea(
+        child: AppBannerAd(),
+      ),
       body: Column(
         children: [
           _buildFilterBar(context, filterDateFormat),

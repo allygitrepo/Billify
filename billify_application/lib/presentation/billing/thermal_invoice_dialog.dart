@@ -9,7 +9,6 @@ import 'package:billify/providers/business_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:billify/providers/customer_provider.dart';
-import 'package:billify/presentation/customers/customer_detail_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:billify/data/models/invoice_model.dart';
 import 'package:intl/intl.dart';
@@ -110,11 +109,10 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
     final resolvedCustomerName =
         widget.customer?.name ??
         ref.read(billingProvider).customerName ??
-        (widget.customerId != null ? 'Regular Customer' : 'Walk-in Customer');
+        (widget.customerId != null ? 'Regular Customer' : null);
     final resolvedCustomerPhone =
         widget.customer?.phoneNumber ??
-        ref.read(billingProvider).customerPhone ??
-        '';
+        ref.read(billingProvider).customerPhone;
 
     return InvoiceModel(
       id: widget.invoiceId,
@@ -288,12 +286,17 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                       widget.invoice?.customer_phone ??
                       ref.watch(billingProvider).customerPhone;
 
+                  final customerCity =
+                      customer?.city ??
+                      ref.watch(billingProvider).customerCity;
+
                   final hasCustomer =
                       (customerName != null &&
                           customerName.isNotEmpty &&
                           customerName != 'Walk-in Customer') ||
                       (customerPhone != null && customerPhone.isNotEmpty) ||
-                      widget.customerType == 'REGULAR';
+                      (customerCity != null && customerCity.isNotEmpty) ||
+                      (widget.customerType == 'REGULAR' && widget.customerId != null);
 
                   if (!hasCustomer) return const SizedBox.shrink();
 
@@ -303,17 +306,26 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                         '-----------------------------------------',
                         style: TextStyle(color: Colors.black38),
                       ),
-                      Text(
-                        'CUSTOMER: ${(customerName ?? 'REGULAR CUSTOMER').toUpperCase()}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                      if (customerName != null && customerName.isNotEmpty)
+                        Text(
+                          'CUSTOMER: ${customerName.toUpperCase()}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
                         ),
-                      ),
                       if (customerPhone != null && customerPhone.isNotEmpty)
                         Text(
                           'Phone: $customerPhone',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      if (customerCity != null && customerCity.isNotEmpty)
+                        Text(
+                          'City: $customerCity',
                           style: const TextStyle(
                             fontSize: 10,
                             color: Colors.black87,

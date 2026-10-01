@@ -14,6 +14,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:billify/data/models/user_permission.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:billify/providers/auth_provider.dart';
+import 'package:billify/presentation/billing/widgets/walk_in_customer_sheet.dart';
 import 'package:billify/presentation/billing/widgets/weight_input_sheet.dart';
 import 'package:billify/presentation/customers/add_customer_bottom_sheet.dart';
 import 'package:billify/data/models/customer_model.dart';
@@ -171,20 +172,30 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => _CustomerSelectorSheet(
-        onSelected: (customerId, customerType) {
-          final customer = ref
-              .read(customerProvider)
-              .value
-              ?.where((c) => c.id == customerId)
-              .firstOrNull;
+        onSelected: (
+          customerId,
+          customerType, {
+          String? name,
+          String? phone,
+          String? city,
+          Customer? customer,
+        }) {
+          final resolvedCustomer = customer ??
+              (customerId != null
+                  ? ref
+                      .read(customerProvider)
+                      .value
+                      ?.where((c) => c.id == customerId)
+                      .firstOrNull
+                  : null);
           ref.read(billingProvider.notifier).setCustomer(
             customerId,
             customerType,
-            name: customer?.name,
-            phone: customer?.phoneNumber,
+            name: name ?? resolvedCustomer?.name,
+            phone: phone ?? resolvedCustomer?.phoneNumber,
+            city: city ?? resolvedCustomer?.city,
           );
-          Navigator.pop(sheetContext);
-          _showInvoice(ref, context, customer: customer);
+          _showInvoice(ref, context, customer: resolvedCustomer);
         },
       ),
     );
@@ -496,8 +507,17 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   }
 }
 
+typedef CustomerSelectionCallback = void Function(
+  int? customerId,
+  String customerType, {
+  String? name,
+  String? phone,
+  String? city,
+  Customer? customer,
+});
+
 class _CustomerSelectorSheet extends ConsumerStatefulWidget {
-  final Function(int?, String) onSelected;
+  final CustomerSelectionCallback onSelected;
 
   const _CustomerSelectorSheet({required this.onSelected});
 
@@ -590,8 +610,30 @@ class _CustomerSelectorSheetState
                 child: Icon(Icons.person_outline, color: Colors.white),
               ),
               title: const Text('Walk-in Customer'),
-              subtitle: const Text('Default for quick sales'),
-              onTap: () => widget.onSelected(null, 'WALKIN'),
+              subtitle: const Text('Add optional details or skip for quick sales'),
+              onTap: () {
+                Navigator.pop(context);
+                WalkInCustomerSheet.show(
+                  context,
+                  onProceed: ({
+                    customerId,
+                    required customerType,
+                    name,
+                    phone,
+                    city,
+                    customer,
+                  }) {
+                    widget.onSelected(
+                      customerId,
+                      customerType,
+                      name: name,
+                      phone: phone,
+                      city: city,
+                      customer: customer,
+                    );
+                  },
+                );
+              },
             ),
             const Divider(),
             Padding(
@@ -699,8 +741,17 @@ class _CustomerSelectorSheetState
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              onTap: () =>
-                                  widget.onSelected(customer.id, 'REGULAR'),
+                               onTap: () {
+                                 Navigator.pop(context);
+                                 widget.onSelected(
+                                   customer.id,
+                                   'REGULAR',
+                                   name: customer.name,
+                                   phone: customer.phoneNumber,
+                                   city: customer.city,
+                                   customer: customer,
+                                 );
+                               },
                             );
                           },
                         ),

@@ -16,6 +16,7 @@ class BillingState {
   final String customerType; // 'WALKIN', 'REGULAR'
   final String? customerName;
   final String? customerPhone;
+  final String? customerCity;
   final double paidAmount;
   final String paymentMode; // 'CASH', 'KHATA', 'SPLIT'
 
@@ -26,6 +27,7 @@ class BillingState {
     this.customerType = 'WALKIN',
     this.customerName,
     this.customerPhone,
+    this.customerCity,
     this.paidAmount = 0.0,
     this.paymentMode = 'CASH',
   });
@@ -47,6 +49,7 @@ class BillingState {
     String? customerType,
     String? customerName,
     String? customerPhone,
+    String? customerCity,
     double? paidAmount,
     String? paymentMode,
   }) {
@@ -57,6 +60,7 @@ class BillingState {
       customerType: customerType ?? this.customerType,
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
+      customerCity: customerCity ?? this.customerCity,
       paidAmount: paidAmount ?? this.paidAmount,
       paymentMode: paymentMode ?? this.paymentMode,
     );
@@ -69,12 +73,23 @@ class BillingNotifier extends Notifier<BillingState> {
     return BillingState();
   }
 
-  void setCustomer(int? id, String type, {String? name, String? phone}) {
-    state = state.copyWith(
+  void setCustomer(
+    int? id,
+    String type, {
+    String? name,
+    String? phone,
+    String? city,
+  }) {
+    state = BillingState(
+      items: state.items,
+      isProcessing: state.isProcessing,
       selectedCustomerId: id,
       customerType: type,
       customerName: name,
       customerPhone: phone,
+      customerCity: city,
+      paidAmount: state.paidAmount,
+      paymentMode: state.paymentMode,
     );
   }
 

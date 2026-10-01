@@ -45,10 +45,11 @@ class CustomerNotifier extends AsyncNotifier<List<Customer>> {
     }
   }
 
-  Future<void> saveCustomer(Customer customer) async {
+  Future<Customer> saveCustomer(Customer customer) async {
     final repo = ref.read(customerRepositoryProvider);
-    await repo.saveCustomer(customer);
+    final saved = await repo.saveCustomer(customer);
     await fetchCustomers();
+    return saved;
   }
 
   Future<void> deleteCustomer(int id) async {

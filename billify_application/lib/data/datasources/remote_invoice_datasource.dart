@@ -46,10 +46,7 @@ class RemoteInvoiceDatasource {
       'business_id': businessId,
       'customer_id': invoice.customer_id,
       'customer_type': invoice.customer_type,
-      'customer_name': invoice.customer_name ??
-          (invoice.customer_id != null
-              ? 'Regular Customer'
-              : 'Walk-in Customer'),
+      'customer_name': invoice.customer_name,
       'customer_phone': invoice.customer_phone ?? '',
       'total_amount': invoice.total_amount,
       'discount': 0,

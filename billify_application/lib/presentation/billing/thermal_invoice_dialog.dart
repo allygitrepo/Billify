@@ -1,6 +1,7 @@
 import 'package:billify/core/services/pdf_service.dart';
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/core/utils/app_feedback.dart';
+import 'package:billify/core/utils/validators.dart';
 import 'package:billify/data/models/business_model.dart';
 import 'package:billify/data/models/cart_item_model.dart';
 import 'package:billify/data/models/customer_model.dart';
@@ -166,15 +167,115 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
     });
   }
 
-  void _setMode(String mode) {
-    if (mode == 'KHATA' && widget.customerType != 'REGULAR') {
-      AppFeedback.showWarning(
-        context,
-        'Please select a customer first for Khata (Credit)',
-      );
-      return;
+  Future<bool> _ensureCustomerForCredit() async {
+    final billing = ref.read(billingProvider);
+
+    // 1. Check if already has a registered customer ID
+    final custId = widget.customerId ??
+        widget.invoice?.customer_id ??
+        billing.selectedCustomerId;
+    if (custId != null) return true;
+
+    // 2. Check if name and phone are already available in state or widget
+    String? currentName = widget.customer?.name ?? billing.customerName;
+    String? currentPhone =
+        widget.customer?.phoneNumber ?? billing.customerPhone;
+    String? currentCity = widget.customer?.city ?? billing.customerCity;
+
+    if (currentName != null &&
+        currentName.trim().isNotEmpty &&
+        currentName != 'Walk-in Customer' &&
+        currentPhone != null &&
+        currentPhone.trim().isNotEmpty) {
+      try {
+        final businessId =
+            ref.read(businessProvider).currentBusinessId ?? 'default';
+        final newCustomer = Customer(
+          businessId: businessId,
+          name: currentName.trim(),
+          phoneNumber: currentPhone.trim(),
+          city: currentCity?.trim().isNotEmpty == true
+              ? currentCity!.trim()
+              : null,
+        );
+        final saved = await ref
+            .read(customerProvider.notifier)
+            .saveCustomer(newCustomer);
+        ref.read(billingProvider.notifier).setCustomer(
+              saved.id,
+              'REGULAR',
+              name: saved.name,
+              phone: saved.phoneNumber,
+              city: saved.city,
+            );
+        return true;
+      } catch (_) {
+        // Fallback to manual dialog below
+      }
     }
 
+    // 3. Prompt user for mandatory Name & Phone
+    if (!mounted) return false;
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _KhataCustomerRequiredDialog(
+        initialName:
+            currentName != 'Walk-in Customer' ? (currentName ?? '') : '',
+        initialPhone: currentPhone ?? '',
+        initialCity: currentCity ?? '',
+      ),
+    );
+
+    if (result == null) return false;
+
+    final name = result['name']!;
+    final phone = result['phone']!;
+    final city = result['city'];
+
+    try {
+      final businessId =
+          ref.read(businessProvider).currentBusinessId ?? 'default';
+      final newCustomer = Customer(
+        businessId: businessId,
+        name: name,
+        phoneNumber: phone,
+        city: city?.isNotEmpty == true ? city : null,
+      );
+      final saved =
+          await ref.read(customerProvider.notifier).saveCustomer(newCustomer);
+
+      ref.read(billingProvider.notifier).setCustomer(
+            saved.id,
+            'REGULAR',
+            name: saved.name,
+            phone: saved.phoneNumber,
+            city: saved.city,
+          );
+      return true;
+    } catch (e) {
+      if (mounted) {
+        AppFeedback.showError(context, 'Failed to save customer for Khata: $e');
+      }
+      return false;
+    }
+  }
+
+  Future<void> _setMode(String mode) async {
+    if (mode == 'KHATA' || mode == 'SPLIT') {
+      final hasCustomer = await _ensureCustomerForCredit();
+      if (!hasCustomer) {
+        if (mounted) {
+          AppFeedback.showWarning(
+            context,
+            'Customer Name & Phone are mandatory for Khata (Credit)',
+          );
+        }
+        return;
+      }
+    }
+
+    if (!mounted) return;
     setState(() {
       _paymentMode = mode;
       if (mode == 'CASH') {
@@ -183,8 +284,16 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
       } else if (mode == 'KHATA') {
         _paidController.text = '0.00';
         _remaining = widget.total;
+      } else if (mode == 'SPLIT') {
+        final currentPaid = double.tryParse(_paidController.text) ?? 0.0;
+        if (currentPaid <= 0 || currentPaid >= widget.total) {
+          final half = (widget.total / 2);
+          _paidController.text = half.toStringAsFixed(2);
+          _remaining = widget.total - half;
+        } else {
+          _remaining = (widget.total - currentPaid).clamp(0.0, double.infinity);
+        }
       }
-      // If SPLIT, keep current text but allow editing
     });
   }
 
@@ -572,26 +681,24 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                             onTap: () => _setMode('CASH'),
                           ),
                         ),
-                        if (isRegular) ...[
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _ModeButton(
-                              label: 'KHATA',
-                              isSelected: _paymentMode == 'KHATA',
-                              color: Colors.red,
-                              onTap: () => _setMode('KHATA'),
-                            ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _ModeButton(
+                            label: 'KHATA',
+                            isSelected: _paymentMode == 'KHATA',
+                            color: Colors.red,
+                            onTap: () => _setMode('KHATA'),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _ModeButton(
-                              label: 'SPLIT',
-                              isSelected: _paymentMode == 'SPLIT',
-                              color: Colors.orange,
-                              onTap: () => _setMode('SPLIT'),
-                            ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _ModeButton(
+                            label: 'SPLIT',
+                            isSelected: _paymentMode == 'SPLIT',
+                            color: Colors.orange,
+                            onTap: () => _setMode('SPLIT'),
                           ),
-                        ],
+                        ),
                       ],
                     ),
                   ],
@@ -609,7 +716,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                       ),
                     ),
                   )
-                else if (_paymentMode == 'KHATA' && isRegular) ...[
+                else if (_paymentMode == 'KHATA') ...[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -631,7 +738,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                       ),
                     ],
                   ),
-                ] else if (_paymentMode == 'SPLIT' && isRegular) ...[
+                ] else if (_paymentMode == 'SPLIT') ...[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -690,17 +797,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                       ),
                     ],
                   ),
-                ] else if (_paymentMode != 'CASH' && !isRegular)
-                  const Center(
-                    child: Text(
-                      'REGULAR CUSTOMER NEEDED',
-                      style: TextStyle(
-                        color: Colors.orange,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                ],
               ],
 
               const Text(
@@ -854,6 +951,20 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                         onPressed: _isSaving
                             ? null
                             : () async {
+                                if (_paymentMode == 'KHATA' ||
+                                    _paymentMode == 'SPLIT') {
+                                  final hasCustomer =
+                                      await _ensureCustomerForCredit();
+                                  if (!hasCustomer) {
+                                    if (mounted) {
+                                      AppFeedback.showWarning(
+                                        context,
+                                        'Customer details are required for Khata / Split payment',
+                                      );
+                                    }
+                                    return;
+                                  }
+                                }
                                 setState(() => _isSaving = true);
                                 final paid =
                                     double.tryParse(_paidController.text) ??
@@ -1018,6 +1129,182 @@ class _ModeButton extends StatelessWidget {
             color: isSelected ? Colors.white : color,
             fontWeight: FontWeight.bold,
             fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _KhataCustomerRequiredDialog extends StatefulWidget {
+  final String initialName;
+  final String initialPhone;
+  final String initialCity;
+
+  const _KhataCustomerRequiredDialog({
+    required this.initialName,
+    required this.initialPhone,
+    required this.initialCity,
+  });
+
+  @override
+  State<_KhataCustomerRequiredDialog> createState() =>
+      _KhataCustomerRequiredDialogState();
+}
+
+class _KhataCustomerRequiredDialogState
+    extends State<_KhataCustomerRequiredDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _cityController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName);
+    _phoneController = TextEditingController(text: widget.initialPhone);
+    _cityController = TextEditingController(text: widget.initialCity);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _cityController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    Navigator.pop(context, {
+      'name': _nameController.text.trim(),
+      'phone': _phoneController.text.trim(),
+      'city': _cityController.text.trim(),
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: 340,
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryTeal.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.person_add,
+                      color: AppTheme.primaryTeal,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Khata Customer Details',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Mandatory to record credit',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _nameController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Customer Name *',
+                  hintText: 'e.g. Rahul Sharma',
+                  prefixIcon: Icon(Icons.person_outline, size: 20),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                validator: (val) =>
+                    Validators.validateRequired(val, 'Customer Name'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number *',
+                  hintText: '10-digit mobile number',
+                  prefixIcon: Icon(Icons.phone_outlined, size: 20),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                validator: (val) => Validators.validatePhone(val),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _cityController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'City / Area (Optional)',
+                  hintText: 'e.g. Surat',
+                  prefixIcon: Icon(Icons.location_city_outlined, size: 20),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('CANCEL'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryTeal,
+                      ),
+                      child: const Text(
+                        'CONTINUE TO KHATA',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

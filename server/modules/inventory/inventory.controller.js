@@ -1,4 +1,5 @@
-const InventoryLog = require("./inventory.model");
+const Inventory = require("./inventory.model");
+const InventoryLog = require("./inventory_log.model");
 const Product = require("../products/products.model");
 const Variant = require("../variants/variants.model");
 const sequelize = require("../../config/db");
@@ -13,7 +14,7 @@ const inventoryController = {
                 where: { business_id },
                 include: [{ 
                     model: Product, 
-                    attributes: ['name'],
+                    attributes: ['name', 'photo'],
                     as: 'product' 
                 }],
                 order: [['createdAt', 'DESC']]
@@ -117,10 +118,12 @@ const inventoryController = {
                 const log = await InventoryLog.create({
                     business_id,
                     product_id,
-                    variant_name: variant ? (variant_name || variant.name) : 'No Variant',
+                    variant_id: variant ? variant.id : null,
+                    variant_name: variant ? (variant_name || variant.name) : (variant_name || 'No Variant'),
                     change_type: finalType,
-                    quantity_change: netChange,
-                    reason: reason || 'Manual Update',
+                    quantity_change: Math.abs(parseFloat(quantity_change)),
+                    reason: reason || (finalType === 'IN' ? 'Stock Added' : 'Stock Reduced'),
+                    source: 'manual',
                     stock_after: stockAfter,
                     user_id,
                     reference_no: finalReferenceNo,

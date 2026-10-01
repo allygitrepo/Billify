@@ -2,7 +2,8 @@ const Invoice = require("./invoice.model");
 const InvoiceItem = require("../invoiceItems/invoice_items.model");
 const Product = require("../products/products.model");
 const Variant = require("../variants/variants.model");
-const InventoryLog = require("../inventory/inventory.model");
+const Inventory = require("../inventory/inventory.model");
+const InventoryLog = require("../inventory/inventory_log.model");
 const Settings = require("../settings/settings.model");
 const User = require("../users/users.model");
 const Customer = require("../customers/customers.model");
@@ -189,13 +190,15 @@ const invoiceController = {
                 await InventoryLog.create({
                     business_id,
                     product_id: productId,
-                    variant_name: variant ? (item.variantName || variant.name) : 'No Variant',
+                    variant_id: variant ? variant.id : null,
+                    variant_name: variant ? (item.variantName || variant.name) : (item.productName || 'No Variant'),
                     change_type: 'OUT',
-                    quantity_change: quantityChange,
-                    reason: 'Sale',
+                    quantity_change: Math.abs(parseFloat(item.quantity)),
+                    reason: `Sale (${invoice_number})`,
+                    source: 'invoice',
                     stock_after: stockAfter,
                     user_id,
-                    reference_no: invoice_number // Use generating invoice number as reference
+                    reference_no: invoice_number
                 }, { transaction: t });
             }
             const completeInvoice = await Invoice.findByPk(invoice.id, {

@@ -25,6 +25,9 @@ class _StockHistoryTabState extends ConsumerState<StockHistoryTab> {
     _searchController.addListener(() {
       setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(stockHistoryProvider.notifier).fetchAndSyncHistory();
+    });
   }
 
   @override
@@ -52,7 +55,7 @@ class _StockHistoryTabState extends ConsumerState<StockHistoryTab> {
                     color: AppTheme.primaryTeal,
                   ),
                   filled: true,
-                  fillColor: AppTheme.softGrey.withOpacity(0.5),
+                  fillColor: AppTheme.softGrey.withValues(alpha: 0.5),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
@@ -79,7 +82,7 @@ class _StockHistoryTabState extends ConsumerState<StockHistoryTab> {
                             setState(() => _selectedFilter = filter);
                           }
                         },
-                        selectedColor: AppTheme.primaryTeal.withOpacity(0.2),
+                        selectedColor: AppTheme.primaryTeal.withValues(alpha: 0.2),
                         labelStyle: TextStyle(
                           color: isSelected ? AppTheme.primaryTeal : Colors.grey,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -93,7 +96,12 @@ class _StockHistoryTabState extends ConsumerState<StockHistoryTab> {
           ),
         ),
         Expanded(
-          child: _buildHistoryList(history),
+          child: RefreshIndicator(
+            onRefresh: () async {
+              await ref.read(stockHistoryProvider.notifier).fetchAndSyncHistory();
+            },
+            child: _buildHistoryList(history),
+          ),
         ),
       ],
     );
@@ -107,20 +115,30 @@ class _StockHistoryTabState extends ConsumerState<StockHistoryTab> {
           item.reason.toLowerCase().contains(_searchQuery);
 
       bool matchesFilter = true;
+      final isSale = item.source.toLowerCase() == 'invoice' ||
+          item.reason.toLowerCase().contains('sale') ||
+          item.reason.toLowerCase().contains('inv');
+
       if (_selectedFilter == 'Sale') {
-        matchesFilter = item.source == 'invoice';
+        matchesFilter = isSale;
       } else if (_selectedFilter == 'Manual') {
-        matchesFilter = item.source == 'manual';
+        matchesFilter = !isSale;
       }
 
       return matchesSearch && matchesFilter;
     }).toList();
 
     if (filteredHistory.isEmpty) {
-      return const EmptyStateView(
-        title: 'No stock history found',
-        subtitle: 'Transactions and manual adjustments will appear here',
-        icon: Icons.history_rounded,
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 80),
+          EmptyStateView(
+            title: 'No stock history found',
+            subtitle: 'Transactions and manual adjustments will appear here',
+            icon: Icons.history_rounded,
+          ),
+        ],
       );
     }
 
@@ -136,6 +154,7 @@ class _StockHistoryTabState extends ConsumerState<StockHistoryTab> {
     final sortedDates = grouped.keys.toList();
 
     return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       itemCount: sortedDates.length,
       itemBuilder: (context, index) {
         final date = sortedDates[index];

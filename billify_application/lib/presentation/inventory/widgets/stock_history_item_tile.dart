@@ -16,13 +16,27 @@ class StockHistoryItemTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final timeFormat = DateFormat('hh:mm a');
     final isStockIn = history.change_type == StockMode.inMode;
-    final isInvoice = history.source == 'invoice';
+    final isInvoice = history.source.toLowerCase() == 'invoice' ||
+        history.reason.toLowerCase().contains('sale') ||
+        history.reason.toLowerCase().contains('inv');
 
-    // Find product to get image
+    // Find product to get image/name
     final product = ref
         .watch(productsListProvider)
-        .where((p) => p.id == history.product_id)
+        .where((p) => p.id.toString() == history.product_id)
         .firstOrNull;
+
+    final String displayName = history.variant_name.isNotEmpty &&
+            history.variant_name != 'No Variant' &&
+            history.variant_name != 'Default'
+        ? history.variant_name
+        : (product?.name.isNotEmpty == true ? product!.name : 'Product');
+
+    final qtyNumber = history.quantity_change;
+    final qtyFormatted = qtyNumber % 1 == 0
+        ? qtyNumber.toInt().toString()
+        : qtyNumber.toStringAsFixed(2);
+    final sign = isStockIn ? '+' : '-';
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -30,7 +44,7 @@ class StockHistoryItemTile extends ConsumerWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: Theme.of(context).dividerColor.withOpacity(0.05),
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         ),
       ),
       child: ListTile(
@@ -42,18 +56,18 @@ class StockHistoryItemTile extends ConsumerWidget {
               height: 48,
               decoration: BoxDecoration(
                 color: (isInvoice
-                        ? AppTheme.primaryTeal
+                        ? Colors.blue
                         : (isStockIn ? Colors.green : Colors.orange))
-                    .withOpacity(0.1),
+                    .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               clipBehavior: Clip.antiAlias,
               child: product?.photo != null && product!.photo!.isNotEmpty
-                  ? Image.memory(
-                      ImageUtils.decodeBase64(product.photo!),
+                  ? Image(
+                      image: ImageUtils.providerFromBase64(product.photo)!,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.image_not_supported_outlined,
+                        Icons.inventory_2_outlined,
                         size: 20,
                       ),
                     )
@@ -64,7 +78,7 @@ class StockHistoryItemTile extends ConsumerWidget {
                               ? Icons.add_circle_outline
                               : Icons.remove_circle_outline),
                       color: isInvoice
-                          ? AppTheme.primaryTeal
+                          ? Colors.blue
                           : (isStockIn ? Colors.green : Colors.orange),
                       size: 20,
                     ),
@@ -76,7 +90,7 @@ class StockHistoryItemTile extends ConsumerWidget {
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   color: isInvoice
-                      ? AppTheme.primaryTeal
+                      ? Colors.blue
                       : (isStockIn ? Colors.green : Colors.orange),
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 1.5),
@@ -96,7 +110,7 @@ class StockHistoryItemTile extends ConsumerWidget {
           children: [
             Expanded(
               child: Text(
-                history.variant_name,
+                displayName,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
@@ -106,15 +120,16 @@ class StockHistoryItemTile extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: (isInvoice ? Colors.blue : Colors.grey).withOpacity(0.1),
+                color: (isInvoice ? Colors.blue : Colors.grey)
+                    .withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                history.source.toUpperCase(),
+                isInvoice ? 'SALE' : 'MANUAL',
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: isInvoice ? Colors.blue : Colors.grey,
+                  color: isInvoice ? Colors.blue : Colors.grey.shade700,
                 ),
               ),
             ),
@@ -125,10 +140,10 @@ class StockHistoryItemTile extends ConsumerWidget {
           children: [
             Text(
               'Reason: ${history.reason}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.primaryTeal,
+                color: isInvoice ? Colors.blue.shade700 : AppTheme.primaryTeal,
               ),
             ),
             Text(
@@ -143,13 +158,14 @@ class StockHistoryItemTile extends ConsumerWidget {
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: (isStockIn ? Colors.green : Colors.orange).withOpacity(0.1),
+            color: (isStockIn ? Colors.green : Colors.orange)
+                .withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
-            '${isStockIn ? '+' : ''}${history.quantity_change}',
+            '$sign$qtyFormatted',
             style: TextStyle(
-              color: isStockIn ? Colors.green : Colors.orange,
+              color: isStockIn ? Colors.green.shade700 : Colors.orange.shade800,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),

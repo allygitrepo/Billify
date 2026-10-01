@@ -25,21 +25,49 @@ class StockHistoryModel {
     final typeString = (json['change_type'] ?? json['type'])
         ?.toString()
         .toUpperCase();
+    final double rawQty = (json['quantity_change'] != null
+            ? double.tryParse(json['quantity_change'].toString())
+            : null) ??
+        (json['quantity'] != null
+            ? double.tryParse(json['quantity'].toString())
+            : null) ??
+        (json['quantityChange'] != null
+            ? double.tryParse(json['quantityChange'].toString())
+            : null) ??
+        0.0;
+
+    final productName = json['product']?['name']?.toString() ?? '';
+    final rawVariantName = json['variant_name']?.toString() ?? '';
+    String displayName = rawVariantName;
+    if (displayName.isEmpty ||
+        displayName == 'Default' ||
+        displayName == 'No Variant') {
+      displayName = productName.isNotEmpty ? productName : 'Product';
+    }
+
+    final rawSource = json['source']?.toString().toLowerCase() ?? '';
+    final rawReason = json['reason']?.toString() ?? 'Manual Adjustment';
+    final isInvoice = rawSource == 'invoice' ||
+        rawReason.toLowerCase().contains('sale') ||
+        rawReason.toLowerCase().contains('inv');
+
     return StockHistoryModel(
-      id: json['id'].toString(),
-      product_id:
-          json['product_id']?.toString() ?? json['productId']?.toString() ?? '',
-      variant_name: json['variant_name'] ?? json['product']?['name'] ?? '',
-      quantity_change:
-          (json['quantity_change'] as num?)?.toDouble() ??
-          (json['quantity'] as num?)?.toDouble() ??
-          0.0,
+      id: json['id']?.toString() ?? '',
+      product_id: json['product_id']?.toString() ??
+          json['productId']?.toString() ??
+          '',
+      variant_name: displayName,
+      quantity_change: rawQty.abs(),
       change_type: typeString == 'IN' ? StockMode.inMode : StockMode.outMode,
-      createdAt:
-          DateTime.tryParse(json['createdAt'] ?? json['timestamp'] ?? '') ??
-          DateTime.now(),
-      reason: json['reason'] ?? 'Manual Adjustment',
-      source: json['source'] ?? 'manual',
+      createdAt: json['createdAt'] != null
+          ? (DateTime.tryParse(json['createdAt'].toString())?.toLocal() ??
+              DateTime.now())
+          : (json['timestamp'] != null
+              ? (DateTime.tryParse(json['timestamp'].toString())?.toLocal() ??
+                  DateTime.now())
+              : DateTime.now()),
+      reason: rawReason,
+      source: isInvoice ? 'invoice' : 'manual',
     );
   }
 

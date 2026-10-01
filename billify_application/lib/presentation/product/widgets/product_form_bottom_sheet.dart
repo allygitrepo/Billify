@@ -548,7 +548,7 @@ class _ProductFormBottomSheetState
                     label: _isWeighted ? 'Price per Unit' : 'Price',
                     hint: '0.00',
                     keyboardType: TextInputType.number,
-                    prefixIcon: Icons.attach_money,
+                    prefixIcon: Icons.currency_rupee,
                     validator: (v) => Validators.validatePrice(
                       v,
                       fieldName: _isWeighted ? 'Price per Unit' : 'Price',
@@ -641,6 +641,8 @@ class _ProductFormBottomSheetState
                               Expanded(
                                 child: CustomTextField(
                                   label: _isWeighted ? 'Price/Unit' : 'Price',
+                                  hint: '0.00',
+                                  prefixIcon: Icons.currency_rupee,
                                   keyboardType: TextInputType.number,
                                   initialValue: variant.price != 0
                                       ? (variant.price % 1 == 0

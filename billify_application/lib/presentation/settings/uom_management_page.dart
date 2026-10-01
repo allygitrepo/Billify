@@ -1,4 +1,5 @@
 import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/data/models/uom_model.dart';
 import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:billify/presentation/widgets/custom_text_field.dart';
@@ -153,7 +154,7 @@ class UomManagementPage extends ConsumerWidget {
                 const SizedBox(height: 16),
                 CustomTextField(
                   controller: shortCodeController,
-                  label: 'Short Code',
+                  label: 'Short Code (Optional)',
                   hint: 'e.g. KG',
                 ),
                 const SizedBox(height: 32),
@@ -168,18 +169,45 @@ class UomManagementPage extends ConsumerWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          if (nameController.text.isNotEmpty &&
-                              shortCodeController.text.isNotEmpty) {
-                            final newUom = UomModel(
-                              id: uom?.id ?? const Uuid().v4(),
-                              name: nameController.text.trim(),
-                              shortCode: shortCodeController.text
-                                  .trim()
-                                  .toLowerCase(),
+                        onPressed: () async {
+                          final name = nameController.text.trim();
+                          if (name.isEmpty) {
+                            AppFeedback.showError(
+                              context,
+                              'Please enter a UOM name',
                             );
-                            ref.read(uomProvider.notifier).saveUom(newUom);
+                            return;
+                          }
+
+                          final rawShortCode = shortCodeController.text.trim();
+                          final shortCode = rawShortCode.isNotEmpty
+                              ? rawShortCode.toLowerCase()
+                              : (name.length <= 4
+                                  ? name.toLowerCase()
+                                  : name.substring(0, 3).toLowerCase());
+
+                          final newUom = UomModel(
+                            id: uom?.id ?? const Uuid().v4(),
+                            name: name,
+                            shortCode: shortCode,
+                          );
+
+                          try {
+                            await ref.read(uomProvider.notifier).saveUom(newUom);
+                            if (!context.mounted) return;
                             Navigator.pop(context);
+                            AppFeedback.showSuccess(
+                              context,
+                              uom == null
+                                  ? 'Unit added successfully'
+                                  : 'Unit updated successfully',
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            AppFeedback.showError(
+                              context,
+                              'Failed to save unit: $e',
+                            );
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -208,20 +236,36 @@ class UomManagementPage extends ConsumerWidget {
   void _showDeleteDialog(BuildContext context, WidgetRef ref, UomModel uom) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Delete UOM'),
         content: Text(
           'Are you sure you want to delete "${uom.name}"? Products using this UOM will default back to Pcs.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogCtx),
             child: const Text('CANCEL'),
           ),
           TextButton(
-            onPressed: () {
-              ref.read(uomProvider.notifier).deleteUom(uom.id);
-              Navigator.pop(context);
+            onPressed: () async {
+              try {
+                await ref.read(uomProvider.notifier).deleteUom(uom.id);
+                if (!dialogCtx.mounted) return;
+                Navigator.pop(dialogCtx);
+                if (!context.mounted) return;
+                AppFeedback.showSuccess(
+                  context,
+                  '${uom.name} deleted successfully',
+                );
+              } catch (e) {
+                if (!dialogCtx.mounted) return;
+                Navigator.pop(dialogCtx);
+                if (!context.mounted) return;
+                AppFeedback.showError(
+                  context,
+                  'Failed to delete unit: $e',
+                );
+              }
             },
             child: const Text('DELETE', style: TextStyle(color: Colors.red)),
           ),

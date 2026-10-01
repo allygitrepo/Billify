@@ -1,4 +1,5 @@
 import 'package:billify/core/theme/app_theme.dart';
+import 'package:billify/core/utils/app_feedback.dart';
 import 'package:billify/data/models/category_model.dart';
 import 'package:billify/presentation/widgets/app_banner_ad.dart';
 import 'package:billify/presentation/widgets/custom_text_field.dart';
@@ -183,6 +184,12 @@ class CategoryManagementPage extends ConsumerWidget {
                                 .read(categoryProvider.notifier)
                                 .saveCategory(newCategory);
                             Navigator.pop(context);
+                            AppFeedback.showSuccess(
+                              context,
+                              category == null
+                                  ? 'Category added successfully'
+                                  : 'Category updated successfully',
+                            );
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -229,6 +236,10 @@ class CategoryManagementPage extends ConsumerWidget {
             onPressed: () {
               ref.read(categoryProvider.notifier).deleteCategory(category.id);
               Navigator.pop(context);
+              AppFeedback.showSuccess(
+                context,
+                '${category.name} deleted successfully',
+              );
             },
             child: const Text('DELETE', style: TextStyle(color: Colors.red)),
           ),

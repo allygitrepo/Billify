@@ -119,7 +119,7 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                dateFormat.format(invoice.date),
+                                dateFormat.format(invoice.date.toLocal()),
                                 style: const TextStyle(fontSize: 11),
                               ),
                               const SizedBox(height: 6),

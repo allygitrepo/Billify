@@ -52,7 +52,13 @@ class SalesListTable extends StatelessWidget {
                   ),
                 ),
               ),
-              DataCell(Text(DateFormat('dd MMM, yyyy').format(invoice.date))),
+              DataCell(
+                Text(
+                  DateFormat('dd MMM yyyy, hh:mm a').format(
+                    invoice.date.toLocal(),
+                  ),
+                ),
+              ),
               DataCell(
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

@@ -45,14 +45,15 @@ class InvoiceModel {
     if (str.isEmpty) return DateTime.now();
 
     try {
-      // If it doesn't specify 'Z' or offset (+HH:MM), and contains 'T' or space,
-      // it is a UTC timestamp from SQL/Sequelize backend. Append 'Z' so DateTime.parse treats it as UTC.
-      if (!str.endsWith('Z') && !RegExp(r'[+-]\d{2}(:\d{2})?$').hasMatch(str)) {
-        return (DateTime.tryParse('${str.replaceAll(' ', 'T')}Z')?.toLocal() ??
-                DateTime.parse(str).toLocal());
-      } else {
-        return DateTime.parse(str).toLocal();
+      final isoStr = str.replaceFirst(' ', 'T');
+      // If it already has Z or explicit timezone offset (+05:30 / -04:00), parse directly & convert to local
+      if (isoStr.endsWith('Z') ||
+          RegExp(r'[+-]\d{2}(:\d{2})?$').hasMatch(isoStr)) {
+        return DateTime.parse(isoStr).toLocal();
       }
+      return DateTime.tryParse(isoStr)?.toLocal() ??
+          DateTime.tryParse('${isoStr}Z')?.toLocal() ??
+          DateTime.now();
     } catch (_) {
       return DateTime.tryParse(str)?.toLocal() ?? DateTime.now();
     }

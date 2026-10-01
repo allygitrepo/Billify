@@ -36,7 +36,7 @@ class Payment {
           ? int.tryParse(json['reference_invoice_id'].toString())
           : null,
       createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'].toString())
+          ? (DateTime.tryParse(json['createdAt'].toString())?.toLocal())
           : null,
       customerDetails: json['customer'],
     );

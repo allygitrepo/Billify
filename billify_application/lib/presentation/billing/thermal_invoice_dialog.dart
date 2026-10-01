@@ -116,7 +116,8 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
 
     return InvoiceModel(
       id: widget.invoiceId,
-      date: widget.invoiceDate ?? DateTime.now(),
+      date: (_savedInvoice?.date ?? widget.invoiceDate ?? DateTime.now())
+          .toLocal(),
       business: currentBusiness,
       items: widget.items.map((e) {
         if (e is CartItemModel) return e;
@@ -209,7 +210,11 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
         ? widget.total
         : (widget.subtotal + effectiveTaxAmount + effectiveGstAmount);
 
-    final now = widget.invoiceDate ?? DateTime.now();
+    final now = (_savedInvoice?.date ??
+            widget.invoice?.date ??
+            widget.invoiceDate ??
+            DateTime.now())
+        .toLocal();
     final dateFormat = DateFormat('dd-MM-yyyy');
     final timeFormat = DateFormat('hh:mm a');
     final isRegular = widget.customerType == 'REGULAR';

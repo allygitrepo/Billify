@@ -34,7 +34,9 @@ class Customer {
       photo: json['photo'],
       city: json['city'],
       status: json['status'] ?? 'active',
-      createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'].toString()) : null,
+      createdAt: json['createdAt'] != null
+          ? (DateTime.tryParse(json['createdAt'].toString())?.toLocal())
+          : null,
     );
   }
 

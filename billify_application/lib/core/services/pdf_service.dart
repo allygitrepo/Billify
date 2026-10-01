@@ -248,6 +248,7 @@ class PdfService {
   }) async {
     final pdf = pw.Document();
     final dateFormat = DateFormat('dd/MM/yyyy');
+    final timeFormat = DateFormat('hh:mm a');
     final business = invoice.business;
 
     pw.MemoryImage? logoImage;
@@ -341,7 +342,7 @@ class PdfService {
                   ),
                 ),
                 pw.Text(
-                  "Date: ${dateFormat.format(invoice.date)}",
+                  "Date: ${dateFormat.format(invoice.date.toLocal())} ${timeFormat.format(invoice.date.toLocal())}",
                   style: const pw.TextStyle(fontSize: 7),
                 ),
               ],

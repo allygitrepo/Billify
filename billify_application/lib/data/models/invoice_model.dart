@@ -38,17 +38,32 @@ class InvoiceModel {
     this.status = 'Paid',
   });
 
+  static DateTime parseDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is DateTime) return value.toLocal();
+    final str = value.toString().trim();
+    if (str.isEmpty) return DateTime.now();
+
+    try {
+      // If it doesn't specify 'Z' or offset (+HH:MM), and contains 'T' or space,
+      // it is a UTC timestamp from SQL/Sequelize backend. Append 'Z' so DateTime.parse treats it as UTC.
+      if (!str.endsWith('Z') && !RegExp(r'[+-]\d{2}(:\d{2})?$').hasMatch(str)) {
+        return (DateTime.tryParse('${str.replaceAll(' ', 'T')}Z')?.toLocal() ??
+                DateTime.parse(str).toLocal());
+      } else {
+        return DateTime.parse(str).toLocal();
+      }
+    } catch (_) {
+      return DateTime.tryParse(str)?.toLocal() ?? DateTime.now();
+    }
+  }
+
   factory InvoiceModel.fromJson(Map<String, dynamic> json) {
     return InvoiceModel(
       id: json['invoice_number']?.toString() ?? json['id']?.toString() ?? '',
-      date:
-          DateTime.tryParse(
-            json['createdAt']?.toString() ??
-                json['created_at']?.toString() ??
-                json['date']?.toString() ??
-                '',
-          ) ??
-          DateTime.now(),
+      date: parseDateTime(
+        json['createdAt'] ?? json['created_at'] ?? json['date'],
+      ),
       business: json['business'] != null
           ? BusinessModel.fromJson(json['business'])
           : BusinessModel(

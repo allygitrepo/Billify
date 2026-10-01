@@ -89,8 +89,8 @@ class RemoteInvoiceDatasource {
             serverData['invoice_number']?.toString() ??
             serverData['id']?.toString(),
         date: serverData['createdAt'] != null
-            ? DateTime.parse(serverData['createdAt'])
-            : invoice.date,
+            ? InvoiceModel.parseDateTime(serverData['createdAt'])
+            : invoice.date.toLocal(),
         paid_amount: double.tryParse(serverData['paid_amount']?.toString() ?? '') ??
             invoice.paid_amount,
         payment_mode: serverData['payment_mode'] ?? mode,

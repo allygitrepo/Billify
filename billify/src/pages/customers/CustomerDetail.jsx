@@ -340,6 +340,7 @@ const CustomerDetail = () => {
         onSubmit={handleAddTransaction}
         type={txType}
         customerName={customer.name}
+        currentBalance={summary?.remainingBalance}
       />
 
       <ConfirmDialog

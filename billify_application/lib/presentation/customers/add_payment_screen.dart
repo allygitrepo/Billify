@@ -98,6 +98,107 @@ class _AddPaymentScreenState extends ConsumerState<AddPaymentScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Customer Current Balance Card
+              Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: widget.customer.remainingBalance > 0
+                      ? Colors.red.withValues(alpha: 0.08)
+                      : widget.customer.remainingBalance < 0
+                      ? Colors.green.withValues(alpha: 0.08)
+                      : Colors.grey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: widget.customer.remainingBalance > 0
+                        ? Colors.red.withValues(alpha: 0.25)
+                        : widget.customer.remainingBalance < 0
+                        ? Colors.green.withValues(alpha: 0.25)
+                        : Colors.grey.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.customer.remainingBalance > 0
+                              ? 'Pending Due '
+                              : widget.customer.remainingBalance < 0
+                              ? 'Advance Balance'
+                              : 'Current Balance',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: widget.customer.remainingBalance > 0
+                                ? Colors.red[700]
+                                : widget.customer.remainingBalance < 0
+                                ? Colors.green[700]
+                                : Colors.grey[700],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.customer.remainingBalance > 0
+                              ? 'Customer owes this amount'
+                              : widget.customer.remainingBalance < 0
+                              ? 'You owe customer this amount'
+                              : 'Settled balance',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '₹${widget.customer.remainingBalance.abs().toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: widget.customer.remainingBalance > 0
+                                ? Colors.red[700]
+                                : widget.customer.remainingBalance < 0
+                                ? Colors.green[700]
+                                : Colors.black87,
+                          ),
+                        ),
+                        if (!widget.isCredit &&
+                            widget.customer.remainingBalance > 0)
+                          InkWell(
+                            onTap: () {
+                              _amountController.text = widget
+                                  .customer
+                                  .remainingBalance
+                                  .toStringAsFixed(2);
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Text(
+                                'Fill Full Amount',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
               // Amount Input
               Text(
                 'Amount',

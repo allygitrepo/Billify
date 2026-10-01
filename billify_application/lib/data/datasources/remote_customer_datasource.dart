@@ -13,6 +13,7 @@ class RemoteCustomerDatasource {
     String businessId, {
     String? search,
     int page = 1,
+    int limit = 50,
   }) async {
     final response = await _apiService.get(
       ApiEndpoints.getCustomers,
@@ -20,15 +21,21 @@ class RemoteCustomerDatasource {
         'business_id': businessId,
         if (search != null) 'search': search,
         'page': page,
+        'limit': limit,
       },
     );
-    final List list = response.data['data'];
+    final List list = response.data['data'] ?? [];
     return list.map((e) => Customer.fromJson(e)).toList();
   }
 
-  Future<List<Customer>> getCustomerDropdown() async {
-    final response = await _apiService.get(ApiEndpoints.customerDropdown);
-    final List list = response.data['data'];
+  Future<List<Customer>> getCustomerDropdown({String? businessId}) async {
+    final response = await _apiService.get(
+      ApiEndpoints.customerDropdown,
+      queryParameters: {
+        if (businessId != null) 'business_id': businessId,
+      },
+    );
+    final List list = response.data['data'] ?? [];
     return list.map((e) => Customer.fromJson(e)).toList();
   }
 
@@ -62,10 +69,13 @@ class RemoteCustomerDatasource {
     return CustomerLedger.fromJson(response.data['data']);
   }
 
-  Future<void> bulkImport(List<Customer> customers) async {
+  Future<void> bulkImport(List<Customer> customers, {String? businessId}) async {
     await _apiService.post(
       ApiEndpoints.bulkImportCustomers,
-      data: {'customers': customers.map((e) => e.toJson()).toList()},
+      data: {
+        if (businessId != null) 'business_id': businessId,
+        'customers': customers.map((e) => e.toJson()).toList(),
+      },
     );
   }
 

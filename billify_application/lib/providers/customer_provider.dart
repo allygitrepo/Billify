@@ -29,6 +29,7 @@ final customerRepositoryProvider = Provider<CustomerRepository>((ref) {
 class CustomerNotifier extends AsyncNotifier<List<Customer>> {
   @override
   Future<List<Customer>> build() async {
+    ref.watch(customerRepositoryProvider);
     return fetchCustomers();
   }
 
@@ -43,6 +44,28 @@ class CustomerNotifier extends AsyncNotifier<List<Customer>> {
       state = AsyncError(e, stack);
       rethrow;
     }
+  }
+
+  Future<List<Customer>> fetchCustomersFromBusiness(String businessId, {String? search}) async {
+    final repo = ref.read(customerRepositoryProvider);
+    return await repo.fetchCustomersByBusinessId(businessId, search: search);
+  }
+
+  Future<void> importCustomersFromBusiness(List<Customer> customers) async {
+    final currentBusinessId = ref.read(businessProvider).currentBusinessId ?? 'default';
+    final repo = ref.read(customerRepositoryProvider);
+    final mapped = customers.map((c) => Customer(
+      businessId: currentBusinessId,
+      name: c.name,
+      phoneNumber: c.phoneNumber,
+      openingBalance: 0.0,
+      remainingBalance: 0.0,
+      city: c.city,
+      photo: c.photo,
+      status: 'active',
+    )).toList();
+    await repo.bulkImport(mapped);
+    await fetchCustomers();
   }
 
   Future<Customer> saveCustomer(Customer customer) async {

@@ -11,6 +11,7 @@ import 'package:billify/presentation/auth/register_page.dart';
 import 'package:billify/presentation/billing/invoice_history_page.dart';
 import 'package:billify/presentation/billing/scanner_screen.dart';
 import 'package:billify/presentation/business/business_setup_page.dart';
+import 'package:billify/presentation/customers/business_customers_import_screen.dart';
 import 'package:billify/presentation/customers/contacts_import_screen.dart';
 import 'package:billify/presentation/customers/customer_detail_screen.dart';
 import 'package:billify/presentation/customers/customer_list_screen.dart';
@@ -105,6 +106,9 @@ class AppRouter {
 
       case AppRoutes.contactsImport:
         return _buildRoute(const ContactsImportScreen(), settings);
+
+      case AppRoutes.businessCustomersImport:
+        return _buildRoute(const BusinessCustomersImportScreen(), settings);
 
       case AppRoutes.categoryManagement:
         return _buildRoute(const CategoryManagementPage(), settings);

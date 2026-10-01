@@ -2,17 +2,28 @@ const Payment = require("./payments.model");
 const Customer = require("../customers/customers.model");
 const sequelize = require("../../config/db");
 
+const resolveBusinessId = (req) => {
+    const rawId = req.query.business_id || req.body?.business_id || req.headers['x-business-id'] || req.user?.business_id;
+    if (rawId !== undefined && rawId !== null && rawId !== '') {
+        const parsed = parseInt(rawId);
+        if (!isNaN(parsed)) return parsed;
+    }
+    return req.user?.business_id;
+};
+
 exports.receivePayment = async (req, res) => {
     const transaction = await sequelize.transaction();
     try {
-        console.log('SERVER DEBUG: receivePayment START', req.body);
         const { customer_id, amount, payment_method, note, date } = req.body;
-        const business_id = req.user.business_id;
-        console.log('SERVER DEBUG: Business ID:', business_id);
+        const business_id = resolveBusinessId(req);
+
+        if (!business_id) {
+            await transaction.rollback();
+            return res.status(400).json({ success: false, message: "Business ID is required" });
+        }
 
         const customer = await Customer.findOne({ where: { id: customer_id, business_id } });
         if (!customer) {
-            console.log('SERVER DEBUG: Customer NOT FOUND with ID:', customer_id);
             await transaction.rollback();
             return res.status(404).json({ success: false, message: "Customer not found" });
         }
@@ -35,10 +46,8 @@ exports.receivePayment = async (req, res) => {
         await customer.update({ remaining_balance: newBalance }, { transaction });
 
         await transaction.commit();
-        console.log('SERVER DEBUG: receivePayment SUCCESS. New Balance:', newBalance);
         res.status(201).json({ success: true, message: "Payment received successfully", data: payment });
     } catch (error) {
-        console.log('SERVER DEBUG: receivePayment ERROR:', error.message);
         await transaction.rollback();
         res.status(500).json({ success: false, message: error.message });
     }
@@ -47,14 +56,16 @@ exports.receivePayment = async (req, res) => {
 exports.givePayment = async (req, res) => {
     const transaction = await sequelize.transaction();
     try {
-        console.log('SERVER DEBUG: givePayment (Credit) START', req.body);
         const { customer_id, amount, payment_method, note, date } = req.body;
-        const business_id = req.user.business_id;
-        console.log('SERVER DEBUG: Business ID:', business_id);
+        const business_id = resolveBusinessId(req);
+
+        if (!business_id) {
+            await transaction.rollback();
+            return res.status(400).json({ success: false, message: "Business ID is required" });
+        }
 
         const customer = await Customer.findOne({ where: { id: customer_id, business_id } });
         if (!customer) {
-            console.log('SERVER DEBUG: Customer NOT FOUND with ID:', customer_id);
             await transaction.rollback();
             return res.status(404).json({ success: false, message: "Customer not found" });
         }
@@ -76,10 +87,8 @@ exports.givePayment = async (req, res) => {
         await customer.update({ remaining_balance: newBalance }, { transaction });
 
         await transaction.commit();
-        console.log('SERVER DEBUG: givePayment SUCCESS. New Balance:', newBalance);
         res.status(201).json({ success: true, message: "Credit entry added successfully", data: payment });
     } catch (error) {
-        console.log('SERVER DEBUG: givePayment ERROR:', error.message);
         await transaction.rollback();
         res.status(500).json({ success: false, message: error.message });
     }
@@ -88,7 +97,12 @@ exports.givePayment = async (req, res) => {
 exports.getPayments = async (req, res) => {
     try {
         const { customerId, page = 1, limit = 10 } = req.query;
-        const business_id = req.user.business_id;
+        const business_id = resolveBusinessId(req);
+
+        if (!business_id) {
+            return res.status(400).json({ success: false, message: "Business ID is required" });
+        }
+
         const offset = (page - 1) * limit;
 
         const where = { business_id, status: 'active' };
@@ -120,8 +134,9 @@ exports.getPayments = async (req, res) => {
 exports.deletePayment = async (req, res) => {
     const transaction = await sequelize.transaction();
     try {
+        const business_id = resolveBusinessId(req);
         const payment = await Payment.findOne({
-            where: { id: req.params.id, business_id: req.user.business_id }
+            where: { id: req.params.id, business_id }
         });
 
         if (!payment) {
@@ -129,7 +144,7 @@ exports.deletePayment = async (req, res) => {
             return res.status(404).json({ success: false, message: "Payment not found" });
         }
 
-        const customer = await Customer.findOne({ where: { id: payment.customer_id, business_id: req.user.business_id } });
+        const customer = await Customer.findOne({ where: { id: payment.customer_id, business_id } });
         if (customer) {
             let rollbackBalance;
             if (payment.type === 'debit') {

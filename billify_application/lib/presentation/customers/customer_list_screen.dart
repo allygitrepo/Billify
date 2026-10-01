@@ -39,6 +39,13 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.swap_horiz_rounded),
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.businessCustomersImport);
+            },
+            tooltip: 'Import from Another Business',
+          ),
+          IconButton(
             icon: const Icon(Icons.import_contacts),
             onPressed: () {
               Navigator.pushNamed(context, AppRoutes.contactsImport);
@@ -84,10 +91,73 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
 
                 if (customers.isEmpty) {
                   return Center(
-                    child: Text(
-                      widget.showOnlyOutstanding
-                          ? 'No outstanding balances found.'
-                          : 'No customers found.',
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            widget.showOnlyOutstanding
+                                ? Icons.account_balance_wallet_outlined
+                                : Icons.people_outline,
+                            size: 64,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            widget.showOnlyOutstanding
+                                ? 'No outstanding balances found.'
+                                : 'No customers found for this business.',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (!widget.showOnlyOutstanding) ...[
+                            const SizedBox(height: 16),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              alignment: WrapAlignment.center,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      AppRoutes.businessCustomersImport,
+                                    );
+                                  },
+                                  icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                                  label: const Text('Import from Business'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      AppRoutes.contactsImport,
+                                    );
+                                  },
+                                  icon: const Icon(Icons.import_contacts, size: 18),
+                                  label: const Text('Import Contacts'),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      builder: (context) =>
+                                          const AddCustomerBottomSheet(),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add, size: 18),
+                                  label: const Text('Add Customer'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   );
                 }

@@ -2,10 +2,23 @@ const Customer = require("./customers.model");
 const Payment = require("../payments/payments.model");
 const { Op } = require("sequelize");
 
+const resolveBusinessId = (req) => {
+    const rawId = req.query.business_id || req.body?.business_id || req.headers['x-business-id'] || req.user?.business_id;
+    if (rawId !== undefined && rawId !== null && rawId !== '') {
+        const parsed = parseInt(rawId);
+        if (!isNaN(parsed)) return parsed;
+    }
+    return req.user?.business_id;
+};
+
 exports.createCustomer = async (req, res) => {
     try {
         const { name, phone_number, opening_balance, city, photo } = req.body;
-        const business_id = req.user.business_id;
+        const business_id = resolveBusinessId(req);
+
+        if (!business_id) {
+            return res.status(400).json({ success: false, message: "Business ID is required" });
+        }
 
         const customer = await Customer.create({
             business_id,
@@ -27,8 +40,14 @@ exports.createCustomer = async (req, res) => {
 exports.getCustomers = async (req, res) => {
     try {
         const { search, page = 1, limit = 10 } = req.query;
-        const business_id = req.user.business_id;
-        const offset = (page - 1) * limit;
+        const business_id = resolveBusinessId(req);
+
+        if (!business_id) {
+            return res.status(400).json({ success: false, message: "Business ID is required" });
+        }
+
+        const limitNum = parseInt(limit);
+        const offset = (page - 1) * limitNum;
 
         const where = { business_id, status: 'active' };
         if (search) {
@@ -41,7 +60,7 @@ exports.getCustomers = async (req, res) => {
         const { count, rows } = await Customer.findAndCountAll({
             where,
             offset,
-            limit: parseInt(limit),
+            limit: limitNum,
             order: [['name', 'ASC']]
         });
 
@@ -51,8 +70,8 @@ exports.getCustomers = async (req, res) => {
             pagination: {
                 total: count,
                 page: parseInt(page),
-                limit: parseInt(limit),
-                totalPages: Math.ceil(count / limit)
+                limit: limitNum,
+                totalPages: Math.ceil(count / limitNum)
             }
         });
     } catch (error) {
@@ -62,8 +81,9 @@ exports.getCustomers = async (req, res) => {
 
 exports.getCustomerById = async (req, res) => {
     try {
+        const business_id = resolveBusinessId(req);
         const customer = await Customer.findOne({
-            where: { id: req.params.id, business_id: req.user.business_id, status: 'active' }
+            where: { id: req.params.id, business_id, status: 'active' }
         });
 
         if (!customer) {
@@ -78,8 +98,9 @@ exports.getCustomerById = async (req, res) => {
 
 exports.updateCustomer = async (req, res) => {
     try {
+        const business_id = resolveBusinessId(req);
         const customer = await Customer.findOne({
-            where: { id: req.params.id, business_id: req.user.business_id }
+            where: { id: req.params.id, business_id }
         });
 
         if (!customer) {
@@ -95,8 +116,9 @@ exports.updateCustomer = async (req, res) => {
 
 exports.deleteCustomer = async (req, res) => {
     try {
+        const business_id = resolveBusinessId(req);
         const customer = await Customer.findOne({
-            where: { id: req.params.id, business_id: req.user.business_id }
+            where: { id: req.params.id, business_id }
         });
 
         if (!customer) {
@@ -112,8 +134,9 @@ exports.deleteCustomer = async (req, res) => {
 
 exports.getCustomerDropdown = async (req, res) => {
     try {
+        const business_id = resolveBusinessId(req);
         const customers = await Customer.findAll({
-            where: { business_id: req.user.business_id, status: 'active' },
+            where: { business_id, status: 'active' },
             attributes: ['id', 'name', 'phone_number', 'remaining_balance'],
             order: [['name', 'ASC']]
         });
@@ -127,7 +150,7 @@ exports.getCustomerDropdown = async (req, res) => {
 exports.getCustomerLedger = async (req, res) => {
     try {
         const { id } = req.params;
-        const business_id = req.user.business_id;
+        const business_id = resolveBusinessId(req);
 
         const customer = await Customer.findOne({ where: { id, business_id } });
         if (!customer) {
@@ -150,7 +173,6 @@ exports.getCustomerLedger = async (req, res) => {
         });
 
         const calculatedBalance = parseFloat(customer.opening_balance || 0) + totalCredit - totalDebit;
-        console.log(`DEBUG: Ledger Summary for ${customer.name} - Open: ${customer.opening_balance}, Credit: ${totalCredit}, Debit: ${totalDebit}, Calculated: ${calculatedBalance}`);
 
         res.status(200).json({
             success: true,
@@ -161,7 +183,7 @@ exports.getCustomerLedger = async (req, res) => {
                     openingBalance: customer.opening_balance,
                     totalCredit,
                     totalDebit,
-                    remainingBalance: calculatedBalance // Always calculate from ledger for 100% accuracy
+                    remainingBalance: calculatedBalance
                 }
             }
         });
@@ -173,18 +195,31 @@ exports.getCustomerLedger = async (req, res) => {
 exports.bulkImportCustomers = async (req, res) => {
     try {
         const { customers } = req.body;
-        const business_id = req.user.business_id;
+        const business_id = resolveBusinessId(req);
         const created_by = req.user.id;
+
+        if (!business_id) {
+            return res.status(400).json({ success: false, message: "Business ID is required" });
+        }
+
+        if (!Array.isArray(customers) || customers.length === 0) {
+            return res.status(400).json({ success: false, message: "No customers provided for import" });
+        }
 
         const results = [];
         for (const c of customers) {
+            if (!c.name || !c.phone_number) continue;
             // Check if phone already exists for this business
-            const exists = await Customer.findOne({ where: { business_id, phone_number: c.phone_number } });
+            const exists = await Customer.findOne({ where: { business_id, phone_number: c.phone_number, status: 'active' } });
             if (!exists) {
                 const newCustomer = await Customer.create({
                     business_id,
                     name: c.name,
                     phone_number: c.phone_number,
+                    opening_balance: c.opening_balance || 0,
+                    remaining_balance: c.opening_balance || 0,
+                    city: c.city || null,
+                    photo: c.photo || null,
                     created_by
                 });
                 results.push(newCustomer);

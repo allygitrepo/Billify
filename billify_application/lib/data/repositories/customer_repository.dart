@@ -77,8 +77,20 @@ class CustomerRepository {
     return await _remoteDatasource.getCustomerLedger(id);
   }
 
+  Future<List<Customer>> fetchCustomersByBusinessId(
+    String businessId, {
+    String? search,
+    int limit = 1000,
+  }) async {
+    return await _remoteDatasource.getCustomers(
+      businessId,
+      search: search,
+      limit: limit,
+    );
+  }
+
   Future<void> bulkImport(List<Customer> customers) async {
-    await _remoteDatasource.bulkImport(customers);
+    await _remoteDatasource.bulkImport(customers, businessId: _businessId);
   }
 
   Future<Payment> receivePayment(Map<String, dynamic> data) async {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:billify/core/routes/app_router.dart';
 import 'package:billify/core/routes/app_routes.dart';
@@ -14,8 +15,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Helper to ignore benign/known engine glitches (e.g. Flutter Web mouse tracker assertions, offstage layout during pop)
+  bool isBenignFrameworkGlitch(Object error) {
+    final message = error.toString();
+    return message.contains('mouse_tracker.dart') ||
+        message.contains('!_debugDuringDeviceUpdate') ||
+        (message.contains('hasSize') && message.contains('RenderBox was not laid out'));
+  }
+
   // 1. Global Framework Error Interceptor
   FlutterError.onError = (FlutterErrorDetails details) {
+    if (isBenignFrameworkGlitch(details.exception)) {
+      return;
+    }
     AppLogger.error(
       'Flutter framework error caught',
       error: details.exception,
@@ -26,6 +38,9 @@ void main() async {
 
   // 2. Platform & Asynchronous Uncaught Error Interceptor
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    if (isBenignFrameworkGlitch(error)) {
+      return true;
+    }
     AppLogger.error(
       'Asynchronous root error caught',
       error: error,
@@ -44,7 +59,7 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
 
   // 5. Initialize Google Mobile Ads asynchronously
-  AdService.instance.initialize();
+  unawaited(AdService.instance.initialize());
 
   AppLogger.info('Billify POS initialized successfully', tag: 'Bootstrap');
 

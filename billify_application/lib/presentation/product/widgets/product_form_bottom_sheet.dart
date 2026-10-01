@@ -240,6 +240,33 @@ class _ProductFormBottomSheetState
     }
   }
 
+  void _handleDelete() {
+    if (widget.product == null) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Product'),
+        content: Text(
+          'Are you sure you want to delete "${widget.product!.name}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(productProvider.notifier).deleteProduct(widget.product!.id);
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+            },
+            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(featureSettingsProvider);
@@ -329,12 +356,24 @@ class _ProductFormBottomSheetState
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      widget.product == null ? 'Add Product' : 'Edit Product',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          widget.product == null ? 'Add Product' : 'Edit Product',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (widget.product != null) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            tooltip: 'Delete Product',
+                            onPressed: _isSaving ? null : _handleDelete,
+                          ),
+                        ],
+                      ],
                     ),
                     GestureDetector(
                       onTap: () async {

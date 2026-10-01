@@ -37,6 +37,7 @@ class ProductListTile extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
+        onTap: canEdit ? onEdit : null,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           width: 48,
@@ -128,6 +129,7 @@ class ProductListTile extends ConsumerWidget {
             if (canEdit)
               IconButton(
                 icon: const Icon(Icons.edit_outlined, size: 20),
+                tooltip: 'Edit Product',
                 onPressed: onEdit,
               ),
             if (canDelete)
@@ -137,6 +139,7 @@ class ProductListTile extends ConsumerWidget {
                   size: 20,
                   color: Colors.red,
                 ),
+                tooltip: 'Delete Product',
                 onPressed: onDelete,
               ),
           ],

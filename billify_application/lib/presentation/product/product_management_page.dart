@@ -5,7 +5,6 @@ import 'package:billify/data/models/user_permission.dart';
 import 'package:billify/presentation/product/widgets/product_form_bottom_sheet.dart';
 import 'package:billify/presentation/product/widgets/product_list_tile.dart';
 import 'package:billify/presentation/widgets/app_banner_ad.dart';
-import 'package:billify/presentation/widgets/app_confirmation_dialog.dart';
 import 'package:billify/presentation/widgets/empty_state_view.dart';
 import 'package:billify/providers/auth_provider.dart';
 import 'package:billify/providers/category_provider.dart';
@@ -45,15 +44,33 @@ class _ProductManagementPageState
     super.dispose();
   }
 
-  Future<void> _showDeleteDialog(ProductModel product) async {
-    final confirmed = await AppConfirmationDialog.showDelete(
-      context,
-      itemName: product.name,
+  void _showDeleteDialog(
+    BuildContext context,
+    WidgetRef ref,
+    ProductModel product,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Product'),
+        content: Text(
+          'Are you sure you want to delete "${product.name}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(productProvider.notifier).deleteProduct(product.id);
+              Navigator.pop(context);
+            },
+            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
-
-    if (confirmed) {
-      await ref.read(productProvider.notifier).deleteProduct(product.id);
-    }
   }
 
   @override
@@ -198,7 +215,8 @@ class _ProductManagementPageState
                             context,
                             product: product,
                           ),
-                          onDelete: () => _showDeleteDialog(product),
+                          onDelete: () =>
+                              _showDeleteDialog(context, ref, product),
                         );
                       },
                     ),

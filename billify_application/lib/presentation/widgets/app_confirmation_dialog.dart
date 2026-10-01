@@ -1,6 +1,4 @@
-import 'package:billify/core/constants/app_constants.dart';
 import 'package:billify/core/theme/app_theme.dart';
-import 'package:billify/presentation/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 
 /// Reusable production confirmation dialog for destructive or critical actions.
@@ -34,6 +32,7 @@ class AppConfirmationDialog extends StatelessWidget {
   }) async {
     final result = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => AppConfirmationDialog(
         title: title,
         message: message,
@@ -55,7 +54,8 @@ class AppConfirmationDialog extends StatelessWidget {
     return show(
       context,
       title: 'Delete $itemName?',
-      message: customMessage ?? 'Are you sure you want to delete "$itemName"? This action cannot be undone.',
+      message: customMessage ??
+          'Are you sure you want to delete "$itemName"? This action cannot be undone.',
       confirmLabel: 'Delete',
       isDestructive: true,
       icon: Icons.delete_outline,
@@ -65,90 +65,63 @@ class AppConfirmationDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final accentColor = isDestructive ? Colors.redAccent : AppTheme.primaryTeal;
+    final accentColor = isDestructive ? Colors.red : AppTheme.primaryTeal;
 
-    return Dialog(
+    return AlertDialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        borderRadius: BorderRadius.circular(16),
       ),
-      elevation: 8,
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                if (icon != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: accentColor.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      icon,
-                      color: accentColor,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                ],
-                Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Text(
-              message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
-                height: 1.4,
+      icon: icon != null
+          ? Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
               ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: Text(
-                    cancelLabel,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDestructive ? Colors.redAccent : AppTheme.primaryTeal,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  ),
-                  child: Text(
-                    confirmLabel,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              child: Icon(icon, color: accentColor, size: 28),
+            )
+          : null,
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        textAlign: TextAlign.center,
       ),
+      content: Text(
+        message,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+          height: 1.4,
+        ),
+        textAlign: TextAlign.center,
+      ),
+      actionsAlignment: MainAxisAlignment.end,
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(false),
+          child: Text(
+            cancelLabel,
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(true),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: accentColor,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          ),
+          child: Text(
+            confirmLabel,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
     );
   }
 }

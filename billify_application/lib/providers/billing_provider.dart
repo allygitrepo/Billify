@@ -151,7 +151,12 @@ class BillingNotifier extends Notifier<BillingState> {
     return true;
   }
 
-  Future<InvoiceModel?> confirmInvoice(BusinessModel business) async {
+  Future<InvoiceModel?> confirmInvoice(
+    BusinessModel business, {
+    double? customTaxAmount,
+    double? customGstAmount,
+    double? customFinalAmount,
+  }) async {
     if (state.items.isEmpty || state.isProcessing) return null;
 
     state = state.copyWith(isProcessing: true);
@@ -162,18 +167,22 @@ class BillingNotifier extends Notifier<BillingState> {
       final currentUser = ref.read(authProvider).user;
       final staffName = currentUser?.name ?? 'Owner';
 
+      final effectiveTax =
+          customTaxAmount ?? state.calculateTax(business.tax_percentage);
+      final effectiveGst =
+          customGstAmount ?? state.calculateTax(business.gst_percentage);
+      final effectiveFinal = customFinalAmount ??
+          state.getTotal(business.tax_percentage, business.gst_percentage);
+
       final invoice = InvoiceModel(
         id: invoiceId,
         date: DateTime.now(),
         business: business,
         items: state.items,
         total_amount: state.subtotal,
-        tax_amount: state.calculateTax(business.tax_percentage),
-        gst_amount: state.calculateTax(business.gst_percentage),
-        final_amount: state.getTotal(
-          business.tax_percentage,
-          business.gst_percentage,
-        ),
+        tax_amount: effectiveTax,
+        gst_amount: effectiveGst,
+        final_amount: effectiveFinal,
         staff_name: staffName,
         customer_id: state.selectedCustomerId,
         customer_type: state.customerType,

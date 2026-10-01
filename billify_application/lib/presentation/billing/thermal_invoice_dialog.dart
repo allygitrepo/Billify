@@ -64,48 +64,80 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
   InvoiceModel? _savedInvoice;
   bool _isSaving = false;
   bool _isSharingInvoice = false;
+  late bool _applyTax;
+  late bool _applyGst;
+
+  double get _subtotal => widget.invoice?.total_amount ?? widget.subtotal;
+
+  double get _taxPercent {
+    if (widget.invoice != null) {
+      return widget.invoice!.business.tax_percentage;
+    }
+    return _applyTax ? widget.business.tax_percentage : 0.0;
+  }
+
+  double get _gstPercent {
+    if (widget.invoice != null) {
+      return widget.invoice!.business.gst_percentage;
+    }
+    return _applyGst ? widget.business.gst_percentage : 0.0;
+  }
+
+  double get _effectiveTaxAmount {
+    if (widget.invoice != null) return widget.invoice!.tax_amount;
+    if (!_applyTax) return 0.0;
+    return _subtotal * (_taxPercent / 100);
+  }
+
+  double get _effectiveGstAmount {
+    if (widget.invoice != null) return widget.invoice!.gst_amount;
+    if (!_applyGst) return 0.0;
+    return _subtotal * (_gstPercent / 100);
+  }
+
+  double get _effectiveTotal {
+    if (widget.invoice != null) return widget.invoice!.final_amount;
+    return _subtotal + _effectiveTaxAmount + _effectiveGstAmount;
+  }
+
+  void _toggleTax(bool value) {
+    setState(() {
+      _applyTax = value;
+      _recalcPaidAndRemaining();
+    });
+  }
+
+  void _toggleGst(bool value) {
+    setState(() {
+      _applyGst = value;
+      _recalcPaidAndRemaining();
+    });
+  }
+
+  void _recalcPaidAndRemaining() {
+    final total = _effectiveTotal;
+    if (_paymentMode == 'CASH') {
+      _paidController.text = total.toStringAsFixed(2);
+      _remaining = 0.0;
+    } else if (_paymentMode == 'KHATA') {
+      _paidController.text = '0.00';
+      _remaining = total;
+    } else if (_paymentMode == 'SPLIT') {
+      final currentPaid = double.tryParse(_paidController.text) ?? (total / 2);
+      _remaining = (total - currentPaid).clamp(0.0, double.infinity);
+    }
+  }
 
   InvoiceModel get _effectiveInvoice {
     if (_savedInvoice != null) return _savedInvoice!;
+    if (widget.invoice != null) return widget.invoice!;
 
     final currentBusiness =
         ref.read(businessProvider).currentBusiness ?? widget.business;
 
-    final taxPercent = currentBusiness.tax_percentage > 0
-        ? currentBusiness.tax_percentage
-        : widget.business.tax_percentage;
-    final gstPercent = currentBusiness.gst_percentage > 0
-        ? currentBusiness.gst_percentage
-        : widget.business.gst_percentage;
-
-    final effectiveTaxAmount = widget.taxAmount > 0
-        ? widget.taxAmount
-        : (widget.subtotal * (taxPercent / 100));
-    final effectiveGstAmount = widget.gstAmount > 0
-        ? widget.gstAmount
-        : (widget.subtotal * (gstPercent / 100));
-    final effectiveTotal = widget.total > widget.subtotal
-        ? widget.total
-        : (widget.subtotal + effectiveTaxAmount + effectiveGstAmount);
-
-    if (widget.invoice != null) {
-      return widget.invoice!.copyWith(
-        business: currentBusiness,
-        tax_amount: widget.invoice!.tax_amount > 0
-            ? widget.invoice!.tax_amount
-            : effectiveTaxAmount,
-        gst_amount: widget.invoice!.gst_amount > 0
-            ? widget.invoice!.gst_amount
-            : effectiveGstAmount,
-        final_amount: widget.invoice!.final_amount > 0
-            ? widget.invoice!.final_amount
-            : effectiveTotal,
-      );
-    }
-
     final paid =
         double.tryParse(_paidController.text) ??
-        (widget.initialPaidAmount ?? effectiveTotal);
+        (widget.initialPaidAmount ?? _effectiveTotal);
 
     final resolvedCustomerName =
         widget.customer?.name ??
@@ -124,10 +156,10 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
         if (e is CartItemModel) return e;
         return CartItemModel.fromJson(e as Map<String, dynamic>);
       }).toList(),
-      total_amount: widget.subtotal,
-      tax_amount: effectiveTaxAmount,
-      gst_amount: effectiveGstAmount,
-      final_amount: effectiveTotal,
+      total_amount: _subtotal,
+      tax_amount: _effectiveTaxAmount,
+      gst_amount: _effectiveGstAmount,
+      final_amount: _effectiveTotal,
       staff_name: 'Owner',
       customer_id: widget.customerId,
       customer_type: widget.customerType,
@@ -145,12 +177,20 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
         widget.invoice?.payment_mode ?? widget.initialPaymentMode ?? 'CASH';
     _paymentMode = rawMode.toUpperCase();
 
+    if (widget.invoice != null) {
+      _applyTax = widget.invoice!.tax_amount > 0;
+      _applyGst = widget.invoice!.gst_amount > 0;
+    } else {
+      _applyTax = widget.business.tax_percentage > 0;
+      _applyGst = widget.business.gst_percentage > 0;
+    }
+
     final initialPaid =
-        widget.invoice?.paid_amount ?? widget.initialPaidAmount ?? widget.total;
+        widget.invoice?.paid_amount ?? widget.initialPaidAmount ?? _effectiveTotal;
     _paidController = TextEditingController(
       text: initialPaid.toStringAsFixed(2),
     );
-    final totalAmt = widget.invoice?.final_amount ?? widget.total;
+    final totalAmt = widget.invoice?.final_amount ?? _effectiveTotal;
     _remaining = (totalAmt - initialPaid).clamp(0.0, double.infinity);
   }
 
@@ -300,24 +340,8 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
   @override
   Widget build(BuildContext context) {
     final businessState = ref.watch(businessProvider);
-    final business = businessState.currentBusiness ?? widget.business;
-
-    final taxPercent = business.tax_percentage > 0
-        ? business.tax_percentage
-        : widget.business.tax_percentage;
-    final gstPercent = business.gst_percentage > 0
-        ? business.gst_percentage
-        : widget.business.gst_percentage;
-
-    final effectiveTaxAmount = widget.taxAmount > 0
-        ? widget.taxAmount
-        : (widget.subtotal * (taxPercent / 100));
-    final effectiveGstAmount = widget.gstAmount > 0
-        ? widget.gstAmount
-        : (widget.subtotal * (gstPercent / 100));
-    final effectiveTotal = widget.total > widget.subtotal
-        ? widget.total
-        : (widget.subtotal + effectiveTaxAmount + effectiveGstAmount);
+    final business =
+        widget.invoice?.business ?? businessState.currentBusiness ?? widget.business;
 
     final now = (_savedInvoice?.date ??
             widget.invoice?.date ??
@@ -592,16 +616,16 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
               ),
 
               // Totals
-              _PriceRow(label: 'SUBTOTAL', value: widget.subtotal),
-              if (effectiveTaxAmount > 0 || taxPercent > 0)
+              _PriceRow(label: 'SUBTOTAL', value: _subtotal),
+              if (_effectiveTaxAmount > 0)
                 _PriceRow(
-                  label: taxPercent > 0 ? 'TAX ($taxPercent%)' : 'TAX',
-                  value: effectiveTaxAmount,
+                  label: _taxPercent > 0 ? 'TAX ($_taxPercent%)' : 'TAX',
+                  value: _effectiveTaxAmount,
                 ),
-              if (effectiveGstAmount > 0 || gstPercent > 0)
+              if (_effectiveGstAmount > 0)
                 _PriceRow(
-                  label: gstPercent > 0 ? 'GST ($gstPercent%)' : 'GST',
-                  value: effectiveGstAmount,
+                  label: _gstPercent > 0 ? 'GST ($_gstPercent%)' : 'GST',
+                  value: _effectiveGstAmount,
                 ),
               const Text(
                 '-----------------------------------------',
@@ -609,10 +633,128 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
               ),
               _PriceRow(
                 label: 'GRAND TOTAL',
-                value: effectiveTotal,
+                value: _effectiveTotal,
                 isBold: true,
                 fontSize: 14,
               ),
+
+              // Tax & GST Toggle Switches for New Invoices
+              if (!widget.isViewOnly && widget.invoice == null && !_isConfirmed)
+                if (widget.business.tax_percentage > 0 ||
+                    widget.business.gst_percentage > 0) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'TAX & GST SETTINGS',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        if (widget.business.tax_percentage > 0)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: Checkbox(
+                                      value: _applyTax,
+                                      activeColor: AppTheme.primaryTeal,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      visualDensity: VisualDensity.compact,
+                                      onChanged: (v) => _toggleTax(v ?? false),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Include Tax (${widget.business.tax_percentage}%)',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                '₹${(_subtotal * (widget.business.tax_percentage / 100)).toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: _applyTax
+                                      ? Colors.black87
+                                      : Colors.grey,
+                                  fontWeight: _applyTax
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (widget.business.gst_percentage > 0)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: Checkbox(
+                                      value: _applyGst,
+                                      activeColor: AppTheme.primaryTeal,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      visualDensity: VisualDensity.compact,
+                                      onChanged: (v) => _toggleGst(v ?? false),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Include GST (${widget.business.gst_percentage}%)',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                '₹${(_subtotal * (widget.business.gst_percentage / 100)).toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: _applyGst
+                                      ? Colors.black87
+                                      : Colors.grey,
+                                  fontWeight: _applyGst
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               const Text(
                 '-----------------------------------------',
                 style: TextStyle(color: Colors.black38),
@@ -978,7 +1120,12 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
 
                                 final invoice = await ref
                                     .read(billingProvider.notifier)
-                                    .confirmInvoice(widget.business);
+                                    .confirmInvoice(
+                                      widget.business,
+                                      customTaxAmount: _effectiveTaxAmount,
+                                      customGstAmount: _effectiveGstAmount,
+                                      customFinalAmount: _effectiveTotal,
+                                    );
 
                                 if (mounted) {
                                   if (invoice != null) {

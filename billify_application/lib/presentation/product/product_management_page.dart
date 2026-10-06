@@ -30,12 +30,13 @@ class _ProductManagementPageState
   @override
   void initState() {
     super.initState();
-    // If initial barcode is passed (from scanner), open bottom sheet immediately
-    if (widget.initialBarcode != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(productProvider.notifier).fetchAndSyncProducts();
+      // If initial barcode is passed (from scanner), open bottom sheet immediately
+      if (widget.initialBarcode != null) {
         ProductFormBottomSheet.show(context, barcode: widget.initialBarcode);
-      });
-    }
+      }
+    });
   }
 
   @override
@@ -75,7 +76,9 @@ class _ProductManagementPageState
 
   @override
   Widget build(BuildContext context) {
-    final productList = ref.watch(productsListProvider);
+    final productState = ref.watch(productProvider);
+    final productList = productState.products;
+    final isLoading = productState.isLoading;
     final categories = ref.watch(categoryProvider);
     final canAdd = ref
         .watch(authProvider)
@@ -139,8 +142,8 @@ class _ProductManagementPageState
                     builder: (context) {
                       final uniqueCats = <String, CategoryModel>{};
                       for (final c in categories) {
-                        if (c.id != null && c.id!.isNotEmpty && !uniqueCats.containsKey(c.id!)) {
-                          uniqueCats[c.id!] = c;
+                        if (c.id.isNotEmpty && !uniqueCats.containsKey(c.id)) {
+                          uniqueCats[c.id] = c;
                         }
                       }
                       final categoryList = uniqueCats.values.toList();
@@ -187,40 +190,49 @@ class _ProductManagementPageState
             ),
           ),
           Expanded(
-            child: RefreshIndicator(
-              onRefresh: () =>
-                  ref.read(productProvider.notifier).fetchAndSyncProducts(),
-              child: filteredProducts.isEmpty
-                  ? EmptyStateView(
-                      title: productList.isEmpty
-                          ? 'No products added yet'
-                          : 'No products match your search',
-                      subtitle: productList.isEmpty
-                          ? 'Tap the + button below to add your first product'
-                          : 'Try changing category filter or search terms',
-                      icon: Icons.inventory_2_outlined,
-                      actionLabel: productList.isEmpty && canAdd ? 'ADD PRODUCT' : null,
-                      onAction: productList.isEmpty && canAdd
-                          ? () => ProductFormBottomSheet.show(context)
-                          : null,
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: filteredProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = filteredProducts[index];
-                        return ProductListTile(
-                          product: product,
-                          onEdit: () => ProductFormBottomSheet.show(
-                            context,
-                            product: product,
-                          ),
-                          onDelete: () =>
-                              _showDeleteDialog(context, ref, product),
-                        );
-                      },
+            child: isLoading && productList.isEmpty
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.primaryTeal,
                     ),
-            ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: () => ref
+                        .read(productProvider.notifier)
+                        .fetchAndSyncProducts(),
+                    child: filteredProducts.isEmpty
+                        ? EmptyStateView(
+                            title: productList.isEmpty
+                                ? 'No products added yet'
+                                : 'No products match your search',
+                            subtitle: productList.isEmpty
+                                ? 'Tap the + button below to add your first product'
+                                : 'Try changing category filter or search terms',
+                            icon: Icons.inventory_2_outlined,
+                            actionLabel: productList.isEmpty && canAdd
+                                ? 'ADD PRODUCT'
+                                : null,
+                            onAction: productList.isEmpty && canAdd
+                                ? () => ProductFormBottomSheet.show(context)
+                                : null,
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: filteredProducts.length,
+                            itemBuilder: (context, index) {
+                              final product = filteredProducts[index];
+                              return ProductListTile(
+                                product: product,
+                                onEdit: () => ProductFormBottomSheet.show(
+                                  context,
+                                  product: product,
+                                ),
+                                onDelete: () =>
+                                    _showDeleteDialog(context, ref, product),
+                              );
+                            },
+                          ),
+                  ),
           ),
         ],
       ),

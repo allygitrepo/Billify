@@ -33,7 +33,8 @@ class ProductNotifier extends Notifier<ProductState> {
   @override
   ProductState build() {
     final repo = ref.watch(productRepositoryProvider);
-    // Pure build method: synchronously loads cached products without un-cancelled microtasks
+    // Synchronously load cached products and automatically trigger remote sync in background
+    Future.microtask(() => fetchAndSyncProducts());
     final cached = repo.getProducts();
     return ProductState(products: cached);
   }

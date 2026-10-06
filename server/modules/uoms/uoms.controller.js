@@ -1,4 +1,5 @@
 const UOM = require("./uoms.model");
+const { Op } = require("sequelize");
 
 const uomsController = {
     // ============ Create UOM ============
@@ -15,22 +16,37 @@ const uomsController = {
                 return res.status(400).json({ message: "Invalid Business ID format" });
             }
 
-            // Check for collision
+            // Check for collision across all records for this business (active or soft-deleted)
             const existingUOM = await UOM.findOne({
                 where: { 
                     business_id, 
-                    [require('sequelize').Op.or]: [{ name }, { shortCode }],
-                    status: true 
+                    [Op.or]: [{ name }, { shortCode }]
                 }
             });
+
             if (existingUOM) {
-                return res.status(409).json({ message: `Unit with name or short code already exists` });
+                if (existingUOM.status === true) {
+                    return res.status(409).json({ message: "Unit with name or short code already exists" });
+                }
+
+                // If previously soft-deleted, reactivate and update it
+                await existingUOM.update({
+                    name,
+                    shortCode,
+                    status: true
+                });
+
+                return res.status(201).json({
+                    message: "UOM created successfully",
+                    uom: existingUOM
+                });
             }
 
             const uom = await UOM.create({
                 business_id,
                 name,
-                shortCode
+                shortCode,
+                status: true
             });
 
             return res.status(201).json({
@@ -39,6 +55,9 @@ const uomsController = {
             });
         } catch (error) {
             console.error("Create UOM Error:", error);
+            if (error.name === 'SequelizeUniqueConstraintError') {
+                return res.status(409).json({ message: "Unit with name or short code already exists" });
+            }
             return res.status(500).json({ message: "Internal server error" });
         }
     },
@@ -72,6 +91,24 @@ const uomsController = {
                 return res.status(404).json({ message: "UOM not found" });
             }
 
+            // Check if another active UOM already has the target name or shortCode
+            if (name || shortCode) {
+                const collision = await UOM.findOne({
+                    where: {
+                        business_id: uom.business_id,
+                        id: { [Op.ne]: id },
+                        [Op.or]: [
+                            ...(name ? [{ name }] : []),
+                            ...(shortCode ? [{ shortCode }] : [])
+                        ],
+                        status: true
+                    }
+                });
+                if (collision) {
+                    return res.status(409).json({ message: "Another unit with this name or short code already exists" });
+                }
+            }
+
             await uom.update({
                 name: name || uom.name,
                 shortCode: shortCode || uom.shortCode,
@@ -84,6 +121,9 @@ const uomsController = {
             });
         } catch (error) {
             console.error("Update UOM Error:", error);
+            if (error.name === 'SequelizeUniqueConstraintError') {
+                return res.status(409).json({ message: "Unit with name or short code already exists" });
+            }
             return res.status(500).json({ message: "Internal server error" });
         }
     },
@@ -107,3 +147,4 @@ const uomsController = {
 };
 
 module.exports = uomsController;
+

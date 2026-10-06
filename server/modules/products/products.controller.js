@@ -90,24 +90,67 @@ const productsController = {
                 finalCategoryId = category.id;
             }
 
-            // 2. Create Product
-            const product = await Product.create({
-                business_id,
-                category_id: finalCategoryId,
-                name,
-                description,
-                price: has_variants ? null : price,
-                opening_stock: has_variants ? null : stock,
-                current_stock: has_variants ? null : stock,
-                hsnCode,
-                status: status || 'active',
-                photo,
-                barcode,
-                has_variants,
-                is_weighted: is_weighted,
-                uom: uom || 'Pcs',
-                base_uom_id: base_uom_id || null
-            }, { transaction: t });
+            // 2. Check for existing product (active or soft-deleted)
+            const existingProduct = await Product.findOne({
+                where: {
+                    business_id,
+                    [Op.or]: [
+                        { name },
+                        ...(barcode ? [{ barcode }] : [])
+                    ]
+                },
+                transaction: t
+            });
+
+            let product;
+            if (existingProduct) {
+                if (existingProduct.status === 'active') {
+                    if (t) await t.rollback();
+                    return res.status(409).json({ message: "A product with this name or barcode already exists." });
+                }
+
+                // Reactivate soft-deleted product
+                await existingProduct.update({
+                    category_id: finalCategoryId,
+                    name,
+                    description,
+                    price: has_variants ? null : price,
+                    opening_stock: has_variants ? null : stock,
+                    current_stock: has_variants ? null : stock,
+                    hsnCode,
+                    status: 'active',
+                    photo,
+                    barcode,
+                    has_variants,
+                    is_weighted: is_weighted,
+                    uom: uom || 'Pcs',
+                    base_uom_id: base_uom_id || null
+                }, { transaction: t });
+
+                product = existingProduct;
+
+                // Mark previous inactive variants as inactive or clean up
+                await Variant.update({ status: 'inactive' }, { where: { product_id: product.id }, transaction: t });
+            } else {
+                // Create New Product
+                product = await Product.create({
+                    business_id,
+                    category_id: finalCategoryId,
+                    name,
+                    description,
+                    price: has_variants ? null : price,
+                    opening_stock: has_variants ? null : stock,
+                    current_stock: has_variants ? null : stock,
+                    hsnCode,
+                    status: status || 'active',
+                    photo,
+                    barcode,
+                    has_variants,
+                    is_weighted: is_weighted,
+                    uom: uom || 'Pcs',
+                    base_uom_id: base_uom_id || null
+                }, { transaction: t });
+            }
 
             // 3. Handle Variants and Inventory
             if (has_variants) {
@@ -124,16 +167,17 @@ const productsController = {
                 const createdVariants = await Variant.bulkCreate(variantEntries, { transaction: t, returning: true });
 
                 // Create Inventory for each variant
-                const inventoryEntries = createdVariants.map(v => ({
-                    business_id,
-                    product_id: product.id,
-                    variant_id: v.id,
-                    current_stock: v.current_stock || 0
-                }));
-                await Inventory.bulkCreate(inventoryEntries, { transaction: t });
+                for (const v of createdVariants) {
+                    await Inventory.upsert({
+                        business_id,
+                        product_id: product.id,
+                        variant_id: v.id,
+                        current_stock: v.current_stock || 0
+                    }, { transaction: t });
+                }
             } else {
-                // No variants: Create single Inventory record for product
-                await Inventory.create({
+                // No variants: Create/upsert single Inventory record for product
+                await Inventory.upsert({
                     business_id,
                     product_id: product.id,
                     variant_id: null,

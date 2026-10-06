@@ -206,7 +206,7 @@ class UomManagementPage extends ConsumerWidget {
                             if (!context.mounted) return;
                             AppFeedback.showError(
                               context,
-                              'Failed to save unit: $e',
+                              e,
                             );
                           }
                         },
@@ -263,7 +263,7 @@ class UomManagementPage extends ConsumerWidget {
                 if (!context.mounted) return;
                 AppFeedback.showError(
                   context,
-                  'Failed to delete unit: $e',
+                  e,
                 );
               }
             },

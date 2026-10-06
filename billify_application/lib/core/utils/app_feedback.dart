@@ -31,6 +31,7 @@ class AppFeedback {
   }
 
   /// Displays a floating error feedback pill with haptics and retry option at the top of the screen (above all modals)
+  /// Displays a floating error feedback pill with haptics and retry option at the top of the screen (above all modals)
   static void showError(
     BuildContext context,
     dynamic error, {
@@ -54,16 +55,7 @@ class AppFeedback {
       message = 'An unexpected error occurred. Please try again.';
     }
 
-    // Clean up redundant technical Dart/Flutter exception prefixes
-    message = message
-        .replaceFirst(RegExp(r'^Exception:\s*', caseSensitive: false), '')
-        .replaceFirst(RegExp(r'^AppException:\s*', caseSensitive: false), '')
-        .replaceFirst(RegExp(r'^Error:\s*', caseSensitive: false), '')
-        .trim();
-
-    if (message.isEmpty) {
-      message = 'An unexpected error occurred. Please try again.';
-    }
+    message = _cleanErrorMessage(message);
 
     _showOverlayToast(
       context: context,
@@ -71,6 +63,56 @@ class AppFeedback {
       type: _ToastType.error,
       onRetry: onRetry,
     );
+  }
+
+  static String _cleanErrorMessage(String raw) {
+    var msg = raw.trim();
+
+    // Strip common Dart & exception prefixes
+    msg = msg
+        .replaceAll(RegExp(r'Exception:\s*', caseSensitive: false), '')
+        .replaceAll(RegExp(r'AppException:\s*', caseSensitive: false), '')
+        .replaceAll(RegExp(r'Error:\s*', caseSensitive: false), '')
+        .trim();
+
+    // Detect technical traces / JS runtime errors / internal database errors
+    final isTechnical = msg.contains('TypeError') ||
+        msg.contains('Cannot read properties') ||
+        msg.contains('undefined') ||
+        msg.contains('Sequelize') ||
+        msg.contains('Unhandled Exception') ||
+        msg.contains('NoSuchMethodError') ||
+        msg.contains('Null check operator') ||
+        msg.contains('SocketException') ||
+        msg.contains('HandshakeException') ||
+        msg.contains('HttpException') ||
+        msg.contains('DioException') ||
+        msg.contains('ClientException') ||
+        msg.contains('SyntaxError');
+
+    if (isTechnical) {
+      final lower = msg.toLowerCase();
+      if (lower.contains('socket') ||
+          lower.contains('network') ||
+          lower.contains('connect') ||
+          lower.contains('timed out')) {
+        return 'Network connection issue. Please check your internet and try again.';
+      }
+      if (lower.contains('duplicate') ||
+          lower.contains('unique') ||
+          lower.contains('already exists')) {
+        return 'An item with this name or code already exists.';
+      }
+      if (lower.startsWith('failed to')) {
+        final colonIndex = msg.indexOf(':');
+        if (colonIndex > 0) {
+          return '${msg.substring(0, colonIndex)}. Please try again.';
+        }
+      }
+      return 'Something went wrong. Please try again.';
+    }
+
+    return msg.isEmpty ? 'An unexpected error occurred. Please try again.' : msg;
   }
 
   /// Displays an informative floating pill at the top of the screen (above all modals)

@@ -20,6 +20,33 @@ exports.createCustomer = async (req, res) => {
             return res.status(400).json({ success: false, message: "Business ID is required" });
         }
 
+        const existingCustomer = await Customer.findOne({
+            where: { business_id, phone_number }
+        });
+
+        if (existingCustomer) {
+            if (existingCustomer.status === 'active') {
+                return res.status(409).json({ success: false, message: "Customer with this phone number already exists" });
+            }
+
+            // Reactivate soft-deleted customer
+            await existingCustomer.update({
+                name,
+                opening_balance: opening_balance || 0,
+                remaining_balance: opening_balance || 0,
+                city: city || null,
+                photo: photo || null,
+                status: 'active',
+                created_by: req.user.id
+            });
+
+            return res.status(201).json({
+                success: true,
+                message: "Customer created successfully",
+                data: existingCustomer
+            });
+        }
+
         const customer = await Customer.create({
             business_id,
             name,
@@ -28,11 +55,15 @@ exports.createCustomer = async (req, res) => {
             remaining_balance: opening_balance || 0,
             city,
             photo,
+            status: 'active',
             created_by: req.user.id
         });
 
         res.status(201).json({ success: true, message: "Customer created successfully", data: customer });
     } catch (error) {
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            return res.status(409).json({ success: false, message: "Customer with this phone number already exists" });
+        }
         res.status(500).json({ success: false, message: error.message });
     }
 };

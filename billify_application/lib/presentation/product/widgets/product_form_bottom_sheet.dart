@@ -233,7 +233,7 @@ class _ProductFormBottomSheetState
       }
     } catch (e) {
       if (mounted) {
-        AppFeedback.showError(context, 'Failed to save product: $e');
+        AppFeedback.showError(context, e);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

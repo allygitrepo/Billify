@@ -4,6 +4,7 @@ import 'package:billify/core/services/local_storage_service.dart';
 import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/datasources/remote_uom_datasource.dart';
 import 'package:billify/data/models/uom_model.dart';
+import 'package:dio/dio.dart';
 
 class UomRepository {
   final LocalStorageService _storage;
@@ -27,20 +28,18 @@ class UomRepository {
     }
     try {
       final remoteUoms = await _remoteDatasource.getUoms(_businessId);
-      if (remoteUoms.isNotEmpty) {
-        await _storage.setString(
-          _uomDataKey,
-          jsonEncode(remoteUoms.map((e) => e.toJson()).toList()),
-        );
-      }
+      await _storage.setString(
+        _uomDataKey,
+        jsonEncode(remoteUoms.map((e) => e.toJson()).toList()),
+      );
     } catch (e, stackTrace) {
-      AppLogger.error("Error syncing UOMs", error: e, stackTrace: stackTrace, tag: 'UomRepository');
+      AppLogger.error('Error syncing UOMs', error: e, stackTrace: stackTrace, tag: 'UomRepository');
     }
   }
 
   Future<void> saveUom(UomModel uom) async {
     if (int.tryParse(_businessId) == null) {
-      AppLogger.info("Skipping remote UOM save: Business ID is temporary.", tag: 'UomRepository');
+      AppLogger.info('Skipping remote UOM save: Business ID is temporary.', tag: 'UomRepository');
       return;
     }
     try {
@@ -57,7 +56,7 @@ class UomRepository {
       if (savedUom != null) {
         // 2. Update local with server response
         final uoms = getUoms();
-        final index = uoms.indexWhere((u) => u.id == uom.id);
+        final index = uoms.indexWhere((u) => u.id == uom.id || u.id == savedUom!.id);
 
         if (index >= 0) {
           uoms[index] = savedUom;
@@ -69,9 +68,17 @@ class UomRepository {
           _uomDataKey,
           jsonEncode(uoms.map((e) => e.toJson()).toList()),
         );
+      } else {
+        throw Exception('Failed to save unit on server');
       }
+    } on DioException catch (e) {
+      final serverMsg = e.response?.data is Map
+          ? (e.response?.data['message'] as String?)
+          : null;
+      throw Exception(serverMsg ?? 'Failed to save unit: ${e.message}');
     } catch (e, stackTrace) {
-      AppLogger.error("Error saving UOM", error: e, stackTrace: stackTrace, tag: 'UomRepository');
+      AppLogger.error('Error saving UOM', error: e, stackTrace: stackTrace, tag: 'UomRepository');
+      rethrow;
     }
   }
 
@@ -114,9 +121,18 @@ class UomRepository {
           _uomDataKey,
           jsonEncode(uoms.map((e) => e.toJson()).toList()),
         );
+      } else {
+        throw Exception('Failed to delete unit on server');
       }
+    } on DioException catch (e) {
+      final serverMsg = e.response?.data is Map
+          ? (e.response?.data['message'] as String?)
+          : null;
+      throw Exception(serverMsg ?? 'Failed to delete unit');
     } catch (e, stackTrace) {
-      AppLogger.error("Error deleting UOM", error: e, stackTrace: stackTrace, tag: 'UomRepository');
+      AppLogger.error('Error deleting UOM', error: e, stackTrace: stackTrace, tag: 'UomRepository');
+      rethrow;
     }
   }
 }
+

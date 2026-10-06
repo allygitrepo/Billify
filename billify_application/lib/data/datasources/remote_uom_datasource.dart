@@ -1,77 +1,56 @@
 import 'package:billify/core/constants/api_endpoints.dart';
 import 'package:billify/core/services/api_service.dart';
-import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/models/uom_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final remoteUomDatasourceProvider = Provider<RemoteUomDatasource>((ref) {
-  return RemoteUomDatasource(ref);
+  final apiService = ref.read(apiServiceProvider);
+  return RemoteUomDatasource(apiService);
 });
 
 class RemoteUomDatasource {
-  final Ref _ref;
+  final ApiService _apiService;
 
-  RemoteUomDatasource(this._ref);
-
-  ApiService get _apiService => _ref.read(apiServiceProvider);
+  RemoteUomDatasource(this._apiService);
 
   Future<List<UomModel>> getUoms(String businessId) async {
-    try {
-      final response = await _apiService.get(ApiEndpoints.getUoms(businessId));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['uoms'];
-        return data.map((e) => UomModel.fromJson(e)).toList();
-      }
-      return [];
-    } catch (e, stackTrace) {
-      AppLogger.error("Error fetching UOMs", error: e, stackTrace: stackTrace, tag: 'RemoteUomDatasource');
-      return [];
+    final response = await _apiService.get(ApiEndpoints.getUoms(businessId));
+    if (response.statusCode == 200) {
+      final List<dynamic> data = response.data['uoms'] ?? [];
+      return data.map((e) => UomModel.fromJson(e)).toList();
     }
+    return [];
   }
 
   Future<UomModel?> createUom(UomModel uom, String businessId) async {
-    try {
-      final response = await _apiService.post(
-        '${ApiEndpoints.uomsBase}/create',
-        data: {
-          'business_id': int.tryParse(businessId),
-          'name': uom.name,
-          'shortCode': uom.shortCode,
-        },
-      );
-      if (response.statusCode == 201) {
-        return UomModel.fromJson(response.data['uom']);
-      }
-      return null;
-    } catch (e, stackTrace) {
-      AppLogger.error("Error creating UOM", error: e, stackTrace: stackTrace, tag: 'RemoteUomDatasource');
-      return null;
+    final response = await _apiService.post(
+      '${ApiEndpoints.uomsBase}/create',
+      data: {
+        'business_id': int.tryParse(businessId),
+        'name': uom.name,
+        'shortCode': uom.shortCode,
+      },
+    );
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return UomModel.fromJson(response.data['uom']);
     }
+    return null;
   }
 
   Future<UomModel?> updateUom(UomModel uom) async {
-    try {
-      final response = await _apiService.put(
-        ApiEndpoints.updateUom(uom.id),
-        data: {'name': uom.name, 'shortCode': uom.shortCode},
-      );
-      if (response.statusCode == 200) {
-        return UomModel.fromJson(response.data['uom']);
-      }
-      return null;
-    } catch (e, stackTrace) {
-      AppLogger.error("Error updating UOM", error: e, stackTrace: stackTrace, tag: 'RemoteUomDatasource');
-      return null;
+    final response = await _apiService.put(
+      ApiEndpoints.updateUom(uom.id),
+      data: {'name': uom.name, 'shortCode': uom.shortCode},
+    );
+    if (response.statusCode == 200) {
+      return UomModel.fromJson(response.data['uom']);
     }
+    return null;
   }
 
   Future<bool> deleteUom(String id) async {
-    try {
-      final response = await _apiService.delete(ApiEndpoints.deleteUom(id));
-      return response.statusCode == 200;
-    } catch (e, stackTrace) {
-      AppLogger.error("Error deleting UOM", error: e, stackTrace: stackTrace, tag: 'RemoteUomDatasource');
-      return false;
-    }
+    final response = await _apiService.delete(ApiEndpoints.deleteUom(id));
+    return response.statusCode == 200;
   }
 }
+

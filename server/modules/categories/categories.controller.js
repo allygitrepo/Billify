@@ -11,12 +11,25 @@ const categoriesController = {
                 return res.status(400).json({ message: "Business ID and Name are required" });
             }
 
-            // Check for collision
+            // Check for collision across all records for this business (active or inactive)
             const existingCategory = await Category.findOne({
-                where: { business_id, name, status: 'active' }
+                where: { business_id, name }
             });
             if (existingCategory) {
-                return res.status(409).json({ message: `Category "${name}" already exists` });
+                if (existingCategory.status === 'active') {
+                    return res.status(409).json({ message: `Category "${name}" already exists` });
+                }
+
+                // Reactivate soft-deleted category
+                await existingCategory.update({
+                    description: description !== undefined ? description : existingCategory.description,
+                    status: 'active'
+                });
+
+                return res.status(201).json({
+                    message: "Category created successfully",
+                    category: existingCategory
+                });
             }
 
             const category = await Category.create({

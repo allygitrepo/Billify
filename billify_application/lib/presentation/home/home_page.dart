@@ -72,49 +72,54 @@ class _HomePageState extends ConsumerState<HomePage> {
         bottomNavigationBar: BottomAppBar(
           shape: const CircularNotchedRectangle(),
           notchMargin: 8.0,
-          child: SizedBox(
-            height: 60,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _NavButton(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  isSelected: _currentIndex == 0,
-                  onTap: () => setState(() => _currentIndex = 0),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: SizedBox(
+                height: 60,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _NavButton(
+                      icon: Icons.home_rounded,
+                      label: 'Home',
+                      isSelected: _currentIndex == 0,
+                      onTap: () => setState(() => _currentIndex = 0),
+                    ),
+                    if (authState.hasPermission(
+                      PermissionModule.billing,
+                      PermissionAction.view,
+                    ))
+                      _NavButton(
+                        icon: Icons.qr_code_scanner_rounded,
+                        label: 'Scan & Bill',
+                        isSelected: _currentIndex == 1,
+                        onTap: () => setState(() => _currentIndex = 1),
+                      ),
+                    if (authState.hasPermission(
+                      PermissionModule.billing,
+                      PermissionAction.view,
+                    ))
+                      const SizedBox(width: 48), // Space for FAB
+                    if (authState.hasPermission(
+                      PermissionModule.systemSettings,
+                      PermissionAction.view,
+                    ))
+                      _NavButton(
+                        icon: Icons.business_center_rounded,
+                        label: 'Business',
+                        isSelected: _currentIndex == 2,
+                        onTap: () => setState(() => _currentIndex = 2),
+                      ),
+                    _NavButton(
+                      icon: Icons.settings_rounded,
+                      label: 'Settings',
+                      isSelected: _currentIndex == 3,
+                      onTap: () => setState(() => _currentIndex = 3),
+                    ),
+                  ],
                 ),
-                if (authState.hasPermission(
-                  PermissionModule.billing,
-                  PermissionAction.view,
-                ))
-                  _NavButton(
-                    icon: Icons.qr_code_scanner_rounded,
-                    label: 'Scan & Bill',
-                    isSelected: _currentIndex == 1,
-                    onTap: () => setState(() => _currentIndex = 1),
-                  ),
-                if (authState.hasPermission(
-                  PermissionModule.billing,
-                  PermissionAction.view,
-                ))
-                  const SizedBox(width: 48), // Space for FAB
-                if (authState.hasPermission(
-                  PermissionModule.systemSettings,
-                  PermissionAction.view,
-                ))
-                  _NavButton(
-                    icon: Icons.business_center_rounded,
-                    label: 'Business',
-                    isSelected: _currentIndex == 2,
-                    onTap: () => setState(() => _currentIndex = 2),
-                  ),
-                _NavButton(
-                  icon: Icons.settings_rounded,
-                  label: 'Settings',
-                  isSelected: _currentIndex == 3,
-                  onTap: () => setState(() => _currentIndex = 3),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -152,155 +157,266 @@ class _HomePageState extends ConsumerState<HomePage> {
             ref.read(invoiceProvider.notifier).loadInvoices(),
           ]);
         },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _HomeHeader(
-                business: business,
-                user: user,
-                onTap: () => _showBusinessSwitcher(context),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 850;
+            final double horizontalPadding = constraints.maxWidth < 600 ? 16 : 24;
+
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: 16,
               ),
-              const SizedBox(height: 20),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _HomeHeader(
+                        business: business,
+                        user: user,
+                        onTap: () => _showBusinessSwitcher(context),
+                      ),
+                      const SizedBox(height: 20),
 
-              // Show Quick Actions module grid only for staff users (Owners already have the full dashboard)
-              if (!authState.isOwnerOrAdmin) ...[
-                _buildModulesGrid(context, authState),
-                const SizedBox(height: 24),
-              ],
+                      // Show Quick Actions module grid only for staff users (Owners already have the full dashboard)
+                      if (!authState.isOwnerOrAdmin) ...[
+                        _buildModulesGrid(context, authState, constraints.maxWidth),
+                        const SizedBox(height: 24),
+                      ],
 
-              if (authState.hasPermission(
-                PermissionModule.dashboard,
-                PermissionAction.view,
-              )) ...[
-                const Text(
-                  'Sales Overview',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                      if (authState.hasPermission(
+                        PermissionModule.dashboard,
+                        PermissionAction.view,
+                      )) ...[
+                        const Text(
+                          'Sales Overview',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildStatCardsRow(
+                          todaySales: todaySales,
+                          todayInvoiceCount: todayInvoiceCount,
+                          monthlyRevenue: monthlyRevenue,
+                          isWide: isWide,
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      if (isWide) ...[
+                        // 2-column layout for desktop & wide tablets
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Left column: Revenue overview graph
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (authState.hasPermission(
+                                    PermissionModule.analytics,
+                                    PermissionAction.view,
+                                  )) ...[
+                                    _buildRevenueHeader(),
+                                    const SizedBox(height: 14),
+                                    PremiumRevenueGraph(
+                                      data: graphData,
+                                      labels: graphLabels,
+                                      title: '',
+                                    ),
+                                    const SizedBox(height: 24),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 20),
+                            // Right column: Top selling & stock alerts
+                            Expanded(
+                              flex: 2,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (authState.hasPermission(
+                                    PermissionModule.reports,
+                                    PermissionAction.view,
+                                  )) ...[
+                                    TopSellingList(
+                                      products: topSelling,
+                                      productModels: allProducts,
+                                    ),
+                                    const SizedBox(height: 20),
+                                  ],
+                                  if (authState.hasPermission(
+                                    PermissionModule.inventory,
+                                    PermissionAction.view,
+                                  )) ...[
+                                    StockAlertSection(lowStockProducts: lowStock),
+                                    const SizedBox(height: 20),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        // Single column layout for mobile / portrait tablets
+                        if (authState.hasPermission(
+                          PermissionModule.analytics,
+                          PermissionAction.view,
+                        )) ...[
+                          _buildRevenueHeader(),
+                          const SizedBox(height: 14),
+                          PremiumRevenueGraph(
+                            data: graphData,
+                            labels: graphLabels,
+                            title: '',
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+
+                        if (authState.hasPermission(
+                          PermissionModule.reports,
+                          PermissionAction.view,
+                        )) ...[
+                          TopSellingList(
+                            products: topSelling,
+                            productModels: allProducts,
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+
+                        if (authState.hasPermission(
+                          PermissionModule.inventory,
+                          PermissionAction.view,
+                        )) ...[
+                          StockAlertSection(lowStockProducts: lowStock),
+                        ],
+                      ],
+
+                      const SizedBox(height: 100),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 0.85,
-                  children: [
-                    StatCard(
-                      title: 'Today\'s Sales',
-                      value: '₹${todaySales.toStringAsFixed(0)}',
-                      icon: Icons.currency_rupee,
-                      gradient: const [
-                        Color(0xFF00B4D8),
-                        Color(0xFF0077B6),
-                      ],
-                    ),
-                    StatCard(
-                      title: 'Invoices',
-                      value: todayInvoiceCount.toString(),
-                      icon: Icons.receipt_long,
-                      gradient: const [
-                        Color(0xFF48CAE4),
-                        Color(0xFF00B4D8),
-                      ],
-                    ),
-                    StatCard(
-                      title: 'Month',
-                      value: monthlyRevenue >= 1000
-                          ? '₹${(monthlyRevenue / 1000).toStringAsFixed(1)}k'
-                          : '₹${monthlyRevenue.toStringAsFixed(0)}',
-                      icon: Icons.trending_up,
-                      gradient: const [
-                        AppTheme.primaryTeal,
-                        Color(0xFF00B4D8),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-              ],
-
-              if (authState.hasPermission(
-                PermissionModule.analytics,
-                PermissionAction.view,
-              )) ...[
-                Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    const Text(
-                      'Revenue Overview',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _FilterChip(
-                            label: 'Weekly',
-                            isSelected: _isWeeklyFilter,
-                            onTap: () => setState(() => _isWeeklyFilter = true),
-                          ),
-                          _FilterChip(
-                            label: 'Monthly',
-                            isSelected: !_isWeeklyFilter,
-                            onTap: () =>
-                                setState(() => _isWeeklyFilter = false),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                PremiumRevenueGraph(
-                  data: graphData,
-                  labels: graphLabels,
-                  title: '',
-                ),
-                const SizedBox(height: 24),
-              ],
-
-              if (authState.hasPermission(
-                PermissionModule.reports,
-                PermissionAction.view,
-              )) ...[
-                TopSellingList(
-                  products: topSelling,
-                  productModels: allProducts,
-                ),
-                const SizedBox(height: 24),
-              ],
-
-              if (authState.hasPermission(
-                PermissionModule.inventory,
-                PermissionAction.view,
-              )) ...[
-                StockAlertSection(lowStockProducts: lowStock),
-              ],
-              const SizedBox(height: 100),
-            ],
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildModulesGrid(BuildContext context, AuthState authState) {
+  Widget _buildStatCardsRow({
+    required double todaySales,
+    required int todayInvoiceCount,
+    required double monthlyRevenue,
+    required bool isWide,
+  }) {
+    final double cardHeight = isWide ? 115.0 : 105.0;
+
+    final cards = [
+      StatCard(
+        title: 'Today\'s Sales',
+        value: '₹${todaySales.toStringAsFixed(0)}',
+        icon: Icons.currency_rupee,
+        gradient: const [
+          Color(0xFF00B4D8),
+          Color(0xFF0077B6),
+        ],
+      ),
+      StatCard(
+        title: 'Invoices',
+        value: todayInvoiceCount.toString(),
+        icon: Icons.receipt_long,
+        gradient: const [
+          Color(0xFF48CAE4),
+          Color(0xFF00B4D8),
+        ],
+      ),
+      StatCard(
+        title: 'Month',
+        value: monthlyRevenue >= 1000
+            ? '₹${(monthlyRevenue / 1000).toStringAsFixed(1)}k'
+            : '₹${monthlyRevenue.toStringAsFixed(0)}',
+        icon: Icons.trending_up,
+        gradient: const [
+          AppTheme.primaryTeal,
+          Color(0xFF00B4D8),
+        ],
+      ),
+    ];
+
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: cardHeight,
+            child: cards[0],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: SizedBox(
+            height: cardHeight,
+            child: cards[1],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: SizedBox(
+            height: cardHeight,
+            child: cards[2],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRevenueHeader() {
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        const Text(
+          'Revenue Overview',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _FilterChip(
+                label: 'Weekly',
+                isSelected: _isWeeklyFilter,
+                onTap: () => setState(() => _isWeeklyFilter = true),
+              ),
+              _FilterChip(
+                label: 'Monthly',
+                isSelected: !_isWeeklyFilter,
+                onTap: () => setState(() => _isWeeklyFilter = false),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModulesGrid(BuildContext context, AuthState authState, double screenWidth) {
     final List<_ModuleItem> modules = [];
 
     if (authState.hasPermission(
@@ -483,6 +599,16 @@ class _HomePageState extends ConsumerState<HomePage> {
       );
     }
 
+    int crossAxisCount = 2;
+    double childAspectRatio = 1.5;
+    if (screenWidth >= 1000) {
+      crossAxisCount = 4;
+      childAspectRatio = 1.6;
+    } else if (screenWidth >= 650) {
+      crossAxisCount = 3;
+      childAspectRatio = 1.6;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -497,11 +623,11 @@ class _HomePageState extends ConsumerState<HomePage> {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 1.5,
+            childAspectRatio: childAspectRatio,
           ),
           itemCount: modules.length,
           itemBuilder: (context, index) {
@@ -518,117 +644,122 @@ class _HomePageState extends ConsumerState<HomePage> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Material(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Switch Business',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.add_circle_outline,
-                    color: AppTheme.primaryTeal,
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    setState(() => _currentIndex = 2); // Go to Business tab
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: businessState.businesses.length,
-                itemBuilder: (context, index) {
-                  final b = businessState.businesses[index];
-                  final isCurrent = b.id == businessState.currentBusinessId;
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                    leading: Container(
-                      width: 48,
-                      height: 48,
+      builder: (context) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 550),
+          child: Material(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryTeal.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.grey.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      child: b.business_logo != null
-                          ? ClipRRect(
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Switch Business',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.add_circle_outline,
+                          color: AppTheme.primaryTeal,
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          setState(() => _currentIndex = 2); // Go to Business tab
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: businessState.businesses.length,
+                      itemBuilder: (context, index) {
+                        final b = businessState.businesses[index];
+                        final isCurrent = b.id == businessState.currentBusinessId;
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                          leading: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryTeal.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.memory(
-                                ImageUtils.decodeBase64(b.business_logo!),
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.business_rounded,
-                              color: AppTheme.primaryTeal,
                             ),
-                    ),
-                    title: Text(
-                      b.name,
-                      style: TextStyle(
-                        fontWeight: isCurrent
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
-                    ),
-                    subtitle: isCurrent
-                        ? const Text(
-                            'Active Now',
+                            child: b.business_logo != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.memory(
+                                      ImageUtils.decodeBase64(b.business_logo!),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.business_rounded,
+                                    color: AppTheme.primaryTeal,
+                                  ),
+                          ),
+                          title: Text(
+                            b.name,
                             style: TextStyle(
-                              color: AppTheme.primaryTeal,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: isCurrent
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
-                          )
-                        : null,
-                    trailing: isCurrent
-                        ? const Icon(
-                            Icons.check_circle,
-                            color: AppTheme.primaryTeal,
-                          )
-                        : null,
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (!isCurrent) {
-                        _showSwitchConfirmation(context, b);
-                      }
-                    },
-                  );
-                },
+                          ),
+                          subtitle: isCurrent
+                              ? const Text(
+                                  'Active Now',
+                                  style: TextStyle(
+                                    color: AppTheme.primaryTeal,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                )
+                              : null,
+                          trailing: isCurrent
+                              ? const Icon(
+                                  Icons.check_circle,
+                                  color: AppTheme.primaryTeal,
+                                )
+                              : null,
+                          onTap: () {
+                            Navigator.pop(context);
+                            if (!isCurrent) {
+                              _showSwitchConfirmation(context, b);
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-          ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   void _showSwitchConfirmation(BuildContext context, dynamic targetBusiness) {
     showDialog(
@@ -676,185 +807,190 @@ class _HomePageState extends ConsumerState<HomePage> {
       isScrollControlled: true,
       builder: (context) {
         final authState = ref.watch(authProvider);
-        return Material(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          clipBehavior: Clip.antiAlias,
-          child: SafeArea(
-            top: false,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.75,
-              ),
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 14,
-                      crossAxisSpacing: 14,
-                      childAspectRatio: 0.92,
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 550),
+            child: Material(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+              clipBehavior: Clip.antiAlias,
+              child: SafeArea(
+                top: false,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.75,
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (authState.hasPermission(
-                          PermissionModule.inventory,
-                          PermissionAction.view,
-                        ))
-                          _QuickMenuItem(
-                            icon: Icons.inventory_2_outlined,
-                            label: 'Inventory',
-                            color: Colors.orange,
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.pushNamed(context, '/stock-management');
-                            },
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
                           ),
-                        if (authState.hasPermission(
-                          PermissionModule.billing,
-                          PermissionAction.view,
-                        ))
-                          _QuickMenuItem(
-                            icon: Icons.receipt_long,
-                            label: 'Invoices',
-                            color: Colors.blue,
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.pushNamed(context, '/invoice-history');
-                            },
-                          ),
-                        if (authState.hasPermission(
-                          PermissionModule.products,
-                          PermissionAction.view,
-                        ))
-                          _QuickMenuItem(
-                            icon: Icons.add_circle_outline,
-                            label: 'Products',
-                            color: Colors.purple,
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.pushNamed(context, '/products');
-                            },
-                          ),
-                        if (ref.watch(featureSettingsProvider).isCategoryEnabled &&
-                            authState.hasPermission(
-                              PermissionModule.categories,
+                        ),
+                        const SizedBox(height: 18),
+                        GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 14,
+                          crossAxisSpacing: 14,
+                          childAspectRatio: 0.92,
+                          children: [
+                            if (authState.hasPermission(
+                              PermissionModule.inventory,
                               PermissionAction.view,
                             ))
-                          _QuickMenuItem(
-                            icon: Icons.category_outlined,
-                            label: 'Categories',
-                            color: Colors.teal,
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const CategoryManagementPage(),
-                                ),
-                              );
-                            },
-                          ),
-                        if (authState.hasPermission(
-                          PermissionModule.userManagement,
-                          PermissionAction.view,
-                        ))
-                          _QuickMenuItem(
-                            icon: Icons.person_add_alt_1_outlined,
-                            label: 'Staff',
-                            color: Colors.teal,
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.pushNamed(context, '/user-management');
-                            },
-                          ),
-                        if (authState.hasPermission(
-                          PermissionModule.uom,
-                          PermissionAction.view,
-                        ))
-                          _QuickMenuItem(
-                            icon: Icons.straighten,
-                            label: 'UOM',
-                            color: Colors.indigo,
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const UomManagementPage(),
-                                ),
-                              );
-                            },
-                          ),
-                        if (authState.hasPermission(
-                          PermissionModule.customers,
-                          PermissionAction.view,
-                        ))
-                          _QuickMenuItem(
-                            icon: Icons.people_alt_outlined,
-                            label: 'Customers',
-                            color: Colors.pink,
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.pushNamed(context, '/customers');
-                            },
-                          ),
-                        if (authState.hasPermission(
-                          PermissionModule.payments,
-                          PermissionAction.view,
-                        ))
-                          _QuickMenuItem(
-                            icon: Icons.account_balance_wallet_outlined,
-                            label: 'Khata',
-                            color: Colors.cyan,
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const KhataDashboardScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        if (authState.hasPermission(
-                          PermissionModule.analytics,
-                          PermissionAction.view,
-                        ))
-                          _QuickMenuItem(
-                            icon: Icons.analytics,
-                            label: 'Reports',
-                            color: Colors.indigo,
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const AnalyticsDashboardScreen(),
-                                ),
-                              );
-                            },
-                          ),
+                              _QuickMenuItem(
+                                icon: Icons.inventory_2_outlined,
+                                label: 'Inventory',
+                                color: Colors.orange,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.pushNamed(context, '/stock-management');
+                                },
+                              ),
+                            if (authState.hasPermission(
+                              PermissionModule.billing,
+                              PermissionAction.view,
+                            ))
+                              _QuickMenuItem(
+                                icon: Icons.receipt_long,
+                                label: 'Invoices',
+                                color: Colors.blue,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.pushNamed(context, '/invoice-history');
+                                },
+                              ),
+                            if (authState.hasPermission(
+                              PermissionModule.products,
+                              PermissionAction.view,
+                            ))
+                              _QuickMenuItem(
+                                icon: Icons.add_circle_outline,
+                                label: 'Products',
+                                color: Colors.purple,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.pushNamed(context, '/products');
+                                },
+                              ),
+                            if (ref.watch(featureSettingsProvider).isCategoryEnabled &&
+                                authState.hasPermission(
+                                  PermissionModule.categories,
+                                  PermissionAction.view,
+                                ))
+                              _QuickMenuItem(
+                                icon: Icons.category_outlined,
+                                label: 'Categories',
+                                color: Colors.teal,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const CategoryManagementPage(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            if (authState.hasPermission(
+                              PermissionModule.userManagement,
+                              PermissionAction.view,
+                            ))
+                              _QuickMenuItem(
+                                icon: Icons.person_add_alt_1_outlined,
+                                label: 'Staff',
+                                color: Colors.teal,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.pushNamed(context, '/user-management');
+                                },
+                              ),
+                            if (authState.hasPermission(
+                              PermissionModule.uom,
+                              PermissionAction.view,
+                            ))
+                              _QuickMenuItem(
+                                icon: Icons.straighten,
+                                label: 'UOM',
+                                color: Colors.indigo,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const UomManagementPage(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            if (authState.hasPermission(
+                              PermissionModule.customers,
+                              PermissionAction.view,
+                            ))
+                              _QuickMenuItem(
+                                icon: Icons.people_alt_outlined,
+                                label: 'Customers',
+                                color: Colors.pink,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.pushNamed(context, '/customers');
+                                },
+                              ),
+                            if (authState.hasPermission(
+                              PermissionModule.payments,
+                              PermissionAction.view,
+                            ))
+                              _QuickMenuItem(
+                                icon: Icons.account_balance_wallet_outlined,
+                                label: 'Khata',
+                                color: Colors.cyan,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const KhataDashboardScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            if (authState.hasPermission(
+                              PermissionModule.analytics,
+                              PermissionAction.view,
+                            ))
+                              _QuickMenuItem(
+                                icon: Icons.analytics,
+                                label: 'Reports',
+                                color: Colors.indigo,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const AnalyticsDashboardScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),

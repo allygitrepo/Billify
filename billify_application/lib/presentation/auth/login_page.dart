@@ -140,7 +140,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                     prefixIcon: Icons.lock_outline,
                                     validator: Validators.validatePassword,
                                   ),
-                                  const SizedBox(height: 40),
+                                  const SizedBox(height: 12),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: GestureDetector(
+                                      onTap: () => Navigator.pushNamed(
+                                        context,
+                                        '/forgot-password',
+                                      ),
+                                      child: Text(
+                                        'Forgot Password?',
+                                        style: TextStyle(
+                                          color: Theme.of(context).primaryColor,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 32),
                                   CustomButton(
                                     text: 'LOGIN',
                                     onPressed: _handleLogin,

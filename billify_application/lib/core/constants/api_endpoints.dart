@@ -11,6 +11,10 @@ class ApiEndpoints {
   static const String register = "$baseUrl/auth/register";
   static const String requestOtp = "$baseUrl/auth/request-otp";
   static const String verifyOtp = "$baseUrl/auth/verify-otp";
+  static const String forgotPasswordRequestOtp =
+      "$baseUrl/auth/forgot-password/request-otp";
+  static const String forgotPasswordReset =
+      "$baseUrl/auth/forgot-password/reset";
   static const String updateProfile = "$baseUrl/users/profile/update";
   static const String changePassword = "$baseUrl/users/change-password";
 

@@ -365,6 +365,30 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  Future<Map<String, dynamic>> requestForgotPasswordOtp(
+    String phoneNumber,
+  ) async {
+    try {
+      final repo = ref.read(authRepositoryProvider);
+      return await repo.requestForgotPasswordOtp(phoneNumber);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> resetForgotPassword(
+    String phoneNumber,
+    String otp,
+    String newPassword,
+  ) async {
+    try {
+      final repo = ref.read(authRepositoryProvider);
+      return await repo.resetForgotPassword(phoneNumber, otp, newPassword);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<void> updateProfile(
     UserModel updatedUser, {
     String? oldPassword,

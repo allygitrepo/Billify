@@ -31,6 +31,24 @@ class AuthRepository {
     return await _remoteDatasource.verifyOtp(phoneNumber, otp);
   }
 
+  Future<Map<String, dynamic>> requestForgotPasswordOtp(
+    String phoneNumber,
+  ) async {
+    return await _remoteDatasource.requestForgotPasswordOtp(phoneNumber);
+  }
+
+  Future<Map<String, dynamic>> resetForgotPassword(
+    String phoneNumber,
+    String otp,
+    String newPassword,
+  ) async {
+    return await _remoteDatasource.resetForgotPassword(
+      phoneNumber,
+      otp,
+      newPassword,
+    );
+  }
+
   Future<Map<String, dynamic>> login(String phoneNumber, String password) async {
     final response =
         await _remoteDatasource.loginWithResponse(phoneNumber, password);

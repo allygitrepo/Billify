@@ -97,6 +97,89 @@ const sent = await sendOTPSMS(formattedPhone, otp);
         }
     },
 
+    // ============ Request Forgot Password OTP ============
+    requestForgotPasswordOTP: async (req, res) => {
+        try {
+            const { phoneNumber } = req.body;
+            console.log(`[Auth] Forgot Password OTP Requested for: ${phoneNumber}`);
+            if (!phoneNumber) {
+                return res.status(400).json({ message: "Phone number is required" });
+            }
+
+            // Check if user exists
+            const existingUser = await User.findOne({ where: { mobile: phoneNumber } });
+            if (!existingUser) {
+                return res.status(404).json({ message: "No account found with this phone number" });
+            }
+
+            // Generate 6-digit OTP
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const expires_at = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
+
+            // Save OTP
+            await OTP.create({ phoneNumber, otp, expires_at });
+            console.log(`[Auth] Generated Forgot Password OTP ${otp} for ${phoneNumber}`);
+
+            // Send SMS
+            const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+            const sent = await sendOTPSMS(formattedPhone, otp);
+            if (sent) {
+                return res.status(200).json({ message: "OTP sent successfully" });
+            } else {
+                return res.status(500).json({ message: "Failed to send OTP SMS" });
+            }
+        } catch (error) {
+            console.error("Request Forgot Password OTP Error:", error);
+            return res.status(500).json({ message: "Internal server error", error: error.message });
+        }
+    },
+
+    // ============ Reset Forgot Password ============
+    resetForgotPassword: async (req, res) => {
+        try {
+            const { phoneNumber, otp, newPassword } = req.body;
+            if (!phoneNumber || !otp || !newPassword) {
+                return res.status(400).json({ message: "Phone number, OTP, and new password are required" });
+            }
+
+            if (newPassword.length < 6) {
+                return res.status(400).json({ message: "Password must be at least 6 characters long" });
+            }
+
+            // Verify OTP
+            const otpRecord = await OTP.findOne({
+                where: {
+                    phoneNumber,
+                    otp,
+                    expires_at: { [Op.gt]: new Date() }
+                },
+                order: [['createdAt', 'DESC']]
+            });
+
+            if (!otpRecord) {
+                return res.status(400).json({ message: "Invalid or expired OTP" });
+            }
+
+            // Find User
+            const user = await User.findOne({ where: { mobile: phoneNumber } });
+            if (!user) {
+                return res.status(404).json({ message: "No account found with this phone number" });
+            }
+
+            // Hash new password
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            await user.update({ password: hashedPassword });
+
+            // Invalidate/delete the OTP record
+            await otpRecord.destroy();
+
+            return res.status(200).json({ message: "Password reset successfully. Please login with your new password." });
+        } catch (error) {
+            console.error("Reset Forgot Password Error:", error);
+            return res.status(500).json({ message: "Internal server error", error: error.message });
+        }
+    },
+
     // ============ User Registration ============
     register: async (req, res) => {
         const t = await sequelize.transaction();
@@ -259,16 +342,20 @@ const sent = await sendOTPSMS(formattedPhone, otp);
                 return res.status(400).json({ message: "Phone number and Password are required" });
             }
 
-            // 1. Find user
-            const user = await User.findOne({ where: { mobile: phoneNumber, status: true } });
+            // 1. Find user by mobile
+            const user = await User.findOne({ where: { mobile: phoneNumber } });
             if (!user) {
-                return res.status(401).json({ message: "Invalid credentials" });
+                return res.status(404).json({ message: "Account with this phone number does not exist" });
+            }
+
+            if (!user.status) {
+                return res.status(403).json({ message: "Account is deactivated. Please contact support." });
             }
 
             // 2. Check password
             const isMatch = await bcrypt.compare(password, user.password);
             if (!isMatch) {
-                return res.status(401).json({ message: "Invalid credentials" });
+                return res.status(401).json({ message: "Incorrect password" });
             }
 
             // 3. Fetch all active businesses for user with roles

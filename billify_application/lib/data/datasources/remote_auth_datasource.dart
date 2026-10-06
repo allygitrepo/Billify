@@ -97,6 +97,32 @@ class RemoteAuthDatasource implements AuthDatasource {
     return response.data;
   }
 
+  Future<Map<String, dynamic>> requestForgotPasswordOtp(
+    String phoneNumber,
+  ) async {
+    final response = await _apiService.post(
+      ApiEndpoints.forgotPasswordRequestOtp,
+      data: {'phoneNumber': phoneNumber},
+    );
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> resetForgotPassword(
+    String phoneNumber,
+    String otp,
+    String newPassword,
+  ) async {
+    final response = await _apiService.post(
+      ApiEndpoints.forgotPasswordReset,
+      data: {
+        'phoneNumber': phoneNumber,
+        'otp': otp,
+        'newPassword': newPassword,
+      },
+    );
+    return response.data;
+  }
+
   @override
   Future<void> logout() async {
     // Typically involves clearing token on server if using refresh tokens

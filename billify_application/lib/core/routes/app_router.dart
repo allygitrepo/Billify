@@ -6,6 +6,7 @@ import 'package:billify/features/analytics/profit_reports/presentation/profit_re
 import 'package:billify/features/analytics/sales_reports/presentation/sales_reports_screen.dart';
 import 'package:billify/presentation/analytics/analytics_dashboard_screen.dart';
 import 'package:billify/presentation/analytics/report_screens.dart';
+import 'package:billify/presentation/auth/forgot_password_page.dart';
 import 'package:billify/presentation/auth/login_page.dart';
 import 'package:billify/presentation/auth/register_page.dart';
 import 'package:billify/presentation/billing/invoice_history_page.dart';
@@ -41,6 +42,9 @@ class AppRouter {
 
       case AppRoutes.register:
         return _buildRoute(const RegisterPage(), settings);
+
+      case AppRoutes.forgotPassword:
+        return _buildRoute(const ForgotPasswordPage(), settings);
 
       case AppRoutes.businessSetup:
         return _buildRoute(const BusinessSetupPage(), settings);

@@ -60,6 +60,7 @@ class RegistrationNotifier extends StateNotifier<RegistrationModel?> {
     String? email,
     required String password,
     String? phone,
+    String? userPhoto,
   }) async {
     final newState =
         (state ??
@@ -68,12 +69,14 @@ class RegistrationNotifier extends StateNotifier<RegistrationModel?> {
                   email: email,
                   password: password,
                   businessName: '',
+                  userPhoto: userPhoto,
                 ))
             .copyWith(
               name: name,
               email: email,
               password: password,
               phone: phone,
+              userPhoto: userPhoto ?? state?.userPhoto,
             );
     state = newState;
     await _storage.setString(_storageKey, jsonEncode(newState.toJson()));

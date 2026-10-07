@@ -219,17 +219,25 @@ const sent = await sendOTPSMS(formattedPhone, otp);
                 return res.status(400).json({ message: "Invalid or expired OTP" });
             }
 
-            // 2. Check if user exists
+            // 2. Check if user exists (by mobile or email)
             const existingUser = await User.findOne({ where: { mobile: userMobile } });
             if (existingUser) {
                 console.log("Registration Failed: Mobile exists", userMobile);
                 return res.status(400).json({ message: "Phone number already registered" });
             }
 
-            // 2. Hash password
+            if (email && email.trim() !== "") {
+                const existingEmail = await User.findOne({ where: { email: email.trim() } });
+                if (existingEmail) {
+                    console.log("Registration Failed: Email exists", email);
+                    return res.status(400).json({ message: "Email is already registered" });
+                }
+            }
+
+            // 3. Hash password
             const hashedPassword = await bcrypt.hash(password, 10);
 
-            // 3. Ensure "Global Admin" Role exists (business_id is NULL for system roles)
+            // 4. Ensure "Global Admin" Role exists (business_id is NULL for system roles)
             const [adminRole] = await Role.findOrCreate({
                 where: { name: 'Admin', business_id: null },
                 defaults: { 
@@ -240,7 +248,7 @@ const sent = await sendOTPSMS(formattedPhone, otp);
             });
             console.log("Global Admin role ID resolved:", adminRole.id);
 
-            // 4. Create User (No default global role)
+            // 5. Create User (No default global role)
             const user = await User.create({
                 name,
                 email: email && email.trim() !== "" ? email.trim() : null,
@@ -251,7 +259,7 @@ const sent = await sendOTPSMS(formattedPhone, otp);
             }, { transaction: t });
             console.log("User created:", user.id);
 
-            // 5. Create Business
+            // 6. Create Business
             const business = await Business.create({
                 owner_user_id: user.id,
                 name: business_name,
@@ -261,7 +269,7 @@ const sent = await sendOTPSMS(formattedPhone, otp);
             }, { transaction: t });
             console.log("Business created:", business.id);
 
-            // 6. Create Settings for the business
+            // 7. Create Settings for the business
             await Settings.create({
                 business_id: business.id,
                 business_name: business_name,
@@ -281,7 +289,7 @@ const sent = await sendOTPSMS(formattedPhone, otp);
             }, { transaction: t });
             console.log("Settings created for business:", business.id);
 
-            // 7. Create default UOMs
+            // 8. Create default UOMs
             await UOM.bulkCreate([
                 { business_id: business.id, name: 'Kilograms', shortCode: 'kg' },
                 { business_id: business.id, name: 'Litres', shortCode: 'ltr' },
@@ -289,7 +297,7 @@ const sent = await sendOTPSMS(formattedPhone, otp);
             ], { transaction: t });
             console.log("Default UOMs created for business:", business.id);
 
-            // 8. Map User to Business as Admin
+            // 9. Map User to Business as Admin
             await UserBusiness.create({
                 user_id: user.id,
                 business_id: business.id,
@@ -297,7 +305,7 @@ const sent = await sendOTPSMS(formattedPhone, otp);
                 status: true
             }, { transaction: t });
 
-            // 9. Initial Setup: Ensure Global Admin has all permissions (Only runs once in system lifetime)
+            // 10. Initial Setup: Ensure Global Admin has all permissions (Only runs once in system lifetime)
             const existingPermissions = await RolePermission.count({ where: { role_id: adminRole.id } });
             if (existingPermissions === 0) {
                 console.log("Initializing Global Admin permissions...");
@@ -437,21 +445,20 @@ const sent = await sendOTPSMS(formattedPhone, otp);
             // 1. Find user by email
             let user = await User.findOne({ where: { email } });
 
+            // If user does not exist, do NOT auto-create; return isRegistered: false
             if (!user) {
-                console.log("New User via Google, creating account:", email);
-                // Create user with random password (satisfies db constraint)
-                const randomPassword = Math.random().toString(36).slice(-12) + "A1!";
-                const hashedPassword = await bcrypt.hash(randomPassword, 10);
-
-                // Default role should be "Admin" for the first account creation if we expect them to create a business
-                user = await User.create({
-                    name,
+                console.log("Google Login: Email not registered:", email);
+                return res.status(200).json({
+                    isRegistered: false,
+                    message: "Email is not registered",
                     email,
-                    password: hashedPassword,
-                    role_id: null, // No default global role
-                    photo: picture,
-                    status: true
+                    name,
+                    photo: picture
                 });
+            }
+
+            if (!user.status) {
+                return res.status(403).json({ message: "Account is deactivated. Please contact support." });
             }
 
             // 2. Fetch all active businesses for user
@@ -476,6 +483,7 @@ const sent = await sendOTPSMS(formattedPhone, otp);
             );
 
             return res.status(200).json({
+                isRegistered: true,
                 message: "Google login successful",
                 token,
                 user: { 

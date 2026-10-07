@@ -94,10 +94,23 @@ class AuthRepository {
         final response = await _remoteDatasource.googleLogin(idToken);
         debugPrint('DEBUG: Backend Google Login response: $response');
 
+        if (response['isRegistered'] == false) {
+          return {
+            "success": true,
+            "isRegistered": false,
+            "email": response['email'] ?? account.email,
+            "name": response['name'] ?? account.displayName,
+            "photo": response['photo'] ?? account.photoUrl,
+            "idToken": idToken,
+            "message": response['message'] ?? 'Email not registered',
+          };
+        }
+
         // Finalize session management
         final authResult = await _handleAuthResponse(response);
         return {
           "success": true,
+          "isRegistered": true,
           "idToken": idToken,
           "email": account.email,
           "name": account.displayName,

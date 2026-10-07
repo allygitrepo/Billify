@@ -53,6 +53,121 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
+  void _showEmailNotRegisteredDialog({
+    required String email,
+    required String name,
+    String? photo,
+  }) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryTeal.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.mark_email_unread_outlined,
+                color: AppTheme.primaryTeal,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Account Not Found',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'No account is registered with this Google email:',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white10
+                    : Colors.grey[100],
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.email_outlined, size: 18, color: AppTheme.primaryTeal),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      email,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Would you like to register a new account using this email address?',
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              Navigator.pushNamed(
+                context,
+                '/register',
+                arguments: {
+                  'name': name,
+                  'email': email,
+                  'photo': photo,
+                },
+              );
+            },
+            child: const Text(
+              'REGISTER NOW',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -219,10 +334,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             const SizedBox(height: 32),
                             GestureDetector(
                               onTap: () async {
-                                await ref
+                                final result = await ref
                                     .read(authProvider.notifier)
                                     .loginWithGoogle();
                                 if (!mounted) return;
+
+                                if (result['success'] == true &&
+                                    result['isRegistered'] == false) {
+                                  _showEmailNotRegisteredDialog(
+                                    email: result['email']?.toString() ?? '',
+                                    name: result['name']?.toString() ?? '',
+                                    photo: result['photo']?.toString(),
+                                  );
+                                  return;
+                                }
 
                                 final authState = ref.read(authProvider);
                                 if (authState.isLoggedIn) {

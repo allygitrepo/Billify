@@ -25,6 +25,29 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _addressController = TextEditingController();
   bool _isLoadingOtp = false;
 
+  String? _userPhoto;
+  bool _isArgsLoaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isArgsLoaded) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map) {
+        if (args['name'] != null && (args['name'] as String).isNotEmpty) {
+          _nameController.text = args['name'];
+        }
+        if (args['email'] != null && (args['email'] as String).isNotEmpty) {
+          _emailController.text = args['email'];
+        }
+        if (args['photo'] != null) {
+          _userPhoto = args['photo'];
+        }
+      }
+      _isArgsLoaded = true;
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -46,10 +69,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               email: _emailController.text.trim(),
               password: _passwordController.text,
               phone: _phoneController.text,
+              userPhoto: _userPhoto,
             );
 
         if (mounted) {
-          // 1. Request OTP
+          // 1. Request OTP (backend will check if phone is already registered)
           ErrorHandler.showSuccessSnackBar(context, 'Requesting OTP code...');
           
           await ref.read(authProvider.notifier).requestOtp(_phoneController.text);

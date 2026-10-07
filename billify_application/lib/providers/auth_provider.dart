@@ -275,7 +275,7 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  Future<void> loginWithGoogle() async {
+  Future<Map<String, dynamic>> loginWithGoogle() async {
     AppLogger.debug('Starting Google Sign-In process...', tag: 'AuthNotifier');
     // Reset state to clean slate while loading to ensure no stale data is visible
     state = AuthState(
@@ -285,7 +285,12 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final repo = ref.read(authRepositoryProvider);
       final response = await repo.loginWithGoogle();
+      if (response['success'] == true && response['isRegistered'] == false) {
+        state = state.copyWith(isLoading: false, loadingMessage: null);
+        return response;
+      }
       await _handleLoginResponse(response);
+      return response;
     } catch (e, stack) {
       AppLogger.error('Google Sign-In failed', tag: 'AuthNotifier', error: e, stackTrace: stack);
       state = state.copyWith(
@@ -293,6 +298,7 @@ class AuthNotifier extends Notifier<AuthState> {
         errorObject: e,
         error: e.toString(),
       );
+      return {'success': false, 'message': e.toString()};
     }
   }
 

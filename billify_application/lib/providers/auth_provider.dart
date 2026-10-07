@@ -40,7 +40,6 @@ class AuthState {
 
   bool get isOwnerOrAdmin {
     return user?.roleId == '1' ||
-        user?.roleId == null ||
         currentRole?.id == '1' ||
         currentRole?.id == 'owner_admin' ||
         currentRole?.id == 'global_admin' ||
@@ -53,7 +52,7 @@ class AuthState {
     if (!isLoggedIn) return false;
 
     // 1. Global Admin Check (Role ID '1' or Role Name 'Admin')
-    // 2. Owner/Initial Setup Check (Role ID null or 'owner_admin')
+    // 2. Owner/Initial Setup Check ('owner_admin')
     // 3. Fallback Admin Check (Internal IDs)
     if (isOwnerOrAdmin) {
       return true;
@@ -144,27 +143,29 @@ class AuthNotifier extends Notifier<AuthState> {
 
     final effectiveRoleId = user.roleId ?? fallbackRoleId;
 
-    // 3. Check for Owner Account (no roleId and owns the business)
-    if (effectiveRoleId == null || effectiveRoleId.isEmpty) {
-      final isOwner = user.businessOwnerId == null ||
-          user.businessOwnerId == user.id ||
-          user.businessOwnerId == user.mobile;
-      if (isOwner) {
-        AppLogger.info(
-          "User has no roleId (Owner account). Granting owner permissions.",
-          tag: 'AuthNotifier',
-        );
-        final ownerRole = RoleModel(
-          id: 'owner_admin',
-          name: 'Owner',
-          permissions: {
-            for (var module in PermissionModule.values)
-              module: [PermissionAction.all],
-          },
-        );
-        state = state.copyWith(currentRole: ownerRole);
-        return;
-      }
+    // 3. Check for verified Owner Account (only if user explicitly matches businessOwnerId or roleId is 1)
+    final isExplicitOwner = (user.businessOwnerId != null &&
+            user.businessOwnerId!.isNotEmpty &&
+            (user.businessOwnerId == user.id ||
+                user.businessOwnerId == user.mobile ||
+                user.businessOwnerId == user.email)) ||
+        effectiveRoleId == '1';
+
+    if (isExplicitOwner && (effectiveRoleId == null || effectiveRoleId.isEmpty || effectiveRoleId == '1')) {
+      AppLogger.info(
+        "User is verified Business Owner. Granting owner permissions.",
+        tag: 'AuthNotifier',
+      );
+      final ownerRole = RoleModel(
+        id: 'owner_admin',
+        name: 'Owner',
+        permissions: {
+          for (var module in PermissionModule.values)
+            module: [PermissionAction.all],
+        },
+      );
+      state = state.copyWith(currentRole: ownerRole);
+      return;
     }
 
     if (businessId == null || int.tryParse(businessId) == null) {
@@ -188,6 +189,12 @@ class AuthNotifier extends Notifier<AuthState> {
         "No business context found for user ${user.name}.",
         tag: 'AuthNotifier',
       );
+      final restrictedRole = RoleModel(
+        id: 'restricted_user',
+        name: 'Restricted User',
+        permissions: {},
+      );
+      state = state.copyWith(currentRole: restrictedRole);
       return;
     }
 

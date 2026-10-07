@@ -537,6 +537,7 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
               )
         : null;
     bool isSubmitting = false;
+    bool isPasswordObscured = true;
 
     showModalBottomSheet(
       context: context,
@@ -698,11 +699,26 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
                       const SizedBox(height: 20),
                       TextFormField(
                         controller: passwordController,
+                        obscureText: isPasswordObscured,
                         decoration: InputDecoration(
                           labelText: isEditing
                               ? 'New Password (Optional)'
                               : 'Password',
                           prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              isPasswordObscured
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: Colors.grey,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setSheetState(() {
+                                isPasswordObscured = !isPasswordObscured;
+                              });
+                            },
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -710,7 +726,6 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
                               ? 'Leave blank to keep current'
                               : null,
                         ),
-                        obscureText: true,
                         validator: (val) {
                           if (!isEditing && (val == null || val.isEmpty)) {
                             return 'Password is required';
@@ -961,13 +976,15 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
                                   name: nameController.text.trim(),
                                   permissions: {},
                                 );
-                                await ref
+                                final success = await ref
                                     .read(userManagementProvider.notifier)
                                     .addRole(newRole);
-                                if (context.mounted) {
+                                if (context.mounted && success) {
                                   Navigator.pop(context);
+                                  final latestRoles = ref.read(userManagementProvider).roles;
+                                  final createdRole = latestRoles.isNotEmpty ? latestRoles.last : newRole;
                                   setState(() {
-                                    _selectedRole = newRole;
+                                    _selectedRole = createdRole;
                                     _draftPermissions = {};
                                     _hasUnsavedRoleChanges = false;
                                   });

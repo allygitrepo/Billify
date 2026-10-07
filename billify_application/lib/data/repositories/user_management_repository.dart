@@ -112,6 +112,7 @@ class UserManagementRepository {
     final newUser = await _remoteDatasource.createUser(user, businessId);
     if (newUser != null) {
       final users = await getUsers(businessId);
+      users.removeWhere((u) => u.id == newUser.id || (u.mobile.isNotEmpty && u.mobile == newUser.mobile));
       users.add(newUser);
       await saveUsers(businessId, users);
       return newUser;
@@ -126,8 +127,10 @@ class UserManagementRepository {
       final index = users.indexWhere((u) => u.id == user.id);
       if (index >= 0) {
         users[index] = user;
-        await saveUsers(businessId, users);
+      } else {
+        users.add(user);
       }
+      await saveUsers(businessId, users);
       return true;
     }
     return false;

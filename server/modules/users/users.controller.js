@@ -11,9 +11,13 @@ const usersController = {
     getUsersByBusiness: async (req, res) => {
         try {
             const { business_id } = req.params;
+            const numericBusinessId = parseInt(business_id);
+            if (isNaN(numericBusinessId)) {
+                return res.status(400).json({ message: "Invalid Business ID format" });
+            }
 
             const userBusinesses = await UserBusiness.findAll({
-                where: { business_id, status: true },
+                where: { business_id: numericBusinessId, status: true },
                 include: [
                     {
                         model: User,
@@ -24,16 +28,19 @@ const usersController = {
                 ]
             });
 
-            const users = userBusinesses.map(ub => {
-                const userObj = ub.user.get({ plain: true });
-                return {
-                    ...userObj,
-                    status: userObj.status ? 'active' : 'inactive',
-                    role: ub.role ? ub.role.name : 'User',
-                    role_id: ub.role_id,
-                    business_status: ub.status ? 'active' : 'inactive'
-                };
-            });
+            const users = userBusinesses
+                .filter(ub => ub && ub.user)
+                .map(ub => {
+                    const userObj = ub.user.get({ plain: true });
+                    return {
+                        ...userObj,
+                        status: userObj.status === true || userObj.status === 'active' || userObj.status === 1,
+                        role: ub.role ? ub.role.name : 'User',
+                        role_id: ub.role_id,
+                        roleId: ub.role_id,
+                        business_status: ub.status ? 'active' : 'inactive'
+                    };
+                });
 
             return res.status(200).json({ users });
         } catch (error) {
@@ -48,9 +55,12 @@ const usersController = {
         try {
             const { name, email, password, role_id, business_id, mobile, photo } = req.body;
 
-            if (!name || !mobile || !password || !role_id || !business_id) {
+            const numericBusinessId = parseInt(business_id);
+            const numericRoleId = parseInt(role_id);
+
+            if (!name || !mobile || !password || isNaN(numericRoleId) || isNaN(numericBusinessId)) {
                 await t.rollback();
-                return res.status(400).json({ message: "Missing required fields" });
+                return res.status(400).json({ message: "Name, mobile, password, role_id, and business_id are required" });
             }
 
             const cleanEmail = email && email.trim() !== "" ? email.trim() : null;
@@ -92,32 +102,53 @@ const usersController = {
                     mobile: cleanMobile,
                     photo,
                     password: hashedPassword,
-                    role_id: role_id // Default role
+                    role_id: numericRoleId
                 }, { transaction: t });
             }
 
             // 2. Check if already assigned to this business
             const existingMapping = await UserBusiness.findOne({
-                where: { user_id: user.id, business_id }
+                where: { user_id: user.id, business_id: numericBusinessId }
             });
 
             if (existingMapping) {
-                await t.rollback();
-                return res.status(400).json({ message: "User is already assigned to this business" });
+                if (existingMapping.status) {
+                    await t.rollback();
+                    return res.status(400).json({ message: "User is already assigned to this business" });
+                } else {
+                    // Reactivate soft-deleted mapping with new role
+                    await existingMapping.update({
+                        role_id: numericRoleId,
+                        status: true
+                    }, { transaction: t });
+                }
+            } else {
+                // 3. Create mapping
+                await UserBusiness.create({
+                    user_id: user.id,
+                    business_id: numericBusinessId,
+                    role_id: numericRoleId,
+                    status: true
+                }, { transaction: t });
             }
 
-            // 3. Create mapping
-            await UserBusiness.create({
-                user_id: user.id,
-                business_id,
-                role_id,
-                status: true
-            }, { transaction: t });
+            // Fetch role details for full response
+            const assignedRole = await Role.findByPk(numericRoleId);
 
             await t.commit();
             return res.status(201).json({
                 message: "User created and assigned successfully",
-                user: { id: user.id, name: user.name, email: user.email }
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    mobile: user.mobile,
+                    role_id: numericRoleId,
+                    roleId: numericRoleId,
+                    role: assignedRole ? assignedRole.name : 'Staff',
+                    photo: user.photo,
+                    status: true
+                }
             });
 
         } catch (error) {
@@ -140,34 +171,57 @@ const usersController = {
                 return res.status(404).json({ message: "User not found" });
             }
 
+            const numericBusinessId = parseInt(business_id);
+            const numericRoleId = role_id !== undefined && role_id !== null ? parseInt(role_id) : null;
+
             // Update user info
             await user.update({
                 name: name || user.name,
-                email: email || user.email,
-                mobile: mobile !== undefined ? mobile : user.mobile,
-                photo: photo !== undefined ? photo : user.photo
+                email: email !== undefined ? (email && email.trim() !== "" ? email.trim() : null) : user.email,
+                mobile: mobile !== undefined ? (mobile ? mobile.trim() : null) : user.mobile,
+                photo: photo !== undefined ? photo : user.photo,
+                role_id: numericRoleId !== null && !isNaN(numericRoleId) ? numericRoleId : user.role_id
             }, { transaction: t });
 
             // Update business mapping
-            if (business_id && role_id) {
+            let assignedRoleName = 'Staff';
+            if (!isNaN(numericBusinessId)) {
                 const mapping = await UserBusiness.findOne({
-                    where: { user_id: id, business_id }
+                    where: { user_id: id, business_id: numericBusinessId }
                 });
                 if (mapping) {
                     let finalStatus = mapping.status;
                     if (status !== undefined) {
-                        finalStatus = (status === 'active' || status === true);
+                        finalStatus = (status === 'active' || status === true || status === 1);
                     }
 
-                    await mapping.update({
-                        role_id,
-                        status: finalStatus
-                    }, { transaction: t });
+                    const updatePayload = { status: finalStatus };
+                    if (numericRoleId !== null && !isNaN(numericRoleId)) {
+                        updatePayload.role_id = numericRoleId;
+                    }
+
+                    await mapping.update(updatePayload, { transaction: t });
+
+                    const r = await Role.findByPk(mapping.role_id);
+                    if (r) assignedRoleName = r.name;
                 }
             }
 
             await t.commit();
-            return res.status(200).json({ message: "User updated successfully" });
+            return res.status(200).json({
+                message: "User updated successfully",
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    mobile: user.mobile,
+                    photo: user.photo,
+                    role_id: numericRoleId || user.role_id,
+                    roleId: numericRoleId || user.role_id,
+                    role: assignedRoleName,
+                    status: status !== undefined ? (status === 'active' || status === true || status === 1) : user.status
+                }
+            });
         } catch (error) {
             await t.rollback();
             console.error("Update User Error:", error);
@@ -250,12 +304,13 @@ const usersController = {
             const { id } = req.params; // User ID
             const { business_id } = req.query;
 
-            if (!business_id) {
-                return res.status(400).json({ message: "Business ID is required" });
+            const numericBusinessId = parseInt(business_id);
+            if (!business_id || isNaN(numericBusinessId)) {
+                return res.status(400).json({ message: "Valid Business ID is required" });
             }
 
             const mapping = await UserBusiness.findOne({
-                where: { user_id: id, business_id }
+                where: { user_id: id, business_id: numericBusinessId }
             });
 
             if (!mapping) {

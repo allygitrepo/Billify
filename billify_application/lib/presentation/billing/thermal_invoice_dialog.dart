@@ -43,6 +43,7 @@ class ThermalInvoiceDialog extends ConsumerStatefulWidget {
     this.initialPaidAmount,
     this.initialPaymentMode,
     this.invoice,
+    this.previousBalance,
   });
 
   final bool isViewOnly;
@@ -50,6 +51,7 @@ class ThermalInvoiceDialog extends ConsumerStatefulWidget {
   final double? initialPaidAmount;
   final String? initialPaymentMode;
   final InvoiceModel? invoice;
+  final double? previousBalance;
 
   @override
   ConsumerState<ThermalInvoiceDialog> createState() =>
@@ -114,17 +116,25 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
     });
   }
 
+  double get _effectivePreviousBalance {
+    if (widget.invoice != null) return widget.invoice!.previous_balance;
+    return widget.previousBalance ?? widget.customer?.remainingBalance ?? 0.0;
+  }
+
+  double get _effectiveTotalDue => _effectiveTotal + _effectivePreviousBalance;
+
   void _recalcPaidAndRemaining() {
     final total = _effectiveTotal;
+    final totalDue = _effectiveTotalDue;
     if (_paymentMode == 'CASH') {
       _paidController.text = total.toStringAsFixed(2);
-      _remaining = 0.0;
+      _remaining = _effectivePreviousBalance;
     } else if (_paymentMode == 'KHATA') {
       _paidController.text = '0.00';
-      _remaining = total;
+      _remaining = totalDue;
     } else if (_paymentMode == 'SPLIT') {
       final currentPaid = double.tryParse(_paidController.text) ?? (total / 2);
-      _remaining = (total - currentPaid).clamp(0.0, double.infinity);
+      _remaining = (totalDue - currentPaid).clamp(0.0, double.infinity);
     }
   }
 
@@ -167,6 +177,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
       customer_phone: resolvedCustomerPhone,
       paid_amount: paid,
       payment_mode: _paymentMode,
+      previous_balance: _effectivePreviousBalance,
     );
   }
 
@@ -190,8 +201,10 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
     _paidController = TextEditingController(
       text: initialPaid.toStringAsFixed(2),
     );
-    final totalAmt = widget.invoice?.final_amount ?? _effectiveTotal;
-    _remaining = (totalAmt - initialPaid).clamp(0.0, double.infinity);
+    final totalDue = widget.invoice != null
+        ? (widget.invoice!.final_amount + widget.invoice!.previous_balance)
+        : _effectiveTotalDue;
+    _remaining = (totalDue - initialPaid).clamp(0.0, double.infinity);
   }
 
   @override
@@ -203,7 +216,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
   void _updateRemaining(String val) {
     final paid = double.tryParse(val) ?? 0.0;
     setState(() {
-      _remaining = (widget.total - paid).clamp(0.0, double.infinity);
+      _remaining = (_effectiveTotalDue - paid).clamp(0.0, double.infinity);
     });
   }
 
@@ -632,11 +645,27 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                 style: TextStyle(color: Colors.black38),
               ),
               _PriceRow(
-                label: 'GRAND TOTAL',
+                label: _effectivePreviousBalance > 0 ? 'BILL TOTAL' : 'GRAND TOTAL',
                 value: _effectiveTotal,
                 isBold: true,
                 fontSize: 14,
               ),
+              if (_effectivePreviousBalance > 0) ...[
+                const SizedBox(height: 2),
+                _PriceRow(
+                  label: 'PREVIOUS BALANCE',
+                  value: _effectivePreviousBalance,
+                  isBold: true,
+                  fontSize: 12,
+                ),
+                const SizedBox(height: 2),
+                _PriceRow(
+                  label: 'TOTAL DUE',
+                  value: _effectiveTotalDue,
+                  isBold: true,
+                  fontSize: 14,
+                ),
+              ],
 
               // Tax & GST Toggle Switches for New Invoices
               if (!widget.isViewOnly && widget.invoice == null && !_isConfirmed)

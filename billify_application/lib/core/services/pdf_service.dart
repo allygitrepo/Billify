@@ -496,7 +496,7 @@ class PdfService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    "GRAND TOTAL",
+                    invoice.previous_balance > 0 ? "BILL TOTAL" : "GRAND TOTAL",
                     style: pw.TextStyle(
                       fontWeight: pw.FontWeight.bold,
                       fontSize: 9,
@@ -512,6 +512,52 @@ class PdfService {
                 ],
               ),
             ),
+
+            if (invoice.previous_balance > 0) ...[
+              pw.SizedBox(height: 2),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    "Previous Balance:",
+                    style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold),
+                  ),
+                  pw.Text(
+                    "Rs ${invoice.previous_balance.toStringAsFixed(2)}",
+                    style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold),
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 1),
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                decoration: const pw.BoxDecoration(
+                  border: pw.Border(
+                    top: pw.BorderSide(width: 0.5),
+                    bottom: pw.BorderSide(width: 0.5),
+                  ),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      "TOTAL DUE",
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 8.5,
+                      ),
+                    ),
+                    pw.Text(
+                      "Rs ${(invoice.final_amount + invoice.previous_balance).toStringAsFixed(2)}",
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 8.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
 
             pw.SizedBox(height: 3),
             pw.Row(
@@ -535,7 +581,7 @@ class PdfService {
                 ),
               ],
             ),
-            if (invoice.final_amount > invoice.paid_amount) ...[
+            if (((invoice.final_amount + invoice.previous_balance) - invoice.paid_amount) > 0.01) ...[
               pw.SizedBox(height: 1),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -545,7 +591,7 @@ class PdfService {
                     style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold),
                   ),
                   pw.Text(
-                    "Rs ${(invoice.final_amount - invoice.paid_amount).toStringAsFixed(2)}",
+                    "Rs ${((invoice.final_amount + invoice.previous_balance) - invoice.paid_amount).toStringAsFixed(2)}",
                     style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold),
                   ),
                 ],

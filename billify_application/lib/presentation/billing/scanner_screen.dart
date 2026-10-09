@@ -235,6 +235,16 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
         .read(invoiceProvider.notifier)
         .getNextInvoiceNumber(currentBusiness);
 
+    final resolvedCustomer = customer ??
+        (billingState.selectedCustomerId != null
+            ? ref
+                .read(customerProvider)
+                .value
+                ?.where((c) => c.id == billingState.selectedCustomerId)
+                .firstOrNull
+            : null);
+    final prevBalance = resolvedCustomer?.remainingBalance ?? 0.0;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -251,7 +261,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
         initialPaymentMode: 'CASH',
         customerId: billingState.selectedCustomerId,
         customerType: billingState.customerType,
-        customer: customer,
+        customer: resolvedCustomer,
+        previousBalance: prevBalance,
       ),
     );
   }

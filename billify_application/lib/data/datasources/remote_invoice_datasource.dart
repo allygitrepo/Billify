@@ -54,6 +54,7 @@ class RemoteInvoiceDatasource {
       'gst_amount': invoice.gst_amount,
       'final_amount': invoice.final_amount,
       'paid_amount': invoice.paid_amount,
+      'previous_balance': invoice.previous_balance,
       'payment_mode': mode,
       'status': status,
       'user_id': userId,
@@ -93,6 +94,8 @@ class RemoteInvoiceDatasource {
             : invoice.date.toLocal(),
         paid_amount: double.tryParse(serverData['paid_amount']?.toString() ?? '') ??
             invoice.paid_amount,
+        previous_balance: double.tryParse(serverData['previous_balance']?.toString() ?? '') ??
+            invoice.previous_balance,
         payment_mode: serverData['payment_mode'] ?? mode,
         status: serverData['status'] ?? status,
         customer_name: serverData['customer_name'] ?? invoice.customer_name,

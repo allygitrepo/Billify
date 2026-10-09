@@ -18,6 +18,7 @@ class InvoiceModel {
   final double paid_amount;
   final String payment_mode;
   final String status;
+  final double previous_balance;
 
   InvoiceModel({
     required this.id,
@@ -36,7 +37,10 @@ class InvoiceModel {
     this.paid_amount = 0.0,
     this.payment_mode = 'Cash',
     this.status = 'Paid',
+    this.previous_balance = 0.0,
   });
+
+  double get totalDue => final_amount + previous_balance;
 
   static DateTime parseDateTime(dynamic value) {
     if (value == null) return DateTime.now();
@@ -122,6 +126,10 @@ class InvoiceModel {
           double.tryParse(json['paid_amount']?.toString() ?? '') ?? 0.0,
       payment_mode: json['payment_mode'] ?? 'Cash',
       status: json['status'] ?? 'Paid',
+      previous_balance:
+          double.tryParse(json['previous_balance']?.toString() ?? '') ??
+          double.tryParse(json['previousBalance']?.toString() ?? '') ??
+          0.0,
     );
   }
 
@@ -143,6 +151,7 @@ class InvoiceModel {
       'paid_amount': paid_amount,
       'payment_mode': payment_mode,
       'status': status,
+      'previous_balance': previous_balance,
     };
   }
 
@@ -163,6 +172,7 @@ class InvoiceModel {
     double? paid_amount,
     String? payment_mode,
     String? status,
+    double? previous_balance,
   }) {
     return InvoiceModel(
       id: id ?? this.id,
@@ -181,6 +191,7 @@ class InvoiceModel {
       paid_amount: paid_amount ?? this.paid_amount,
       payment_mode: payment_mode ?? this.payment_mode,
       status: status ?? this.status,
+      previous_balance: previous_balance ?? this.previous_balance,
     );
   }
 }

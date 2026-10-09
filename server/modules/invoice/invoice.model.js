@@ -15,6 +15,7 @@ const Invoice = sequelize.define("Invoice", {
     gst_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     final_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     paid_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 }, // New field to track credit
+    previous_balance: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     payment_mode: { type: DataTypes.STRING, defaultValue: 'Cash' }, // 'Cash', 'UPI', 'Card'
     status: { type: DataTypes.STRING, defaultValue: 'Paid' }, // 'Paid', 'Pending'
     user_id: { type: DataTypes.INTEGER, allowNull: true }

@@ -47,16 +47,21 @@ const invoiceController = {
             // 2. Generate Sequential Invoice Number
             const invoice_number = await getNextSequenceNumber(business_id);
 
-            // Auto-populate customer details if customer_id exists
+            // Auto-populate customer details & previous balance if customer_id exists
             let finalCustomerName = customer_name;
             let finalCustomerPhone = customer_phone;
-            if (customer_id && (!finalCustomerName || !finalCustomerPhone)) {
-                const customerObj = await Customer.findByPk(customer_id, { transaction: t });
+            let customerObj = null;
+            if (customer_id) {
+                customerObj = await Customer.findByPk(customer_id, { transaction: t });
                 if (customerObj) {
                     finalCustomerName = finalCustomerName || customerObj.name;
                     finalCustomerPhone = finalCustomerPhone || customerObj.phone_number;
                 }
             }
+
+            const recordedPreviousBalance = req.body.previous_balance !== undefined
+                ? (parseFloat(req.body.previous_balance) || 0)
+                : (customerObj ? (parseFloat(customerObj.remaining_balance) || 0) : 0);
 
             // 2. Create Invoice
             const invoice = await Invoice.create({
@@ -73,13 +78,14 @@ const invoiceController = {
                 gst_amount: gst_amount || 0,
                 final_amount,
                 paid_amount: paid_amount || 0,
+                previous_balance: recordedPreviousBalance,
                 payment_mode: payment_mode || 'Cash',
                 status: status || 'Paid'
             }, { transaction: t });
 
             // 3. Handle Customer Balance for "Regular" customers
             if (customer_type === 'REGULAR' && customer_id) {
-                const customer = await Customer.findByPk(customer_id, { transaction: t });
+                const customer = customerObj || await Customer.findByPk(customer_id, { transaction: t });
                 if (customer) {
                     const totalInvoiceAmount = parseFloat(final_amount) || 0;
                     const paid = parseFloat(paid_amount) || 0;

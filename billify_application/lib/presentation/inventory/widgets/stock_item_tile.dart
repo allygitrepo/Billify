@@ -1,9 +1,11 @@
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/data/models/product_model.dart';
+import 'package:billify/providers/uom_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class StockItemTile extends StatelessWidget {
+class StockItemTile extends ConsumerWidget {
   final ProductModel product;
   final String? variantId;
   final double quantity;
@@ -21,8 +23,28 @@ class StockItemTile extends StatelessWidget {
     required this.isStockOut,
   });
 
+  String _formatNumber(double val) {
+    return val % 1 == 0 ? val.toInt().toString() : val.toString();
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uoms = ref.watch(uomProvider);
+    final matchedUom = uoms
+        .where(
+          (u) =>
+              u.id == product.uom ||
+              (product.base_uom_id != null &&
+                  u.id == product.base_uom_id.toString()),
+        )
+        .firstOrNull;
+
+    final displayUom = matchedUom != null
+        ? (matchedUom.shortCode.isNotEmpty
+            ? matchedUom.shortCode
+            : matchedUom.name)
+        : (int.tryParse(product.uom) != null ? '' : product.uom);
+
     String name = product.name;
     String barcode = product.barcode;
     double currentStock = product.stock;
@@ -37,6 +59,9 @@ class StockItemTile extends StatelessWidget {
         currentStock = variant.stock;
       }
     }
+
+    final formattedCurrentStock = _formatNumber(currentStock);
+    final formattedQty = _formatNumber(quantity);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -53,7 +78,7 @@ class StockItemTile extends StatelessWidget {
                   height: 40,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    color: AppTheme.primaryTeal.withOpacity(0.1),
+                    color: AppTheme.primaryTeal.withValues(alpha: 0.1),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: product.photo != null && product.photo!.isNotEmpty
@@ -95,7 +120,7 @@ class StockItemTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        'Stock: $currentStock ${product.uom.isNotEmpty ? product.uom : ''} | Barcode: $barcode',
+                        'Stock: $formattedCurrentStock${displayUom.isNotEmpty ? ' $displayUom' : ''}${barcode.isNotEmpty ? ' | Barcode: $barcode' : ''}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context).textTheme.bodySmall?.color,
@@ -123,7 +148,7 @@ class StockItemTile extends StatelessWidget {
                         if (product.is_weighted && onWeightTap != null) {
                           onWeightTap!();
                         } else {
-                          _showManualQuantityDialog(context);
+                          _showManualQuantityDialog(context, displayUom);
                         }
                       },
                       borderRadius: BorderRadius.circular(4),
@@ -139,7 +164,7 @@ class StockItemTile extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          '$quantity',
+                          formattedQty,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -175,7 +200,7 @@ class StockItemTile extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Insufficient stock! Remaining: $currentStock',
+                      'Insufficient stock! Remaining: $formattedCurrentStock${displayUom.isNotEmpty ? ' $displayUom' : ''}',
                       style: const TextStyle(
                         color: Colors.orange,
                         fontSize: 11,
@@ -191,19 +216,22 @@ class StockItemTile extends StatelessWidget {
     );
   }
 
-  Future<void> _showManualQuantityDialog(BuildContext context) async {
-    final controller = TextEditingController(text: quantity.toString());
+  Future<void> _showManualQuantityDialog(
+    BuildContext context,
+    String uomLabel,
+  ) async {
+    final controller = TextEditingController(text: _formatNumber(quantity));
     final result = await showDialog<double?>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Enter Quantity for ${product.name}'),
         content: TextField(
           controller: controller,
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           autofocus: true,
           decoration: InputDecoration(
             hintText: 'Enter number',
-            suffixText: product.uom.isNotEmpty ? product.uom : 'units',
+            suffixText: uomLabel.isNotEmpty ? uomLabel : null,
           ),
           onSubmitted: (val) {
             final qty = double.tryParse(val);

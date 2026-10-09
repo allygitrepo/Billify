@@ -8,6 +8,7 @@ import 'package:billify/data/models/product_model.dart';
 import 'package:billify/data/models/cart_item_model.dart';
 import 'package:billify/providers/product_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:billify/providers/uom_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -1310,27 +1311,48 @@ class _PanelItemTile extends ConsumerWidget {
             ),
             const SizedBox(width: 12),
 
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: Theme.of(context).textTheme.titleMedium?.color,
-                    ),
+            Builder(
+              builder: (context) {
+                final uoms = ref.watch(uomProvider);
+                final matchedUom = uoms
+                    .where(
+                      (u) =>
+                          u.id == item.product.uom ||
+                          (item.product.base_uom_id != null &&
+                              u.id == item.product.base_uom_id.toString()),
+                    )
+                    .firstOrNull;
+                final displayUom = matchedUom != null
+                    ? (matchedUom.shortCode.isNotEmpty
+                        ? matchedUom.shortCode
+                        : matchedUom.name)
+                    : (int.tryParse(item.product.uom) != null
+                        ? ''
+                        : item.product.uom);
+
+                return Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Theme.of(context).textTheme.titleMedium?.color,
+                        ),
+                      ),
+                      Text(
+                        '₹${item.product.is_weighted ? item.product.price_per_unit.toStringAsFixed(2) : item.price.toStringAsFixed(2)}${displayUom.isNotEmpty ? ' / $displayUom' : ''}',
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    '₹${item.product.is_weighted ? item.product.price_per_unit.toStringAsFixed(2) : item.price.toStringAsFixed(2)}${item.product.uom.isNotEmpty ? ' / ${item.product.uom}' : ''}',
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodySmall?.color,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
 
             if (ref

@@ -32,7 +32,6 @@ class RemoteInvoiceDatasource {
     String businessId,
     String? userId,
   ) async {
-    final double totalTaxes = (invoice.tax_amount) + (invoice.gst_amount);
     final String mode = invoice.payment_mode.isNotEmpty
         ? invoice.payment_mode
         : ((invoice.paid_amount >= invoice.final_amount)

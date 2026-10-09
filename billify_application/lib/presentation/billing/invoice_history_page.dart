@@ -56,13 +56,57 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Invoice History')),
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Invoice History'),
+            Text(
+              filteredInvoices.length == invoices.length
+                  ? '${filteredInvoices.length} ${filteredInvoices.length == 1 ? 'invoice' : 'invoices'}'
+                  : '${filteredInvoices.length} of ${invoices.length} invoices',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+                color: Theme.of(context).appBarTheme.foregroundColor?.withOpacity(0.7) ??
+                    Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      ),
       bottomNavigationBar: const SafeArea(
         child: AppBannerAd(),
       ),
       body: Column(
         children: [
           _buildFilterBar(context, filterDateFormat),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: Theme.of(context).cardColor.withOpacity(0.5),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${filteredInvoices.length} ${filteredInvoices.length == 1 ? 'Invoice found' : 'Invoices found'}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryTeal,
+                  ),
+                ),
+                if (filteredInvoices.isNotEmpty)
+                  Text(
+                    'Total: ₹${filteredInvoices.fold<double>(0.0, (sum, inv) => sum + inv.final_amount).toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  ),
+              ],
+            ),
+          ),
           Expanded(
             child: filteredInvoices.isEmpty
                 ? Center(
@@ -89,133 +133,166 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                     itemCount: filteredInvoices.length,
                     itemBuilder: (context, index) {
                       final invoice = filteredInvoices[index];
+                      final customer = customers
+                          .where((c) => c.id == invoice.customer_id)
+                          .firstOrNull;
+                      final isWalkin =
+                          invoice.customer_type == 'WALKIN' || customer == null;
+
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          leading: CircleAvatar(
-                            backgroundColor: AppTheme.primaryTeal.withOpacity(
-                              0.1,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => _viewInvoice(context, invoice),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
                             ),
-                            child: const Icon(
-                              Icons.receipt_long,
-                              color: AppTheme.primaryTeal,
-                            ),
-                          ),
-                          title: Text(
-                            'INV #${invoice.id.toUpperCase()}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                dateFormat.format(invoice.date.toLocal()),
-                                style: const TextStyle(fontSize: 11),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  (() {
-                                    final customer = customers
-                                        .where(
-                                          (c) => c.id == invoice.customer_id,
-                                        )
-                                        .firstOrNull;
-                                    final isWalkin =
-                                        invoice.customer_type == 'WALKIN' ||
-                                        customer == null;
-                                    return Row(
-                                      children: [
-                                        Icon(
-                                          isWalkin
-                                              ? Icons.person_outline
-                                              : Icons.person,
-                                          size: 14,
-                                          color: isWalkin
-                                              ? Colors.grey
-                                              : AppTheme.primaryTeal,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor:
+                                      AppTheme.primaryTeal.withOpacity(0.1),
+                                  child: const Icon(
+                                    Icons.receipt_long,
+                                    color: AppTheme.primaryTeal,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'INV #${invoice.id.toUpperCase()}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
                                         ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          isWalkin
-                                              ? 'Walk-in Customer'
-                                              : customer.name,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color:
-                                                isWalkin
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        dateFormat.format(
+                                          invoice.date.toLocal(),
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.color ??
+                                              Colors.grey,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            isWalkin
+                                                ? Icons.person_outline
+                                                : Icons.person,
+                                            size: 13,
+                                            color: isWalkin
+                                                ? Colors.grey
+                                                : AppTheme.primaryTeal,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              isWalkin
+                                                  ? 'Walk-in Customer'
+                                                  : customer.name,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: isWalkin
                                                     ? Colors.grey
                                                     : Theme.of(context)
                                                         .textTheme
-                                                        .bodyLarge
+                                                        .bodyMedium
                                                         ?.color,
-                                            fontWeight:
-                                                isWalkin
+                                                fontWeight: isWalkin
                                                     ? FontWeight.normal
-                                                    : FontWeight.bold,
+                                                    : FontWeight.w600,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                    );
-                                  })(),
-                                ],
-                              ),
-                            ],
-                          ),
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '₹${invoice.final_amount.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: AppTheme.primaryTeal,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color:
-                                      (invoice.paid_amount >=
-                                          invoice.final_amount)
-                                      ? Colors.green.withOpacity(0.1)
-                                      : Colors.red.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  (invoice.paid_amount >= invoice.final_amount)
-                                      ? 'PAID'
-                                      : 'KHATA',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                        (invoice.paid_amount >=
-                                            invoice.final_amount)
-                                        ? Colors.green
-                                        : Colors.red,
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 10),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '₹${invoice.final_amount.toStringAsFixed(2)}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        color: AppTheme.primaryTeal,
+                                      ),
+                                    ),
+                                    if (invoice.previous_balance > 0) ...[
+                                      const SizedBox(height: 1),
+                                      Text(
+                                        'Due: ₹${invoice.totalDue.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.redAccent,
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            (invoice.paid_amount >=
+                                                    invoice.final_amount)
+                                                ? Colors.green.withOpacity(0.12)
+                                                : Colors.red.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        (invoice.paid_amount >=
+                                                invoice.final_amount)
+                                            ? 'PAID'
+                                            : 'KHATA',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color:
+                                              (invoice.paid_amount >=
+                                                      invoice.final_amount)
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
-                          onTap: () => _viewInvoice(context, invoice),
                         ),
                       );
                     },
@@ -364,6 +441,7 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
         customerId: invoice.customer_id,
         customerType: invoice.customer_type,
         invoice: invoice,
+        previousBalance: invoice.previous_balance,
         isViewOnly: true,
       ),
     );

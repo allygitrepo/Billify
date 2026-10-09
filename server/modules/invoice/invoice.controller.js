@@ -59,9 +59,12 @@ const invoiceController = {
                 }
             }
 
-            const recordedPreviousBalance = req.body.previous_balance !== undefined
-                ? (parseFloat(req.body.previous_balance) || 0)
-                : (customerObj ? (parseFloat(customerObj.remaining_balance) || 0) : 0);
+            let recordedPreviousBalance = 0;
+            if (req.body.previous_balance !== undefined && req.body.previous_balance !== null && parseFloat(req.body.previous_balance) > 0) {
+                recordedPreviousBalance = parseFloat(req.body.previous_balance);
+            } else if (customerObj && parseFloat(customerObj.remaining_balance) > 0) {
+                recordedPreviousBalance = parseFloat(customerObj.remaining_balance);
+            }
 
             // 2. Create Invoice
             const invoice = await Invoice.create({
@@ -253,7 +256,8 @@ const invoiceController = {
                         include: [{ model: Product, as: 'product' }]
                     },
                     { model: User, as: 'user' },
-                    { model: Customer, as: 'customer' }
+                    { model: Customer, as: 'customer' },
+                    { model: Business, as: 'business' }
                 ],
                 order: [['createdAt', 'DESC']]
             });

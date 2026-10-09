@@ -156,6 +156,7 @@ class BillingNotifier extends Notifier<BillingState> {
     double? customTaxAmount,
     double? customGstAmount,
     double? customFinalAmount,
+    double? customPreviousBalance,
   }) async {
     if (state.items.isEmpty || state.isProcessing) return null;
 
@@ -174,6 +175,15 @@ class BillingNotifier extends Notifier<BillingState> {
       final effectiveFinal = customFinalAmount ??
           state.getTotal(business.tax_percentage, business.gst_percentage);
 
+      double effectivePreviousBal = customPreviousBalance ?? 0.0;
+      if (customPreviousBalance == null && state.selectedCustomerId != null) {
+        final customers = ref.read(customerProvider).value;
+        final cust = customers
+            ?.where((c) => c.id == state.selectedCustomerId)
+            .firstOrNull;
+        effectivePreviousBal = cust?.remainingBalance ?? 0.0;
+      }
+
       final invoice = InvoiceModel(
         id: invoiceId,
         date: DateTime.now(),
@@ -190,6 +200,7 @@ class BillingNotifier extends Notifier<BillingState> {
         customer_phone: state.customerPhone,
         paid_amount: state.paidAmount,
         payment_mode: state.paymentMode,
+        previous_balance: effectivePreviousBal,
       );
 
       // Save to server & history

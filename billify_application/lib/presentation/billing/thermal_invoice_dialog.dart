@@ -1162,6 +1162,8 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                       customTaxAmount: _effectiveTaxAmount,
                                       customGstAmount: _effectiveGstAmount,
                                       customFinalAmount: _effectiveTotal,
+                                      customPreviousBalance:
+                                          _effectivePreviousBalance,
                                     );
 
                                 if (mounted) {

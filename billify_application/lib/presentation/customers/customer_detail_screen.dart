@@ -499,6 +499,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
               customerId: invoice.customer_id,
               customerType: invoice.customer_type,
               invoice: invoice,
+              previousBalance: invoice.previous_balance,
               isViewOnly: true,
             ),
           );

@@ -6,6 +6,7 @@ import 'package:billify/providers/billing_provider.dart';
 import 'package:billify/providers/business_provider.dart';
 import 'package:billify/data/models/product_model.dart';
 import 'package:billify/data/models/cart_item_model.dart';
+import 'package:billify/providers/invoice_provider.dart';
 import 'package:billify/providers/product_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:billify/providers/uom_provider.dart';
@@ -230,8 +231,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
 
     final taxPercent = currentBusiness.tax_percentage;
     final gstPercent = currentBusiness.gst_percentage;
-    final invoiceNo =
-        '${currentBusiness.invoice_prefix}${currentBusiness.starting_invoice_number}';
+    final invoiceNo = ref
+        .read(invoiceProvider.notifier)
+        .getNextInvoiceNumber(currentBusiness);
 
     showDialog(
       context: context,

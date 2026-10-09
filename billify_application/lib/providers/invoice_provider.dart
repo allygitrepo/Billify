@@ -58,6 +58,38 @@ class InvoiceNotifier extends StateNotifier<List<InvoiceModel>> {
     return serverInvoice;
   }
 
+  String getNextInvoiceNumber(dynamic business) {
+    if (business == null) return 'INV-001';
+    final prefix = (business.invoice_prefix != null && business.invoice_prefix.toString().isNotEmpty)
+        ? business.invoice_prefix.toString()
+        : 'INV';
+    final startingNumber = (business.starting_invoice_number as num?)?.toInt() ?? 1;
+
+    // Scan existing state to find the maximum sequential number
+    int maxSequence = startingNumber - 1;
+    for (final inv in state) {
+      final id = inv.id.trim();
+      final match = RegExp(r'(\d+)$').firstMatch(id);
+      if (match != null) {
+        final val = int.tryParse(match.group(1)!);
+        if (val != null && val > maxSequence) {
+          maxSequence = val;
+        }
+      }
+    }
+
+    final nextNumber = maxSequence >= startingNumber
+        ? maxSequence + 1
+        : (startingNumber + state.length);
+
+    final padded = nextNumber.toString().padLeft(3, '0');
+
+    if (prefix.endsWith('/') || prefix.endsWith('-') || prefix.endsWith('_')) {
+      return '$prefix$padded';
+    }
+    return '$prefix-$padded';
+  }
+
   Future<void> deleteInvoice(String id) async {
     await _repo.deleteInvoice(id);
     state = state.where((e) => e.id != id).toList();

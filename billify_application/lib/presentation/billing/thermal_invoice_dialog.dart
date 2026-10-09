@@ -363,309 +363,323 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
         .toLocal();
     final dateFormat = DateFormat('dd-MM-yyyy');
     final timeFormat = DateFormat('hh:mm a');
-    final isRegular = widget.customerType == 'REGULAR';
 
     return Dialog(
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: SingleChildScrollView(
-        child: Container(
-          width: 320, // Typical thermal width
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Text(
-                business.name.toUpperCase(),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  letterSpacing: 0,
-                  color: Colors.black,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              if (business.address != null)
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: 380,
+          minWidth: 280,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
                 Text(
-                  business.address!,
+                  business.name.toUpperCase(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    letterSpacing: 0,
+                    color: Colors.black,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                if (business.address != null)
+                  Text(
+                    business.address!,
+                    style: const TextStyle(fontSize: 12, color: Colors.black87),
+                    textAlign: TextAlign.center,
+                  ),
+                Text(
+                  'Phone: ${business.phone}',
                   style: const TextStyle(fontSize: 12, color: Colors.black87),
                   textAlign: TextAlign.center,
                 ),
-              Text(
-                'Phone: ${business.phone}',
-                style: const TextStyle(fontSize: 12, color: Colors.black87),
-                textAlign: TextAlign.center,
-              ),
-              if (business.gstin != null && business.gstin!.isNotEmpty)
+                if (business.gstin != null && business.gstin!.isNotEmpty)
+                  Text(
+                    'GSTIN: ${business.gstin}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+
+                const SizedBox(height: 8),
                 Text(
-                  'GSTIN: ${business.gstin}',
+                  'INVOICE NO: ${widget.invoiceId}',
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),
                   textAlign: TextAlign.center,
                 ),
 
-              const SizedBox(height: 8),
-              Text(
-                'INVOICE NO: ${widget.invoiceId}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                Consumer(
+                  builder: (context, ref, _) {
+                    final customers = ref.watch(customerProvider).value ?? [];
+                    final custId =
+                        widget.customerId ?? widget.invoice?.customer_id;
+                    final customer =
+                        widget.customer ??
+                        customers.where((c) => c.id == custId).firstOrNull;
+
+                    final customerName =
+                        customer?.name ??
+                        widget.invoice?.customer_name ??
+                        ref.watch(billingProvider).customerName;
+                    final customerPhone =
+                        customer?.phoneNumber ??
+                        widget.invoice?.customer_phone ??
+                        ref.watch(billingProvider).customerPhone;
+
+                    final customerCity =
+                        customer?.city ??
+                        ref.watch(billingProvider).customerCity;
+
+                    final hasCustomer =
+                        (customerName != null &&
+                            customerName.isNotEmpty &&
+                            customerName != 'Walk-in Customer') ||
+                        (customerPhone != null && customerPhone.isNotEmpty) ||
+                        (customerCity != null && customerCity.isNotEmpty) ||
+                        (widget.customerType == 'REGULAR' && widget.customerId != null);
+
+                    if (!hasCustomer) return const SizedBox.shrink();
+
+                    return Column(
+                      children: [
+                        const _DashedDivider(),
+                        if (customerName != null && customerName.isNotEmpty)
+                          Text(
+                            'CUSTOMER: ${customerName.toUpperCase()}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                        if (customerPhone != null && customerPhone.isNotEmpty)
+                          Text(
+                            'Phone: $customerPhone',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        if (customerCity != null && customerCity.isNotEmpty)
+                          Text(
+                            'City: $customerCity',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.black87,
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
-                textAlign: TextAlign.center,
-              ),
+                const _DashedDivider(),
 
-              Consumer(
-                builder: (context, ref, _) {
-                  final customers = ref.watch(customerProvider).value ?? [];
-                  final custId =
-                      widget.customerId ?? widget.invoice?.customer_id;
-                  final customer =
-                      widget.customer ??
-                      customers.where((c) => c.id == custId).firstOrNull;
+                // Date & Time
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Date: ${dateFormat.format(now)}',
+                      style: const TextStyle(fontSize: 11, color: Colors.black87),
+                    ),
+                    Text(
+                      'Time: ${timeFormat.format(now)}',
+                      style: const TextStyle(fontSize: 11, color: Colors.black87),
+                    ),
+                  ],
+                ),
 
-                  final customerName =
-                      customer?.name ??
-                      widget.invoice?.customer_name ??
-                      ref.watch(billingProvider).customerName;
-                  final customerPhone =
-                      customer?.phoneNumber ??
-                      widget.invoice?.customer_phone ??
-                      ref.watch(billingProvider).customerPhone;
+                const _DashedDivider(),
 
-                  final customerCity =
-                      customer?.city ??
-                      ref.watch(billingProvider).customerCity;
-
-                  final hasCustomer =
-                      (customerName != null &&
-                          customerName.isNotEmpty &&
-                          customerName != 'Walk-in Customer') ||
-                      (customerPhone != null && customerPhone.isNotEmpty) ||
-                      (customerCity != null && customerCity.isNotEmpty) ||
-                      (widget.customerType == 'REGULAR' && widget.customerId != null);
-
-                  if (!hasCustomer) return const SizedBox.shrink();
-
-                  return Column(
-                    children: [
-                      const Text(
-                        '-----------------------------------------',
-                        style: TextStyle(color: Colors.black38),
-                      ),
-                      if (customerName != null && customerName.isNotEmpty)
-                        Text(
-                          'CUSTOMER: ${customerName.toUpperCase()}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
+                // Items Table Header
+                const Row(
+                  children: [
+                    Expanded(
+                      flex: 7,
+                      child: Text(
+                        'ITEM',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: Colors.black,
                         ),
-                      if (customerPhone != null && customerPhone.isNotEmpty)
-                        Text(
-                          'Phone: $customerPhone',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      if (customerCity != null && customerCity.isNotEmpty)
-                        Text(
-                          'City: $customerCity',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.black87,
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
-              const Text(
-                '-----------------------------------------',
-                style: TextStyle(color: Colors.black38),
-              ),
-
-              // Date & Time
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Date: ${dateFormat.format(now)}',
-                    style: const TextStyle(fontSize: 11, color: Colors.black87),
-                  ),
-                  Text(
-                    'Time: ${timeFormat.format(now)}',
-                    style: const TextStyle(fontSize: 11, color: Colors.black87),
-                  ),
-                ],
-              ),
-
-              const Text(
-                '-----------------------------------------',
-                style: TextStyle(color: Colors.black38),
-              ),
-
-              // Items Table Header
-              const Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Text(
-                      'ITEM',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                        color: Colors.black,
                       ),
                     ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      'QTY',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                        color: Colors.black,
+                    SizedBox(width: 4),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        'QTY',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: Colors.black,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'PRICE',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                        color: Colors.black,
+                    SizedBox(width: 4),
+                    Expanded(
+                      flex: 5,
+                      child: Text(
+                        'PRICE',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: Colors.black,
+                        ),
+                        textAlign: TextAlign.right,
                       ),
-                      textAlign: TextAlign.right,
                     ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'TOTAL',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                        color: Colors.black,
+                    SizedBox(width: 4),
+                    Expanded(
+                      flex: 6,
+                      child: Text(
+                        'TOTAL',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: Colors.black,
+                        ),
+                        textAlign: TextAlign.right,
                       ),
-                      textAlign: TextAlign.right,
                     ),
+                  ],
+                ),
+                const _DashedDivider(),
+
+                // Items List
+                ...widget.items.map(
+                  (item) {
+                    final qtyStr = item.product.is_weighted
+                        ? item.quantity.toStringAsFixed(2)
+                        : (item.quantity % 1 == 0
+                            ? item.quantity.toInt().toString()
+                            : item.quantity.toString());
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2.5),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 7,
+                            child: Text(
+                              item.name,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.black,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              qtyStr,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.black,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            flex: 5,
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  item.price.toStringAsFixed(2),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            flex: 6,
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  item.subtotal.toStringAsFixed(2),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+                const _DashedDivider(),
+
+                // Totals
+                _PriceRow(label: 'SUBTOTAL', value: _subtotal),
+                if (_effectiveTaxAmount > 0)
+                  _PriceRow(
+                    label: _taxPercent > 0 ? 'TAX ($_taxPercent%)' : 'TAX',
+                    value: _effectiveTaxAmount,
                   ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                '-----------------------------------------',
-                style: TextStyle(color: Colors.black38),
-              ),
-
-              // Items List
-              ...widget.items.map(
-                (item) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          item.name,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Text(
-                          '${item.quantity}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.black,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          item.price.toStringAsFixed(2),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.black,
-                          ),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          item.subtotal.toStringAsFixed(2),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.black,
-                          ),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                    ],
+                if (_effectiveGstAmount > 0)
+                  _PriceRow(
+                    label: _gstPercent > 0 ? 'GST ($_gstPercent%)' : 'GST',
+                    value: _effectiveGstAmount,
                   ),
-                ),
-              ),
-
-              const Text(
-                '-----------------------------------------',
-                style: TextStyle(color: Colors.black38),
-              ),
-
-              // Totals
-              _PriceRow(label: 'SUBTOTAL', value: _subtotal),
-              if (_effectiveTaxAmount > 0)
+                const _DashedDivider(),
                 _PriceRow(
-                  label: _taxPercent > 0 ? 'TAX ($_taxPercent%)' : 'TAX',
-                  value: _effectiveTaxAmount,
-                ),
-              if (_effectiveGstAmount > 0)
-                _PriceRow(
-                  label: _gstPercent > 0 ? 'GST ($_gstPercent%)' : 'GST',
-                  value: _effectiveGstAmount,
-                ),
-              const Text(
-                '-----------------------------------------',
-                style: TextStyle(color: Colors.black38),
-              ),
-              _PriceRow(
-                label: _effectivePreviousBalance > 0 ? 'BILL TOTAL' : 'GRAND TOTAL',
-                value: _effectiveTotal,
-                isBold: true,
-                fontSize: 14,
-              ),
-              if (_effectivePreviousBalance > 0) ...[
-                const SizedBox(height: 2),
-                _PriceRow(
-                  label: 'PREVIOUS BALANCE',
-                  value: _effectivePreviousBalance,
-                  isBold: true,
-                  fontSize: 12,
-                ),
-                const SizedBox(height: 2),
-                _PriceRow(
-                  label: 'TOTAL DUE',
-                  value: _effectiveTotalDue,
+                  label: _effectivePreviousBalance > 0 ? 'BILL TOTAL' : 'GRAND TOTAL',
+                  value: _effectiveTotal,
                   isBold: true,
                   fontSize: 14,
                 ),
-              ],
+                if (_effectivePreviousBalance > 0) ...[
+                  const SizedBox(height: 2),
+                  _PriceRow(
+                    label: 'PREVIOUS BALANCE',
+                    value: _effectivePreviousBalance,
+                    isBold: true,
+                    fontSize: 12,
+                  ),
+                  const SizedBox(height: 2),
+                  _PriceRow(
+                    label: 'TOTAL DUE',
+                    value: _effectiveTotalDue,
+                    isBold: true,
+                    fontSize: 14,
+                  ),
+                ],
 
               // Tax & GST Toggle Switches for New Invoices
               if (!widget.isViewOnly && widget.invoice == null && !_isConfirmed)
@@ -784,10 +798,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                     ),
                   ),
                 ],
-              const Text(
-                '-----------------------------------------',
-                style: TextStyle(color: Colors.black38),
-              ),
+              const _DashedDivider(),
 
               // Payment Section
               if (_isConfirmed || widget.isViewOnly) ...[
@@ -971,10 +982,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                 ],
               ],
 
-              const Text(
-                '-----------------------------------------',
-                style: TextStyle(color: Colors.black38),
-              ),
+              const _DashedDivider(),
 
               const SizedBox(height: 12),
               const Text(
@@ -1223,8 +1231,9 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _PriceRow extends StatelessWidget {
@@ -1251,20 +1260,27 @@ class _PriceRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              fontSize: fontSize,
-              color: Colors.black,
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                fontSize: fontSize,
+                color: Colors.black,
+              ),
             ),
           ),
-          Text(
-            displayVal,
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              fontSize: fontSize,
-              color: Colors.black,
+          const SizedBox(width: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(
+              displayVal,
+              style: TextStyle(
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                fontSize: fontSize,
+                color: Colors.black,
+              ),
             ),
           ),
         ],
@@ -1483,6 +1499,38 @@ class _KhataCustomerRequiredDialogState
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DashedDivider extends StatelessWidget {
+  const _DashedDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final boxWidth = constraints.constrainWidth();
+          const dashWidth = 4.0;
+          const dashSpace = 3.0;
+          final dashCount = (boxWidth / (dashWidth + dashSpace)).floor();
+          if (dashCount <= 0) return const SizedBox.shrink();
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(dashCount, (_) {
+              return const SizedBox(
+                width: dashWidth,
+                height: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: Colors.black26),
+                ),
+              );
+            }),
+          );
+        },
       ),
     );
   }

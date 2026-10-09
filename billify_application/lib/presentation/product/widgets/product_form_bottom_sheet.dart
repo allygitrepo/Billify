@@ -150,45 +150,278 @@ class _ProductFormBottomSheetState
   Future<String?> _showScannerBottomSheet() async {
     return await showModalBottomSheet<String>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text(
-                'Scan Product Barcode',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: MobileScanner(
-                  onDetect: (capture) {
-                    final barcode = capture.barcodes.first.rawValue;
-                    if (barcode != null) Navigator.pop(context, barcode);
-                  },
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Material(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            clipBehavior: Clip.antiAlias,
+            child: SafeArea(
+              top: false,
+              bottom: true,
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.7,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Scan Barcode',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: MobileScanner(
+                          onDetect: (capture) {
+                            final barcode = capture.barcodes.first.rawValue;
+                            if (barcode != null && barcode.isNotEmpty) {
+                              Navigator.pop(context, barcode);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showVariantBottomSheet({ProductVariantModel? variant, int? index}) {
+    final variantFormKey = GlobalKey<FormState>();
+    final isEditing = variant != null && index != null;
+
+    final nameController = TextEditingController(text: variant?.name ?? '');
+    final skuController = TextEditingController(text: variant?.sku ?? '');
+
+    String formatNum(double? val) {
+      if (val == null || val == 0) return '';
+      return val % 1 == 0 ? val.toInt().toString() : val.toString();
+    }
+
+    final priceController = TextEditingController(
+      text: variant != null ? formatNum(variant.price) : '',
+    );
+    final stockController = TextEditingController(
+      text: variant != null ? formatNum(variant.openingStock) : '',
+    );
+
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (bottomSheetContext) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Material(
+            color: Theme.of(bottomSheetContext).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            clipBehavior: Clip.antiAlias,
+            child: SafeArea(
+              top: false,
+              bottom: true,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(bottomSheetContext).viewInsets.bottom,
+                ),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Form(
+                      key: variantFormKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 40,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[400],
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                isEditing ? 'Edit Variant' : 'Add New Variant',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () =>
+                                    Navigator.pop(bottomSheetContext),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          CustomTextField(
+                            controller: nameController,
+                            label: 'Variant Name *',
+                            hint: 'e.g. 500ml, Red, XL, 1 Kg Pack',
+                            isRequired: true,
+                            autofocus: !isEditing,
+                            validator: (v) => Validators.validateRequired(
+                              v,
+                              'Variant Name',
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          CustomTextField(
+                            controller: skuController,
+                            label: 'Barcode / SKU (Optional)',
+                            hint: 'Scan or type barcode',
+                            suffixIcon: IconButton(
+                              icon: const Icon(
+                                Icons.qr_code_scanner,
+                                color: AppTheme.primaryTeal,
+                              ),
+                              tooltip: 'Scan Barcode',
+                              onPressed: () async {
+                                final scanned = await _showScannerBottomSheet();
+                                if (scanned != null && scanned.isNotEmpty) {
+                                  skuController.text = scanned;
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: CustomTextField(
+                                  controller: priceController,
+                                  label: _isWeighted
+                                      ? 'Price/Unit *'
+                                      : 'Variant Price *',
+                                  hint: '0.00',
+                                  isRequired: true,
+                                  prefixIcon: Icons.currency_rupee,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                                  validator: (v) => Validators.validatePrice(
+                                    v,
+                                    fieldName: _isWeighted
+                                        ? 'Variant Price per Unit'
+                                        : 'Variant Price',
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: CustomTextField(
+                                  controller: stockController,
+                                  label: 'Stock Quantity',
+                                  hint: '0',
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                                  enabled: widget.product == null ||
+                                      (variant != null &&
+                                          variant.id.length > 10) ||
+                                      variant == null,
+                                  validator: (widget.product == null ||
+                                          (variant != null &&
+                                              variant.id.length > 10) ||
+                                          variant == null)
+                                      ? (v) => Validators.validateStock(
+                                            v,
+                                            isWeighted: _isWeighted,
+                                            isRequired: false,
+                                          )
+                                      : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 28),
+                          CustomButton(
+                            text: isEditing ? 'UPDATE VARIANT' : 'ADD VARIANT',
+                            onPressed: () {
+                              if (!variantFormKey.currentState!.validate()) return;
+                              final price =
+                                  double.tryParse(priceController.text) ?? 0.0;
+                              final stock =
+                                  double.tryParse(stockController.text) ?? 0.0;
+
+                              setState(() {
+                                if (isEditing) {
+                                  _variants[index] = variant.copyWith(
+                                    name: nameController.text.trim(),
+                                    sku: skuController.text.trim(),
+                                    price: price,
+                                    openingStock: stock,
+                                    currentStock: stock,
+                                  );
+                                } else {
+                                  _variants.add(
+                                    ProductVariantModel(
+                                      id: const Uuid().v4(),
+                                      name: nameController.text.trim(),
+                                      sku: skuController.text.trim(),
+                                      price: price,
+                                      openingStock: stock,
+                                      currentStock: stock,
+                                      uom: _selectedUomId,
+                                    ),
+                                  );
+                                }
+                              });
+
+                              Navigator.pop(bottomSheetContext);
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -196,6 +429,14 @@ class _ProductFormBottomSheetState
 
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate() || _isSaving) return;
+
+    if (_hasVariants && _variants.isEmpty) {
+      AppFeedback.showError(
+        context,
+        'Please add at least one variant before saving',
+      );
+      return;
+    }
 
     setState(() => _isSaving = true);
 
@@ -283,8 +524,8 @@ class _ProductFormBottomSheetState
     // 1. Prepare unique, de-duplicated categories
     final uniqueCategoriesMap = <String, CategoryModel>{};
     for (final c in categories) {
-      if (c.id != null && c.id!.isNotEmpty) {
-        uniqueCategoriesMap[c.id!] = c;
+      if (c.id.isNotEmpty) {
+        uniqueCategoriesMap[c.id] = c;
       }
     }
     final categoryList = uniqueCategoriesMap.values.toList();
@@ -583,135 +824,235 @@ class _ProductFormBottomSheetState
                         : null,
                   ),
                 ] else ...[
-                  // Variants List Editor
-                  Text(
-                    _isWeighted ? 'Variants (Loose / Weighted)' : 'Variants',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  // Variants List Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _isWeighted ? 'Variants (Loose / Weighted)' : 'Product Variants',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      Text(
+                        '${_variants.length} ${_variants.length == 1 ? 'Variant' : 'Variants'}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  ..._variants.asMap().entries.map((entry) {
-                    final idx = entry.key;
-                    final variant = entry.value;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
+                  const SizedBox(height: 12),
+                  if (_variants.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                       decoration: BoxDecoration(
                         color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: Colors.grey.withOpacity(0.2),
                         ),
                       ),
                       child: Column(
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: CustomTextField(
-                                  label: 'Variant Name',
-                                  hint: 'XL, Red, Premium, etc.',
-                                  initialValue: variant.name,
-                                  validator: (v) =>
-                                      Validators.validateRequired(
-                                        v,
-                                        'Variant Name',
-                                      ),
-                                  onChanged: (v) => _variants[idx] =
-                                      _variants[idx].copyWith(name: v),
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () => setState(
-                                  () => _variants.removeAt(idx),
-                                ),
-                              ),
-                            ],
+                          Icon(
+                            Icons.layers_outlined,
+                            size: 40,
+                            color: Colors.grey[400],
                           ),
                           const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: CustomTextField(
-                                  label: 'Barcode',
-                                  hint: 'SKU / Barcode',
-                                  initialValue: variant.sku,
-                                  validator: (v) => Validators.validateBarcode(
-                                    v,
-                                    isOptional: true,
-                                  ),
-                                  onChanged: (v) => _variants[idx] =
-                                      _variants[idx].copyWith(sku: v),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: CustomTextField(
-                                  label: _isWeighted ? 'Price/Unit' : 'Price',
-                                  hint: '0.00',
-                                  prefixIcon: Icons.currency_rupee,
-                                  keyboardType: TextInputType.number,
-                                  initialValue: variant.price != 0
-                                      ? (variant.price % 1 == 0
-                                          ? variant.price.toInt().toString()
-                                          : variant.price.toString())
-                                      : '',
-                                  onChanged: (v) => _variants[idx] =
-                                      _variants[idx].copyWith(
-                                        price: double.tryParse(v),
-                                      ),
-                                  validator: (v) => Validators.validatePrice(
-                                    v,
-                                    fieldName: _isWeighted ? 'Variant Price per Unit' : 'Variant Price',
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: CustomTextField(
-                                  label: 'Stock',
-                                  keyboardType: TextInputType.number,
-                                  initialValue: variant.openingStock != 0
-                                      ? (variant.openingStock % 1 == 0
-                                          ? variant.openingStock.toInt().toString()
-                                          : variant.openingStock.toString())
-                                      : '',
-                                  enabled: widget.product == null ||
-                                      variant.id.length > 10,
-                                  validator: (widget.product == null ||
-                                          variant.id.length > 10)
-                                      ? (v) => Validators.validateStock(
-                                            v,
-                                            isWeighted: _isWeighted,
-                                            isRequired: false,
-                                          )
-                                      : null,
-                                  onChanged: (v) => _variants[idx] =
-                                      _variants[idx].copyWith(
-                                        openingStock:
-                                            double.tryParse(v) ?? 0,
-                                        currentStock:
-                                            double.tryParse(v) ?? 0,
-                                      ),
-                                ),
-                              ),
-                            ],
+                          Text(
+                            'No variants added yet',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap "+ Add Variant" below to add variants with custom prices, stock, and barcodes',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[500],
+                            ),
                           ),
                         ],
                       ),
-                    );
-                  }).toList(),
-                  TextButton.icon(
-                    onPressed: () => setState(
-                      () => _variants.add(ProductVariantModel.empty()),
+                    )
+                  else
+                    ..._variants.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final variant = entry.value;
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.grey.withOpacity(0.2),
+                          ),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () => _showVariantBottomSheet(
+                            variant: variant,
+                            index: idx,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryTeal.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.style_outlined,
+                                      color: AppTheme.primaryTeal,
+                                      size: 22,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        variant.name.isNotEmpty ? variant.name : 'Unnamed Variant',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 4,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.primaryTeal.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              '₹${variant.price % 1 == 0 ? variant.price.toInt() : variant.price.toStringAsFixed(2)}',
+                                              style: const TextStyle(
+                                                color: AppTheme.primaryTeal,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                          if (variant.sku.isNotEmpty)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey.withOpacity(0.12),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                    Icons.qr_code,
+                                                    size: 12,
+                                                    color: Colors.grey,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    variant.sku,
+                                                    style: TextStyle(
+                                                      color: Colors.grey[700],
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.withOpacity(0.12),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              'Stock: ${variant.openingStock % 1 == 0 ? variant.openingStock.toInt() : variant.openingStock}',
+                                              style: TextStyle(
+                                                color: Colors.grey[700],
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit_outlined,
+                                    color: AppTheme.primaryTeal,
+                                    size: 20,
+                                  ),
+                                  tooltip: 'Edit Variant',
+                                  onPressed: () => _showVariantBottomSheet(
+                                    variant: variant,
+                                    index: idx,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red,
+                                    size: 20,
+                                  ),
+                                  tooltip: 'Delete Variant',
+                                  onPressed: () => setState(
+                                    () => _variants.removeAt(idx),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primaryTeal,
+                      side: const BorderSide(color: AppTheme.primaryTeal),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      minimumSize: const Size.fromHeight(48),
                     ),
-                    icon: const Icon(Icons.add, color: AppTheme.primaryTeal),
+                    onPressed: () => _showVariantBottomSheet(),
+                    icon: const Icon(Icons.add, size: 20),
                     label: const Text(
                       'Add Variant',
-                      style: TextStyle(color: AppTheme.primaryTeal),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ],

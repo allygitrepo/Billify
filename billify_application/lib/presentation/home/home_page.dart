@@ -140,7 +140,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final todayInvoiceCount = invoiceNotifier.getTodayInvoiceCount();
     final monthlyRevenue = invoiceNotifier.getMonthlyRevenue();
     final topSelling = invoiceNotifier.getTopSellingProducts(5);
-    final lowStock = allProducts.where((p) => p.totalStock < 3).toList();
+    final lowStockItems = allProducts.expand((p) => p.lowStockItems).toList();
 
     final List<double> graphData = _isWeeklyFilter
         ? invoiceNotifier.getWeeklySalesData()
@@ -160,7 +160,9 @@ class _HomePageState extends ConsumerState<HomePage> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 850;
-            final double horizontalPadding = constraints.maxWidth < 600 ? 16 : 24;
+            final double horizontalPadding = constraints.maxWidth < 600
+                ? 16
+                : 24;
 
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -183,7 +185,11 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                       // Show Quick Actions module grid only for staff users (Owners already have the full dashboard)
                       if (!authState.isOwnerOrAdmin) ...[
-                        _buildModulesGrid(context, authState, constraints.maxWidth),
+                        _buildModulesGrid(
+                          context,
+                          authState,
+                          constraints.maxWidth,
+                        ),
                         const SizedBox(height: 24),
                       ],
 
@@ -256,7 +262,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                                     PermissionModule.inventory,
                                     PermissionAction.view,
                                   )) ...[
-                                    StockAlertSection(lowStockProducts: lowStock),
+                                    StockAlertSection(
+                                      lowStockProducts: lowStockItems,
+                                    ),
                                     const SizedBox(height: 20),
                                   ],
                                 ],
@@ -295,7 +303,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                           PermissionModule.inventory,
                           PermissionAction.view,
                         )) ...[
-                          StockAlertSection(lowStockProducts: lowStock),
+                          StockAlertSection(
+                            lowStockProducts: lowStockItems,
+                          ),
                         ],
                       ],
 
@@ -324,19 +334,13 @@ class _HomePageState extends ConsumerState<HomePage> {
         title: 'Today\'s Sales',
         value: '₹${todaySales.toStringAsFixed(0)}',
         icon: Icons.currency_rupee,
-        gradient: const [
-          Color(0xFF00B4D8),
-          Color(0xFF0077B6),
-        ],
+        gradient: const [Color(0xFF00B4D8), Color(0xFF0077B6)],
       ),
       StatCard(
         title: 'Invoices',
         value: todayInvoiceCount.toString(),
         icon: Icons.receipt_long,
-        gradient: const [
-          Color(0xFF48CAE4),
-          Color(0xFF00B4D8),
-        ],
+        gradient: const [Color(0xFF48CAE4), Color(0xFF00B4D8)],
       ),
       StatCard(
         title: 'Month',
@@ -344,34 +348,22 @@ class _HomePageState extends ConsumerState<HomePage> {
             ? '₹${(monthlyRevenue / 1000).toStringAsFixed(1)}k'
             : '₹${monthlyRevenue.toStringAsFixed(0)}',
         icon: Icons.trending_up,
-        gradient: const [
-          AppTheme.primaryTeal,
-          Color(0xFF00B4D8),
-        ],
+        gradient: const [AppTheme.primaryTeal, Color(0xFF00B4D8)],
       ),
     ];
 
     return Row(
       children: [
         Expanded(
-          child: SizedBox(
-            height: cardHeight,
-            child: cards[0],
-          ),
+          child: SizedBox(height: cardHeight, child: cards[0]),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: SizedBox(
-            height: cardHeight,
-            child: cards[1],
-          ),
+          child: SizedBox(height: cardHeight, child: cards[1]),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: SizedBox(
-            height: cardHeight,
-            child: cards[2],
-          ),
+          child: SizedBox(height: cardHeight, child: cards[2]),
         ),
       ],
     );
@@ -386,10 +378,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       children: [
         const Text(
           'Revenue Overview',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         Container(
           decoration: BoxDecoration(
@@ -416,53 +405,65 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildModulesGrid(BuildContext context, AuthState authState, double screenWidth) {
+  Widget _buildModulesGrid(
+    BuildContext context,
+    AuthState authState,
+    double screenWidth,
+  ) {
     final List<_ModuleItem> modules = [];
 
     if (authState.hasPermission(
       PermissionModule.billing,
       PermissionAction.view,
     )) {
-      modules.add(_ModuleItem(
-        title: 'Scan & Bill',
-        subtitle: 'Quick POS billing',
-        icon: Icons.qr_code_scanner_rounded,
-        gradient: const [Color(0xFF00B4D8), Color(0xFF0077B6)],
-        onTap: () => Navigator.pushNamed(context, '/scanner'),
-      ));
-      modules.add(_ModuleItem(
-        title: 'Invoices',
-        subtitle: 'History & receipts',
-        icon: Icons.receipt_long_rounded,
-        gradient: const [Color(0xFF48CAE4), Color(0xFF023E8A)],
-        onTap: () => Navigator.pushNamed(context, '/invoice-history'),
-      ));
+      modules.add(
+        _ModuleItem(
+          title: 'Scan & Bill',
+          subtitle: 'Quick POS billing',
+          icon: Icons.qr_code_scanner_rounded,
+          gradient: const [Color(0xFF00B4D8), Color(0xFF0077B6)],
+          onTap: () => Navigator.pushNamed(context, '/scanner'),
+        ),
+      );
+      modules.add(
+        _ModuleItem(
+          title: 'Invoices',
+          subtitle: 'History & receipts',
+          icon: Icons.receipt_long_rounded,
+          gradient: const [Color(0xFF48CAE4), Color(0xFF023E8A)],
+          onTap: () => Navigator.pushNamed(context, '/invoice-history'),
+        ),
+      );
     }
 
     if (authState.hasPermission(
       PermissionModule.products,
       PermissionAction.view,
     )) {
-      modules.add(_ModuleItem(
-        title: 'Products',
-        subtitle: 'Manage catalog',
-        icon: Icons.inventory_2_rounded,
-        gradient: const [Color(0xFF8338EC), Color(0xFF5A189A)],
-        onTap: () => Navigator.pushNamed(context, '/products'),
-      ));
+      modules.add(
+        _ModuleItem(
+          title: 'Products',
+          subtitle: 'Manage catalog',
+          icon: Icons.inventory_2_rounded,
+          gradient: const [Color(0xFF8338EC), Color(0xFF5A189A)],
+          onTap: () => Navigator.pushNamed(context, '/products'),
+        ),
+      );
     }
 
     if (authState.hasPermission(
       PermissionModule.inventory,
       PermissionAction.view,
     )) {
-      modules.add(_ModuleItem(
-        title: 'Inventory',
-        subtitle: 'Stock levels',
-        icon: Icons.warehouse_rounded,
-        gradient: const [Color(0xFFFF9F1C), Color(0xFFF77F00)],
-        onTap: () => Navigator.pushNamed(context, '/stock-management'),
-      ));
+      modules.add(
+        _ModuleItem(
+          title: 'Inventory',
+          subtitle: 'Stock levels',
+          icon: Icons.warehouse_rounded,
+          gradient: const [Color(0xFFFF9F1C), Color(0xFFF77F00)],
+          onTap: () => Navigator.pushNamed(context, '/stock-management'),
+        ),
+      );
     }
 
     if (ref.watch(featureSettingsProvider).isCategoryEnabled &&
@@ -470,67 +471,66 @@ class _HomePageState extends ConsumerState<HomePage> {
           PermissionModule.categories,
           PermissionAction.view,
         )) {
-      modules.add(_ModuleItem(
-        title: 'Categories',
-        subtitle: 'Product groups',
-        icon: Icons.category_rounded,
-        gradient: const [Color(0xFF06D6A0), Color(0xFF058C42)],
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const CategoryManagementPage(),
+      modules.add(
+        _ModuleItem(
+          title: 'Categories',
+          subtitle: 'Product groups',
+          icon: Icons.category_rounded,
+          gradient: const [Color(0xFF06D6A0), Color(0xFF058C42)],
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CategoryManagementPage()),
           ),
         ),
-      ));
+      );
     }
 
     if (authState.hasPermission(
       PermissionModule.customers,
       PermissionAction.view,
     )) {
-      modules.add(_ModuleItem(
-        title: 'Customers',
-        subtitle: 'Contacts & accounts',
-        icon: Icons.people_alt_rounded,
-        gradient: const [Color(0xFFFF006E), Color(0xFFC77DFF)],
-        onTap: () => Navigator.pushNamed(context, '/customers'),
-      ));
+      modules.add(
+        _ModuleItem(
+          title: 'Customers',
+          subtitle: 'Contacts & accounts',
+          icon: Icons.people_alt_rounded,
+          gradient: const [Color(0xFFFF006E), Color(0xFFC77DFF)],
+          onTap: () => Navigator.pushNamed(context, '/customers'),
+        ),
+      );
     }
 
     if (authState.hasPermission(
       PermissionModule.payments,
       PermissionAction.view,
     )) {
-      modules.add(_ModuleItem(
-        title: 'Khata / Ledger',
-        subtitle: 'Credit & payments',
-        icon: Icons.account_balance_wallet_rounded,
-        gradient: const [Color(0xFF118AB2), Color(0xFF073B4C)],
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const KhataDashboardScreen(),
+      modules.add(
+        _ModuleItem(
+          title: 'Khata / Ledger',
+          subtitle: 'Credit & payments',
+          icon: Icons.account_balance_wallet_rounded,
+          gradient: const [Color(0xFF118AB2), Color(0xFF073B4C)],
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const KhataDashboardScreen()),
           ),
         ),
-      ));
+      );
     }
 
-    if (authState.hasPermission(
-      PermissionModule.uom,
-      PermissionAction.view,
-    )) {
-      modules.add(_ModuleItem(
-        title: 'Units (UOM)',
-        subtitle: 'Measurement units',
-        icon: Icons.straighten_rounded,
-        gradient: const [Color(0xFF3A86FF), Color(0xFF03045E)],
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const UomManagementPage(),
+    if (authState.hasPermission(PermissionModule.uom, PermissionAction.view)) {
+      modules.add(
+        _ModuleItem(
+          title: 'Units (UOM)',
+          subtitle: 'Measurement units',
+          icon: Icons.straighten_rounded,
+          gradient: const [Color(0xFF3A86FF), Color(0xFF03045E)],
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const UomManagementPage()),
           ),
         ),
-      ));
+      );
     }
 
     if (authState.hasPermission(
@@ -541,31 +541,33 @@ class _HomePageState extends ConsumerState<HomePage> {
           PermissionModule.reports,
           PermissionAction.view,
         )) {
-      modules.add(_ModuleItem(
-        title: 'Reports',
-        subtitle: 'Sales & analytics',
-        icon: Icons.analytics_rounded,
-        gradient: const [Color(0xFF7209B7), Color(0xFF3F37C9)],
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const AnalyticsDashboardScreen(),
+      modules.add(
+        _ModuleItem(
+          title: 'Reports',
+          subtitle: 'Sales & analytics',
+          icon: Icons.analytics_rounded,
+          gradient: const [Color(0xFF7209B7), Color(0xFF3F37C9)],
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AnalyticsDashboardScreen()),
           ),
         ),
-      ));
+      );
     }
 
     if (authState.hasPermission(
       PermissionModule.userManagement,
       PermissionAction.view,
     )) {
-      modules.add(_ModuleItem(
-        title: 'Staff Management',
-        subtitle: 'Users & roles',
-        icon: Icons.badge_rounded,
-        gradient: const [Color(0xFF00B4D8), Color(0xFF0077B6)],
-        onTap: () => Navigator.pushNamed(context, '/user-management'),
-      ));
+      modules.add(
+        _ModuleItem(
+          title: 'Staff Management',
+          subtitle: 'Users & roles',
+          icon: Icons.badge_rounded,
+          gradient: const [Color(0xFF00B4D8), Color(0xFF0077B6)],
+          onTap: () => Navigator.pushNamed(context, '/user-management'),
+        ),
+      );
     }
 
     if (modules.isEmpty) {
@@ -614,10 +616,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       children: [
         const Text(
           'Quick Actions',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         GridView.builder(
@@ -662,110 +661,120 @@ class _HomePageState extends ConsumerState<HomePage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(2),
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Switch Business',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.add_circle_outline,
-                          color: AppTheme.primaryTeal,
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Switch Business',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          setState(() => _currentIndex = 2); // Go to Business tab
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Flexible(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: businessState.businesses.length,
-                      itemBuilder: (context, index) {
-                        final b = businessState.businesses[index];
-                        final isCurrent = b.id == businessState.currentBusinessId;
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                          leading: Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryTeal.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.add_circle_outline,
+                            color: AppTheme.primaryTeal,
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            setState(
+                              () => _currentIndex = 2,
+                            ); // Go to Business tab
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: businessState.businesses.length,
+                        itemBuilder: (context, index) {
+                          final b = businessState.businesses[index];
+                          final isCurrent =
+                              b.id == businessState.currentBusinessId;
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 8,
                             ),
-                            child: b.business_logo != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Image.memory(
-                                      ImageUtils.decodeBase64(b.business_logo!),
-                                      fit: BoxFit.cover,
+                            leading: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryTeal.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: b.business_logo != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.memory(
+                                        ImageUtils.decodeBase64(
+                                          b.business_logo!,
+                                        ),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.business_rounded,
+                                      color: AppTheme.primaryTeal,
+                                    ),
+                            ),
+                            title: Text(
+                              b.name,
+                              style: TextStyle(
+                                fontWeight: isCurrent
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                            subtitle: isCurrent
+                                ? const Text(
+                                    'Active Now',
+                                    style: TextStyle(
+                                      color: AppTheme.primaryTeal,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   )
-                                : const Icon(
-                                    Icons.business_rounded,
+                                : null,
+                            trailing: isCurrent
+                                ? const Icon(
+                                    Icons.check_circle,
                                     color: AppTheme.primaryTeal,
-                                  ),
-                          ),
-                          title: Text(
-                            b.name,
-                            style: TextStyle(
-                              fontWeight: isCurrent
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                          subtitle: isCurrent
-                              ? const Text(
-                                  'Active Now',
-                                  style: TextStyle(
-                                    color: AppTheme.primaryTeal,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                )
-                              : null,
-                          trailing: isCurrent
-                              ? const Icon(
-                                  Icons.check_circle,
-                                  color: AppTheme.primaryTeal,
-                                )
-                              : null,
-                          onTap: () {
-                            Navigator.pop(context);
-                            if (!isCurrent) {
-                              _showSwitchConfirmation(context, b);
-                            }
-                          },
-                        );
-                      },
+                                  )
+                                : null,
+                            onTap: () {
+                              Navigator.pop(context);
+                              if (!isCurrent) {
+                                _showSwitchConfirmation(context, b);
+                              }
+                            },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   void _showSwitchConfirmation(BuildContext context, dynamic targetBusiness) {
     showDialog(
@@ -820,7 +829,9 @@ class _HomePageState extends ConsumerState<HomePage> {
             constraints: const BoxConstraints(maxWidth: 550),
             child: Material(
               color: Theme.of(context).scaffoldBackgroundColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
               clipBehavior: Clip.antiAlias,
               child: SafeArea(
                 top: false,
@@ -864,7 +875,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 color: Colors.orange,
                                 onTap: () {
                                   Navigator.pop(context);
-                                  Navigator.pushNamed(context, '/stock-management');
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/stock-management',
+                                  );
                                 },
                               ),
                             if (authState.hasPermission(
@@ -877,7 +891,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 color: Colors.blue,
                                 onTap: () {
                                   Navigator.pop(context);
-                                  Navigator.pushNamed(context, '/invoice-history');
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/invoice-history',
+                                  );
                                 },
                               ),
                             if (authState.hasPermission(
@@ -893,7 +910,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   Navigator.pushNamed(context, '/products');
                                 },
                               ),
-                            if (ref.watch(featureSettingsProvider).isCategoryEnabled &&
+                            if (ref
+                                    .watch(featureSettingsProvider)
+                                    .isCategoryEnabled &&
                                 authState.hasPermission(
                                   PermissionModule.categories,
                                   PermissionAction.view,
@@ -923,7 +942,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 color: Colors.teal,
                                 onTap: () {
                                   Navigator.pop(context);
-                                  Navigator.pushNamed(context, '/user-management');
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/user-management',
+                                  );
                                 },
                               ),
                             if (authState.hasPermission(
@@ -1109,7 +1131,11 @@ class _HomeHeader extends StatelessWidget {
                 child: Builder(
                   builder: (context) {
                     if (user?.photo == null || user!.photo!.isEmpty) {
-                      return const Icon(Icons.person, color: AppTheme.primaryTeal, size: 30);
+                      return const Icon(
+                        Icons.person,
+                        color: AppTheme.primaryTeal,
+                        size: 30,
+                      );
                     }
 
                     try {
@@ -1117,7 +1143,9 @@ class _HomeHeader extends StatelessWidget {
                       if (photo.startsWith('http')) {
                         return CircleAvatar(
                           radius: 25,
-                          backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
+                          backgroundColor: AppTheme.primaryTeal.withOpacity(
+                            0.1,
+                          ),
                           backgroundImage: NetworkImage(photo),
                           onBackgroundImageError: (_, __) {},
                         );
@@ -1127,7 +1155,9 @@ class _HomeHeader extends StatelessWidget {
                       if (bytes.isNotEmpty) {
                         return CircleAvatar(
                           radius: 25,
-                          backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
+                          backgroundColor: AppTheme.primaryTeal.withOpacity(
+                            0.1,
+                          ),
                           backgroundImage: MemoryImage(bytes),
                           onBackgroundImageError: (_, __) {},
                         );
@@ -1137,7 +1167,9 @@ class _HomeHeader extends StatelessWidget {
                       if (File(photo).existsSync()) {
                         return CircleAvatar(
                           radius: 25,
-                          backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
+                          backgroundColor: AppTheme.primaryTeal.withOpacity(
+                            0.1,
+                          ),
                           backgroundImage: FileImage(File(photo)),
                           onBackgroundImageError: (_, __) {},
                         );
@@ -1145,8 +1177,12 @@ class _HomeHeader extends StatelessWidget {
                     } catch (e) {
                       debugPrint('Error decoding image: $e');
                     }
-                    
-                    return const Icon(Icons.person, color: AppTheme.primaryTeal, size: 30);
+
+                    return const Icon(
+                      Icons.person,
+                      color: AppTheme.primaryTeal,
+                      size: 30,
+                    );
                   },
                 ),
               ),
@@ -1389,10 +1425,7 @@ class _ModuleCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     item.subtitle,
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 10,
-                    ),
+                    style: TextStyle(color: Colors.grey[500], fontSize: 10),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

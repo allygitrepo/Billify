@@ -1,11 +1,9 @@
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/data/models/product_model.dart';
-import 'package:billify/data/models/uom_model.dart';
 import 'package:billify/data/models/user_permission.dart';
 import 'package:billify/presentation/widgets/status_badge.dart';
 import 'package:billify/providers/auth_provider.dart';
-import 'package:billify/providers/uom_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -30,8 +28,8 @@ class ProductListTile extends ConsumerWidget {
         .watch(authProvider)
         .hasPermission(PermissionModule.products, PermissionAction.delete);
 
-    final isOutOfStock = product.stock <= 0;
-    final isLowStock = product.stock > 0 && product.stock <= 5;
+    final isOutOfStock = product.totalStock <= 0;
+    final isLowStock = product.totalStock > 0 && product.totalStock < 10;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -98,22 +96,9 @@ class ProductListTile extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (!product.hasVariants)
-                Consumer(
-                  builder: (context, ref, child) {
-                    final uoms = ref.watch(uomProvider);
-                    final uom = uoms.firstWhere(
-                      (u) => u.id == product.uom,
-                      orElse: () => UomModel(
-                        id: product.uom,
-                        name: product.uom,
-                        shortCode: product.uom,
-                      ),
-                    );
-                    return Text(
-                      '${product.is_weighted ? "Price/Unit" : "Price"}: ₹${product.basePrice} | Stock: ${product.stock} ${uom.name}',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                    );
-                  },
+                Text(
+                  '${product.is_weighted ? "Price/Unit" : "Price"}: ₹${product.basePrice.toStringAsFixed(product.basePrice % 1 == 0 ? 0 : 2)} | Stock: ${product.stock % 1 == 0 ? product.stock.toInt() : product.stock}',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                 ),
               if (!product.hasVariants && product.barcode.isNotEmpty)
                 Text(

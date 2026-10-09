@@ -46,8 +46,8 @@ class ProductState {
   /// Total count of out-of-stock items
   int get outOfStockCount => products.where((p) => p.stock <= 0).length;
 
-  /// Low stock items count (stock <= 5)
-  int get lowStockCount => products.where((p) => p.stock > 0 && p.stock <= 5).length;
+  /// Low stock items count (stock < 10)
+  int get lowStockCount => products.where((p) => p.totalStock > 0 && p.totalStock < 10).length;
 
   ProductState copyWith({
     List<ProductModel>? products,

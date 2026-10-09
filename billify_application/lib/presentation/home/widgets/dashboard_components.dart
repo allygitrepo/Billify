@@ -362,7 +362,7 @@ class _TopProductRow extends StatelessWidget {
 }
 
 class StockAlertSection extends StatelessWidget {
-  final List<ProductModel> lowStockProducts;
+  final List<StockAlertItem> lowStockProducts;
 
   const StockAlertSection({super.key, required this.lowStockProducts});
 
@@ -384,19 +384,38 @@ class StockAlertSection extends StatelessWidget {
                 'Stock Alerts',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
+              if (lowStockProducts.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${lowStockProducts.length} low',
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 12),
           if (lowStockProducts.isEmpty)
-            Row(
+            const Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.check_circle_outline,
                   color: Colors.green,
                   size: 20,
                 ),
-                const SizedBox(width: 12),
-                const Text(
+                SizedBox(width: 12),
+                Text(
                   'All products are well stocked!',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
@@ -407,9 +426,8 @@ class StockAlertSection extends StatelessWidget {
             )
           else
             ...lowStockProducts
-                .take(3)
-                .map((p) => _StockAlertTile(product: p))
-                .toList(),
+                .take(5)
+                .map((item) => _StockAlertTile(item: item)),
         ],
       ),
     );
@@ -417,12 +435,19 @@ class StockAlertSection extends StatelessWidget {
 }
 
 class _StockAlertTile extends StatelessWidget {
-  final ProductModel product;
+  final StockAlertItem item;
 
-  const _StockAlertTile({required this.product});
+  const _StockAlertTile({required this.item});
 
   @override
   Widget build(BuildContext context) {
+    final isOut = item.stock <= 0;
+    final qtyStr = item.isWeighted
+        ? item.stock.toStringAsFixed(2)
+        : (item.stock % 1 == 0
+            ? item.stock.toInt().toString()
+            : item.stock.toString());
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -436,33 +461,60 @@ class _StockAlertTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  product.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        item.productName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (item.variantName != null &&
+                        item.variantName!.isNotEmpty &&
+                        item.variantName != 'Default') ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryTeal.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          item.variantName!,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primaryTeal,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                if (product.uom.isNotEmpty)
-                  Text(
-                    product.uom,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              color: (isOut ? Colors.red : Colors.orange).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              '${product.totalStock} left',
-              style: const TextStyle(
-                color: Colors.orange,
+              isOut ? 'Out of stock' : '$qtyStr left',
+              style: TextStyle(
+                color: isOut ? Colors.red : Colors.orange,
                 fontWeight: FontWeight.bold,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
           ),

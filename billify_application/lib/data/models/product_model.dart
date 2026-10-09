@@ -135,6 +135,57 @@ class ProductModel {
     if (!hasVariants || variants.isEmpty) return stock;
     return variants.fold(0.0, (sum, v) => sum + v.stock);
   }
+
+  /// Returns all variants (or the product itself if no variants) with stock < 10
+  List<StockAlertItem> get lowStockItems {
+    if (hasVariants && variants.isNotEmpty) {
+      return variants
+          .where((v) => v.stock < 10)
+          .map((v) => StockAlertItem(
+                productId: id,
+                productName: name,
+                variantId: v.id,
+                variantName: v.name,
+                stock: v.stock,
+                uom: v.uom.isNotEmpty ? v.uom : uom,
+                isWeighted: is_weighted,
+              ))
+          .toList();
+    } else {
+      if (stock < 10) {
+        return [
+          StockAlertItem(
+            productId: id,
+            productName: name,
+            stock: stock,
+            uom: uom,
+            isWeighted: is_weighted,
+          ),
+        ];
+      }
+      return [];
+    }
+  }
+}
+
+class StockAlertItem {
+  final String productId;
+  final String productName;
+  final String? variantId;
+  final String? variantName;
+  final double stock;
+  final String uom;
+  final bool isWeighted;
+
+  const StockAlertItem({
+    required this.productId,
+    required this.productName,
+    this.variantId,
+    this.variantName,
+    required this.stock,
+    required this.uom,
+    this.isWeighted = false,
+  });
 }
 
 

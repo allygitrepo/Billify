@@ -92,13 +92,16 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
 
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      child: SafeArea(
+        top: false,
+        bottom: true,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
           Container(
             width: 40,
             height: 4,
@@ -235,7 +238,8 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
         ],
       ),
     ),
-  );
+  ),
+);
 }
 }
 

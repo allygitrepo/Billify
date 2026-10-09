@@ -35,9 +35,16 @@ class WalkInCustomerSheet extends ConsumerStatefulWidget {
   }) {
     return showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => WalkInCustomerSheet(onProceed: onProceed),
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: WalkInCustomerSheet(onProceed: onProceed),
+        ),
+      ),
     );
   }
 
@@ -140,15 +147,18 @@ class _WalkInCustomerSheetState extends ConsumerState<WalkInCustomerSheet> {
   Widget build(BuildContext context) {
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      child: SafeArea(
+        top: false,
+        bottom: true,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,6 +337,7 @@ class _WalkInCustomerSheetState extends ConsumerState<WalkInCustomerSheet> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

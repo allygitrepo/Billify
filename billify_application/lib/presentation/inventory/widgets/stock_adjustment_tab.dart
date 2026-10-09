@@ -82,25 +82,32 @@ class _StockAdjustmentTabState extends ConsumerState<StockAdjustmentTab> {
   void _showWeightInputSheet(ProductModel product, {double? initialQuantity}) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => WeightInputSheet(
-        product: product,
-        buttonLabel: _mode == StockMode.inMode ? 'ADD STOCK' : 'REMOVE STOCK',
-        onAdd: (quantity) {
-          setState(() {
-            final key = product.selectedVariantId != null
-                ? '${product.id}:${product.selectedVariantId}'
-                : product.id;
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: WeightInputSheet(
+            product: product,
+            buttonLabel: _mode == StockMode.inMode ? 'ADD STOCK' : 'REMOVE STOCK',
+            onAdd: (quantity) {
+              setState(() {
+                final key = product.selectedVariantId != null
+                    ? '${product.id}:${product.selectedVariantId}'
+                    : product.id;
 
-            if (initialQuantity != null) {
-              _transactionItems[key] = quantity;
-            } else {
-              _transactionItems[key] =
-                  (_transactionItems[key] ?? 0.0) + quantity;
-            }
-          });
-        },
+                if (initialQuantity != null) {
+                  _transactionItems[key] = quantity;
+                } else {
+                  _transactionItems[key] =
+                      (_transactionItems[key] ?? 0.0) + quantity;
+                }
+              });
+            },
+          ),
+        ),
       ),
     );
   }
@@ -159,49 +166,60 @@ class _StockAdjustmentTabState extends ConsumerState<StockAdjustmentTab> {
   Future<void> _showScannerDialog() async {
     final result = await showModalBottomSheet<String>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Material(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        clipBehavior: Clip.antiAlias,
-        child: SizedBox(
-          height: MediaQuery.of(context).size.height * 0.7,
-          child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text(
-                'Scan Product Barcode',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: MobileScanner(
-                  onDetect: (capture) {
-                    final barcode = capture.barcodes.first.rawValue;
-                    if (barcode != null) Navigator.pop(context, barcode);
-                  },
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Material(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            clipBehavior: Clip.antiAlias,
+            child: SafeArea(
+              top: false,
+              bottom: true,
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.7,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Text(
+                        'Scan Product Barcode',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: MobileScanner(
+                          onDetect: (capture) {
+                            final barcode = capture.barcodes.first.rawValue;
+                            if (barcode != null) Navigator.pop(context, barcode);
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-          ],
+          ),
         ),
       ),
-    ),
-  );
+    );
 
     if (result != null) {
       final product = ref.read(productProvider.notifier).findByBarcode(result);
@@ -248,7 +266,9 @@ class _StockAdjustmentTabState extends ConsumerState<StockAdjustmentTab> {
     final allProducts = ref.read(productsListProvider);
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setPickerState) {
           final filteredProducts = allProducts.where((p) {
@@ -262,14 +282,21 @@ class _StockAdjustmentTabState extends ConsumerState<StockAdjustmentTab> {
                 );
           }).toList();
 
-          return Material(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            clipBehavior: Clip.antiAlias,
-            child: Container(
-              height: MediaQuery.of(context).size.height * 0.8,
-              padding: const EdgeInsets.all(20),
-              child: Column(
+          return Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Material(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                clipBehavior: Clip.antiAlias,
+                child: SafeArea(
+                  top: false,
+                  bottom: true,
+                  child: Container(
+                    height: MediaQuery.of(context).size.height * 0.8,
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
               children: [
                 const Text(
                   'Select Product',
@@ -389,10 +416,13 @@ class _StockAdjustmentTabState extends ConsumerState<StockAdjustmentTab> {
               ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     ),
   );
+},
+),
+);
   }
 
   @override

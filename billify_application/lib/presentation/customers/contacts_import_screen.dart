@@ -250,12 +250,16 @@ class _ContactsImportScreenState extends ConsumerState<ContactsImportScreen> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      backgroundColor: Colors.transparent,
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: AddCustomerBottomSheet(initialCustomer: tempCustomer),
+        ),
       ),
-      builder: (context) =>
-          AddCustomerBottomSheet(initialCustomer: tempCustomer),
     ).then((result) {
       if (result == true) {
         // Successully imported individually with details

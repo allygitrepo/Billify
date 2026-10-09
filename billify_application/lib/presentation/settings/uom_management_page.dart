@@ -109,128 +109,139 @@ class UomManagementPage extends ConsumerWidget {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Material(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[600],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Material(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            clipBehavior: Clip.antiAlias,
+            child: SafeArea(
+              top: false,
+              bottom: true,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  uom == null ? 'Add Unit' : 'Edit Unit',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                CustomTextField(
-                  controller: nameController,
-                  label: 'UOM Name',
-                  hint: 'e.g. Kilogram',
-                  autofocus: true,
-                ),
-                const SizedBox(height: 16),
-                CustomTextField(
-                  controller: shortCodeController,
-                  label: 'Short Code (Optional)',
-                  hint: 'e.g. KG',
-                ),
-                const SizedBox(height: 32),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('CANCEL'),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final name = nameController.text.trim();
-                          if (name.isEmpty) {
-                            AppFeedback.showError(
-                              context,
-                              'Please enter a UOM name',
-                            );
-                            return;
-                          }
-
-                          final rawShortCode = shortCodeController.text.trim();
-                          final shortCode = rawShortCode.isNotEmpty
-                              ? rawShortCode.toLowerCase()
-                              : (name.length <= 4
-                                  ? name.toLowerCase()
-                                  : name.substring(0, 3).toLowerCase());
-
-                          final newUom = UomModel(
-                            id: uom?.id ?? const Uuid().v4(),
-                            name: name,
-                            shortCode: shortCode,
-                          );
-
-                          try {
-                            await ref.read(uomProvider.notifier).saveUom(newUom);
-                            if (!context.mounted) return;
-                            Navigator.pop(context);
-                            AppFeedback.showSuccess(
-                              context,
-                              uom == null
-                                  ? 'Unit added successfully'
-                                  : 'Unit updated successfully',
-                            );
-                          } catch (e) {
-                            if (!context.mounted) return;
-                            AppFeedback.showError(
-                              context,
-                              e,
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryTeal,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[600],
+                              borderRadius: BorderRadius.circular(2),
+                            ),
                           ),
                         ),
-                        child: Text(uom == null ? 'ADD' : 'SAVE'),
-                      ),
+                        const SizedBox(height: 24),
+                        Text(
+                          uom == null ? 'Add Unit' : 'Edit Unit',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        CustomTextField(
+                          controller: nameController,
+                          label: 'UOM Name',
+                          hint: 'e.g. Kilogram',
+                          autofocus: true,
+                        ),
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          controller: shortCodeController,
+                          label: 'Short Code (Optional)',
+                          hint: 'e.g. KG',
+                        ),
+                        const SizedBox(height: 32),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('CANCEL'),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  final name = nameController.text.trim();
+                                  if (name.isEmpty) {
+                                    AppFeedback.showError(
+                                      context,
+                                      'Please enter a UOM name',
+                                    );
+                                    return;
+                                  }
+
+                                  final rawShortCode = shortCodeController.text.trim();
+                                  final shortCode = rawShortCode.isNotEmpty
+                                      ? rawShortCode.toLowerCase()
+                                      : (name.length <= 4
+                                          ? name.toLowerCase()
+                                          : name.substring(0, 3).toLowerCase());
+
+                                  final newUom = UomModel(
+                                    id: uom?.id ?? const Uuid().v4(),
+                                    name: name,
+                                    shortCode: shortCode,
+                                  );
+
+                                  try {
+                                    await ref.read(uomProvider.notifier).saveUom(newUom);
+                                    if (!context.mounted) return;
+                                    Navigator.pop(context);
+                                    AppFeedback.showSuccess(
+                                      context,
+                                      uom == null
+                                          ? 'Unit added successfully'
+                                          : 'Unit updated successfully',
+                                    );
+                                  } catch (e) {
+                                    if (!context.mounted) return;
+                                    AppFeedback.showError(
+                                      context,
+                                      e,
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryTeal,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(uom == null ? 'ADD' : 'SAVE'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-              ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   void _showDeleteDialog(BuildContext context, WidgetRef ref, UomModel uom) {

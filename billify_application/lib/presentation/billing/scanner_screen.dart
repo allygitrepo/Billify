@@ -90,21 +90,28 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       if (product.hasVariants && product.selectedVariantId == null) {
         showModalBottomSheet(
           context: context,
+          useRootNavigator: true,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
-          builder: (context) => _ProductPickerSheet(
-            products: [product],
-            onSelected: (selectedVariant) {
-              if (ref
-                  .read(billingProvider.notifier)
-                  .addToCart(selectedVariant)) {
-                Navigator.pop(context);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Limited stock available')),
-                );
-              }
-            },
+          builder: (context) => Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: _ProductPickerSheet(
+                products: [product],
+                onSelected: (selectedVariant) {
+                  if (ref
+                      .read(billingProvider.notifier)
+                      .addToCart(selectedVariant)) {
+                    Navigator.pop(context);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Limited stock available')),
+                    );
+                  }
+                },
+              ),
+            ),
           ),
         ).then((_) => _resumeScanner());
         return;
@@ -169,9 +176,14 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   void _showCustomerSelector(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => _CustomerSelectorSheet(
+      builder: (sheetContext) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: _CustomerSelectorSheet(
         onSelected: (
           customerId,
           customerType, {
@@ -198,8 +210,10 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           _showInvoice(ref, context, customer: resolvedCustomer);
         },
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   void _showInvoice(WidgetRef ref, BuildContext context, {Customer? customer}) {
     final billingState = ref.read(billingProvider);
@@ -243,19 +257,26 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     final allProducts = ref.read(productsListProvider);
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _ProductPickerSheet(
-        products: allProducts,
-        onSelected: (product) {
-          final billingNotifier = ref.read(billingProvider.notifier);
-          if (product.is_weighted) {
-            Navigator.pop(context);
-            _showWeightInput(product);
-          } else {
-            billingNotifier.addToCart(product);
-          }
-        },
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: _ProductPickerSheet(
+            products: allProducts,
+            onSelected: (product) {
+              final billingNotifier = ref.read(billingProvider.notifier);
+              if (product.is_weighted) {
+                Navigator.pop(context);
+                _showWeightInput(product);
+              } else {
+                billingNotifier.addToCart(product);
+              }
+            },
+          ),
+        ),
       ),
     );
   }
@@ -263,10 +284,15 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   void _showWeightInput(ProductModel product) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => WeightInputSheet(
-        product: product,
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: WeightInputSheet(
+            product: product,
         onAdd: (quantity) {
           if (ref
               .read(billingProvider.notifier)
@@ -281,8 +307,10 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           }
         },
       ),
-    ).then((_) => _resumeScanner());
-  }
+    ),
+  ),
+).then((_) => _resumeScanner());
+}
 
   @override
   Widget build(BuildContext context) {
@@ -540,9 +568,16 @@ class _CustomerSelectorSheetState
   Future<void> _openAddCustomer() async {
     final result = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const AddCustomerBottomSheet(),
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: const AddCustomerBottomSheet(),
+        ),
+      ),
     );
     if (result == true) {
       await ref.read(customerProvider.notifier).fetchCustomers();
@@ -562,11 +597,14 @@ class _CustomerSelectorSheetState
 
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       clipBehavior: Clip.antiAlias,
-      child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.75,
-        child: Column(
+      child: SafeArea(
+        top: false,
+        bottom: true,
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.75,
+          child: Column(
           children: [
             const SizedBox(height: 12),
             Container(
@@ -759,8 +797,9 @@ class _CustomerSelectorSheetState
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _ScannerOverlayPainter extends CustomPainter {
@@ -878,11 +917,14 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
     final billingState = ref.watch(billingProvider);
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       clipBehavior: Clip.antiAlias,
-      child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.85,
-        child: Column(
+      child: SafeArea(
+        top: false,
+        bottom: true,
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.85,
+          child: Column(
         children: [
           const SizedBox(height: 12),
           Container(
@@ -992,7 +1034,8 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
         ],
       ),
     ),
-  );
+  ),
+);
 }
 }
 

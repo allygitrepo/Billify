@@ -36,11 +36,18 @@ class ProductFormBottomSheet extends ConsumerStatefulWidget {
   }) {
     return showModalBottomSheet<ProductModel?>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ProductFormBottomSheet(
-        product: product,
-        initialBarcode: barcode,
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: ProductFormBottomSheet(
+            product: product,
+            initialBarcode: barcode,
+          ),
+        ),
       ),
     );
   }
@@ -327,16 +334,19 @@ class _ProductFormBottomSheetState
 
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: SingleChildScrollView(
+      child: SafeArea(
+        top: false,
+        bottom: true,
         child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Form(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Form(
             key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -719,6 +729,7 @@ class _ProductFormBottomSheetState
         ),
       ),
     ),
-  );
+  ),
+);
 }
 }

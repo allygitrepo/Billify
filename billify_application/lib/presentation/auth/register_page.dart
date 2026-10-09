@@ -102,6 +102,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
@@ -113,27 +114,33 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           
           String? errorMessage;
 
-          return Container(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(30),
-                topRight: Radius.circular(30),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, -5),
+          return Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 550),
+              child: Container(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
-              child: Column(
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, -5),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  top: false,
+                  bottom: true,
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
@@ -345,11 +352,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 ],
               ),
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
-  }
+  },
+),
+);
+}
 
   @override
   Widget build(BuildContext context) {

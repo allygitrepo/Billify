@@ -57,8 +57,16 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
             onPressed: () {
               showModalBottomSheet(
                 context: context,
+                useRootNavigator: true,
                 isScrollControlled: true,
-                builder: (context) => const AddCustomerBottomSheet(),
+                backgroundColor: Colors.transparent,
+                builder: (context) => Align(
+                  alignment: Alignment.bottomCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: const AddCustomerBottomSheet(),
+                  ),
+                ),
               );
             },
             tooltip: 'Add New Customer',
@@ -145,9 +153,17 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                                   onPressed: () {
                                     showModalBottomSheet(
                                       context: context,
+                                      useRootNavigator: true,
                                       isScrollControlled: true,
-                                      builder: (context) =>
-                                          const AddCustomerBottomSheet(),
+                                      backgroundColor: Colors.transparent,
+                                      builder: (context) => Align(
+                                        alignment: Alignment.bottomCenter,
+                                        child: ConstrainedBox(
+                                          constraints:
+                                              const BoxConstraints(maxWidth: 600),
+                                          child: const AddCustomerBottomSheet(),
+                                        ),
+                                      ),
                                     );
                                   },
                                   icon: const Icon(Icons.add, size: 18),

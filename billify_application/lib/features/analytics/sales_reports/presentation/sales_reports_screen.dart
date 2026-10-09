@@ -105,50 +105,70 @@ class SalesReportsScreen extends ConsumerWidget {
   void _showExportOptions(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Material(
-        color: Theme.of(context).cardColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Export Report As',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Material(
+            color: Theme.of(context).cardColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            clipBehavior: Clip.antiAlias,
+            child: SafeArea(
+              top: false,
+              bottom: true,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).dividerColor,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const Text(
+                      'Export Report As',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                    const SizedBox(height: 20),
+                    ListTile(
+                      leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                      title: const Text('PDF Document'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        final state = ref.read(salesReportsProvider);
+                        ReportExportService.exportToPdf(state);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.table_chart, color: Colors.green),
+                      title: const Text('Excel Spreadsheet'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        final state = ref.read(salesReportsProvider);
+                        ReportExportService.exportToExcel(state);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.print, color: Colors.blue),
+                      title: const Text('Print Report'),
+                      onTap: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
-              title: const Text('PDF Document'),
-              onTap: () {
-                Navigator.pop(context);
-                final state = ref.read(salesReportsProvider);
-                ReportExportService.exportToPdf(state);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.table_chart, color: Colors.green),
-              title: const Text('Excel Spreadsheet'),
-              onTap: () {
-                Navigator.pop(context);
-                final state = ref.read(salesReportsProvider);
-                ReportExportService.exportToExcel(state);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.print, color: Colors.blue),
-              title: const Text('Print Report'),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _LoadingShimmer extends StatelessWidget {

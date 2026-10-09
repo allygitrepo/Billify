@@ -26,24 +26,36 @@ class AppBottomSheet extends StatelessWidget {
     bool isScrollControlled = true,
     bool enableDrag = true,
     bool isDismissible = true,
+    bool useRootNavigator = true,
   }) {
     return showModalBottomSheet<T>(
       context: context,
+      useRootNavigator: useRootNavigator,
       isScrollControlled: isScrollControlled,
       enableDrag: enableDrag,
       isDismissible: isDismissible,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Material(
-        color: Theme.of(ctx).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppConstants.borderRadiusLarge),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+      builder: (ctx) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Material(
+            color: Theme.of(ctx).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppConstants.borderRadiusLarge),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: SafeArea(
+              top: false,
+              bottom: true,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                ),
+                child: builder(ctx),
+              ),
+            ),
           ),
-          child: builder(ctx),
         ),
       ),
     );

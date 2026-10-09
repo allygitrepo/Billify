@@ -521,11 +521,16 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen>
     if (customer == null) return;
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      backgroundColor: Colors.transparent,
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: AddCustomerBottomSheet(initialCustomer: customer),
+        ),
       ),
-      builder: (context) => AddCustomerBottomSheet(initialCustomer: customer),
     ).then((result) {
       if (result == true) {
         ref.invalidate(customerLedgerProvider(widget.customerId));

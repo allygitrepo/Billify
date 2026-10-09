@@ -54,15 +54,18 @@ class _AddCustomerBottomSheetState
     final bool isEditing = widget.initialCustomer?.id != null;
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-          left: 20,
-          right: 20,
-          top: 12,
-        ),
+      child: SafeArea(
+        top: false,
+        bottom: true,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            left: 20,
+            right: 20,
+            top: 12,
+          ),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -196,7 +199,8 @@ class _AddCustomerBottomSheetState
         ),
       ),
     ),
-  );
+  ),
+);
 }
 
   Future<void> _saveCustomer() async {

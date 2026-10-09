@@ -541,22 +541,30 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Material(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          clipBehavior: Clip.antiAlias,
-          child: SizedBox(
-            height: MediaQuery.of(context).size.height * 0.85,
-            child: Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 24,
-                right: 24,
-                top: 24,
-              ),
+        builder: (context, setSheetState) => Align(
+          alignment: Alignment.bottomCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Material(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              clipBehavior: Clip.antiAlias,
+              child: SafeArea(
+                top: false,
+                bottom: true,
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.85,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                      left: 24,
+                      right: 24,
+                      top: 24,
+                    ),
               child: Form(
                 key: formKey,
                 child: SingleChildScrollView(
@@ -900,7 +908,10 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
           ),
         ),
       ),
-    );
+    ),
+  ),
+),
+);
   }
 
   void _showRoleBottomSheet() {
@@ -910,20 +921,28 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Material(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          clipBehavior: Clip.antiAlias,
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-              left: 24,
-              right: 24,
-              top: 24,
-            ),
+        builder: (context, setSheetState) => Align(
+          alignment: Alignment.bottomCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Material(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              clipBehavior: Clip.antiAlias,
+              child: SafeArea(
+                top: false,
+                bottom: true,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                    left: 24,
+                    right: 24,
+                    top: 24,
+                  ),
             child: Form(
               key: formKey,
               child: Column(
@@ -1036,7 +1055,10 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
           ),
         ),
       ),
-    );
+    ),
+  ),
+),
+);
   }
 
   @override

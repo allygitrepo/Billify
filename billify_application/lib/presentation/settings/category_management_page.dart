@@ -120,99 +120,110 @@ class CategoryManagementPage extends ConsumerWidget {
     final controller = TextEditingController(text: category?.name);
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Material(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[600],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Material(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            clipBehavior: Clip.antiAlias,
+            child: SafeArea(
+              top: false,
+              bottom: true,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  category == null ? 'Add Category' : 'Edit Category',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                CustomTextField(
-                  controller: controller,
-                  label: 'Category Name',
-                  hint: 'e.g. Beverages',
-                  autofocus: true,
-                ),
-                const SizedBox(height: 32),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('CANCEL'),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (controller.text.isNotEmpty) {
-                            final newCategory = CategoryModel(
-                              id: category?.id ?? const Uuid().v4(),
-                              name: controller.text.trim(),
-                            );
-                            ref
-                                .read(categoryProvider.notifier)
-                                .saveCategory(newCategory);
-                            Navigator.pop(context);
-                            AppFeedback.showSuccess(
-                              context,
-                              category == null
-                                  ? 'Category added successfully'
-                                  : 'Category updated successfully',
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryTeal,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[600],
+                              borderRadius: BorderRadius.circular(2),
+                            ),
                           ),
                         ),
-                        child: Text(category == null ? 'ADD' : 'SAVE'),
-                      ),
+                        const SizedBox(height: 24),
+                        Text(
+                          category == null ? 'Add Category' : 'Edit Category',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        CustomTextField(
+                          controller: controller,
+                          label: 'Category Name',
+                          hint: 'e.g. Beverages',
+                          autofocus: true,
+                        ),
+                        const SizedBox(height: 32),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('CANCEL'),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  if (controller.text.isNotEmpty) {
+                                    final newCategory = CategoryModel(
+                                      id: category?.id ?? const Uuid().v4(),
+                                      name: controller.text.trim(),
+                                    );
+                                    ref
+                                        .read(categoryProvider.notifier)
+                                        .saveCategory(newCategory);
+                                    Navigator.pop(context);
+                                    AppFeedback.showSuccess(
+                                      context,
+                                      category == null
+                                          ? 'Category added successfully'
+                                          : 'Category updated successfully',
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryTeal,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(category == null ? 'ADD' : 'SAVE'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-              ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   void _showDeleteDialog(

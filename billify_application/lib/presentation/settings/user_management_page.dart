@@ -338,6 +338,8 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
           PermissionAction.add,
         );
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -388,9 +390,13 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Theme.of(context).dividerColor),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : Colors.grey.shade300,
+                  ),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<RoleModel>(

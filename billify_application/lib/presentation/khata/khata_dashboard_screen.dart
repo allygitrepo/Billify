@@ -161,6 +161,7 @@ class _KhataDashboardScreenState extends ConsumerState<KhataDashboardScreen> {
   }
 
   Widget _buildSearchField() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: TextField(
@@ -169,10 +170,29 @@ class _KhataDashboardScreenState extends ConsumerState<KhataDashboardScreen> {
           hintText: 'Search customers...',
           prefixIcon: const Icon(Icons.search),
           filled: true,
-          fillColor: Theme.of(context).cardColor,
+          fillColor: isDark ? Theme.of(context).cardColor : Colors.grey.shade50,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+            borderSide: BorderSide(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.15)
+                  : Colors.grey.shade300,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.15)
+                  : Colors.grey.shade300,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(
+              color: AppTheme.primaryTeal,
+              width: 2,
+            ),
           ),
         ),
         onChanged: (val) => setState(() {}),
@@ -267,9 +287,20 @@ class _KhataCustomerTile extends StatelessWidget {
     final bool owesMoney = customer.remainingBalance > 0;
     final color = owesMoney ? Colors.red : Colors.green;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.grey.shade300,
+          width: 1,
+        ),
+      ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(

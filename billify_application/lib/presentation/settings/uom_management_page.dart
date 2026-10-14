@@ -38,10 +38,18 @@ class UomManagementPage extends ConsumerWidget {
               itemCount: uoms.length,
               itemBuilder: (context, index) {
                 final uom = uoms[index];
+                final isDark = Theme.of(context).brightness == Brightness.dark;
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.grey.shade300,
+                      width: 1,
+                    ),
                   ),
                   child: ListTile(
                     title: Text(

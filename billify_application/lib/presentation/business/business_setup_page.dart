@@ -303,15 +303,22 @@ class _BusinessSetupPageState extends ConsumerState<BusinessSetupPage> {
         final business = state.businesses[index];
         final isCurrent = business.id == state.currentBusinessId;
 
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: Card(
-            elevation: isCurrent ? 4 : 1,
+            elevation: isCurrent ? 2 : 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: isCurrent
                   ? const BorderSide(color: AppTheme.primaryTeal, width: 2)
-                  : BorderSide.none,
+                  : BorderSide(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.grey.shade300,
+                      width: 1,
+                    ),
             ),
             child: ListTile(
               contentPadding: const EdgeInsets.all(16),

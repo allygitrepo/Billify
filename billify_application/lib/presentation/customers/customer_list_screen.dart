@@ -184,10 +184,23 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                     final bool owesMoney = customer.remainingBalance > 0;
                     final bool isSettled = customer.remainingBalance == 0;
 
+                    final isDark =
+                        Theme.of(context).brightness == Brightness.dark;
+
                     return Card(
                       margin: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 5,
+                      ),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.grey.shade300,
+                          width: 1,
+                        ),
                       ),
                       child: ListTile(
                         leading:

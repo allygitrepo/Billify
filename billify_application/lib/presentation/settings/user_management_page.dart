@@ -197,10 +197,18 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
           (r) => r.id == user.roleId,
           orElse: () => roles.first,
         );
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
+          elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.grey.shade300,
+              width: 1,
+            ),
           ),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(

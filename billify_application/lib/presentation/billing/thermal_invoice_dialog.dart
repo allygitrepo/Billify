@@ -1121,10 +1121,27 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                         onPressed: _isSaving
                             ? null
                             : () => Navigator.pop(context),
-                        child: const Text('CANCEL'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: const BorderSide(
+                            color: AppTheme.primaryTeal,
+                            width: 1.5,
+                          ),
+                          foregroundColor: AppTheme.primaryTeal,
+                        ),
+                        child: const Text(
+                          'CANCEL',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 5),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: _isSaving
@@ -1188,11 +1205,17 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                               },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryTeal,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(0, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
                         ),
                         child: _isSaving
                             ? const SizedBox(
-                                height: 15,
-                                width: 15,
+                                height: 18,
+                                width: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   color: Colors.white,
@@ -1206,7 +1229,8 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                     : 'CONFIRM (SPLIT)',
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
                                 ),
                               ),
                       ),
@@ -1475,22 +1499,45 @@ class _KhataCustomerRequiredDialogState
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('CANCEL'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: const BorderSide(
+                          color: AppTheme.primaryTeal,
+                          width: 1.5,
+                        ),
+                        foregroundColor: AppTheme.primaryTeal,
+                      ),
+                      child: const Text(
+                        'CANCEL',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
                     child: ElevatedButton(
                       onPressed: _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryTeal,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
                       ),
                       child: const Text(
                         'CONTINUE TO KHATA',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

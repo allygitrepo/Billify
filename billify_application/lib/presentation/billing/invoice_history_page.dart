@@ -139,10 +139,20 @@ class _InvoiceHistoryPageState extends ConsumerState<InvoiceHistoryPage> {
                       final isWalkin =
                           invoice.customer_type == 'WALKIN' || customer == null;
 
+                      final isDark =
+                          Theme.of(context).brightness == Brightness.dark;
+
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
+                        elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.grey.shade300,
+                            width: 1,
+                          ),
                         ),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),

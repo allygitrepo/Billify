@@ -140,7 +140,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                     },
                   )
                 : widget.suffixIcon,
-            counterText: "",
+            counterText: '',
             filled: true,
             fillColor: widget.enabled
                 ? theme.colorScheme.surface
@@ -148,14 +148,18 @@ class _CustomTextFieldState extends State<CustomTextField> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppConstants.borderRadius),
               borderSide: BorderSide(
-                color: theme.dividerColor.withValues(alpha: 0.15),
+                color: theme.brightness == Brightness.dark
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : Colors.grey.shade300,
                 width: 1,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppConstants.borderRadius),
               borderSide: BorderSide(
-                color: theme.dividerColor.withValues(alpha: 0.25),
+                color: theme.brightness == Brightness.dark
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : Colors.grey.shade300,
                 width: 1,
               ),
             ),

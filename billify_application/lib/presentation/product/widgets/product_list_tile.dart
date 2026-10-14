@@ -31,9 +31,20 @@ class ProductListTile extends ConsumerWidget {
     final isOutOfStock = product.totalStock <= 0;
     final isLowStock = product.totalStock > 0 && product.totalStock < 10;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.grey.shade300,
+          width: 1,
+        ),
+      ),
       child: ListTile(
         onTap: canEdit ? onEdit : null,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

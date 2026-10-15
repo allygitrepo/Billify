@@ -75,6 +75,12 @@ class InvoiceModel {
           if ((bMap['phone'] == null || bMap['phone'].toString().trim().isEmpty) && json['business_phone'] != null) {
             bMap['phone'] = json['business_phone'];
           }
+          if ((bMap['business_logo'] == null || bMap['business_logo'].toString().trim().isEmpty) && json['business_logo'] != null) {
+            bMap['business_logo'] = json['business_logo'];
+          }
+          if ((bMap['business_logo'] == null || bMap['business_logo'].toString().trim().isEmpty) && json['photo'] != null) {
+            bMap['business_logo'] = json['photo'];
+          }
           return BusinessModel.fromJson(bMap);
         }
         return BusinessModel(
@@ -83,6 +89,7 @@ class InvoiceModel {
           phone: json['business_phone']?.toString() ?? json['phone']?.toString() ?? '',
           address: json['business_address']?.toString() ?? json['address']?.toString(),
           gstin: json['gst_number']?.toString() ?? json['gstin']?.toString(),
+          business_logo: json['business_logo']?.toString() ?? json['photo']?.toString() ?? json['business_photo']?.toString(),
           tax_percentage: 0.0,
           gst_percentage: 0.0,
         );

@@ -54,6 +54,113 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
+            SectionCard(
+              title: 'Invoice & Printing',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Default Invoice Format',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Choose how invoices and receipts are formatted by default for printing and sharing.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).textTheme.bodySmall?.color,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  RadioListTile<String>(
+                    value: 'thermal',
+                    groupValue: ref.watch(featureSettingsProvider).invoicePrintFormat,
+                    activeColor: AppTheme.primaryTeal,
+                    title: const Row(
+                      children: [
+                        Icon(
+                          Icons.receipt_long_rounded,
+                          size: 20,
+                          color: AppTheme.primaryTeal,
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          'Thermal Receipt (80mm)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    subtitle: const Padding(
+                      padding: EdgeInsets.only(left: 30, top: 2),
+                      child: Text(
+                        'Compact roll format for Bluetooth / USB POS receipt printers',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref
+                            .read(featureSettingsProvider.notifier)
+                            .updateInvoicePrintFormat(val);
+                      }
+                    },
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  RadioListTile<String>(
+                    value: 'a4',
+                    groupValue: ref.watch(featureSettingsProvider).invoicePrintFormat,
+                    activeColor: AppTheme.primaryTeal,
+                    title: const Row(
+                      children: [
+                        Icon(
+                          Icons.description_outlined,
+                          size: 20,
+                          color: AppTheme.primaryTeal,
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          'Standard A4 Document',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    subtitle: const Padding(
+                      padding: EdgeInsets.only(left: 30, top: 2),
+                      child: Text(
+                        'Full-page formal Tax Invoice with table, borders & signature',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref
+                            .read(featureSettingsProvider.notifier)
+                            .updateInvoicePrintFormat(val);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
 
             if (ref
                     .watch(authProvider)

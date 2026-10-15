@@ -201,6 +201,13 @@ class BillingNotifier extends Notifier<BillingState> {
           address: currentBiz!.address,
         );
       }
+      if ((effectiveBusiness.business_logo == null ||
+              effectiveBusiness.business_logo!.trim().isEmpty) &&
+          currentBiz?.business_logo?.trim().isNotEmpty == true) {
+        effectiveBusiness = effectiveBusiness.copyWith(
+          business_logo: currentBiz!.business_logo,
+        );
+      }
 
       final invoice = InvoiceModel(
         id: invoiceId,

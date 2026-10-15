@@ -1,6 +1,7 @@
 import 'package:billify/core/services/pdf_service.dart';
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/core/utils/app_feedback.dart';
+import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/core/utils/validators.dart';
 import 'package:billify/data/models/business_model.dart';
 import 'package:billify/data/models/cart_item_model.dart';
@@ -12,7 +13,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:billify/providers/customer_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:billify/data/models/invoice_model.dart';
+import 'package:billify/providers/feature_settings_provider.dart';
 import 'package:intl/intl.dart';
+
+typedef InvoicePreviewDialog = ThermalInvoiceDialog;
 
 class ThermalInvoiceDialog extends ConsumerStatefulWidget {
   final List<dynamic> items;
@@ -66,6 +70,8 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
   InvoiceModel? _savedInvoice;
   bool _isSaving = false;
   bool _isSharingInvoice = false;
+  bool _isPrinting = false;
+  String _selectedFormat = 'thermal'; // 'thermal' or 'a4'
   late bool _applyTax;
   late bool _applyGst;
 
@@ -142,37 +148,56 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
     final currentBiz = ref.read(businessProvider).currentBusiness;
 
     if (_savedInvoice != null) {
-      var inv = _savedInvoice!;
-      if (inv.business.phone.trim().isEmpty) {
+      final inv = _savedInvoice!;
+      var biz = inv.business;
+      if (biz.phone.trim().isEmpty) {
         final fallbackPhone = currentBiz?.phone.trim().isNotEmpty == true
             ? currentBiz!.phone.trim()
             : widget.business.phone.trim();
         if (fallbackPhone.isNotEmpty) {
-          inv = inv.copyWith(
-            business: inv.business.copyWith(phone: fallbackPhone),
-          );
+          biz = biz.copyWith(phone: fallbackPhone);
         }
       }
-      return inv;
+      if (biz.business_logo == null || biz.business_logo!.trim().isEmpty) {
+        final fallbackLogo = currentBiz?.business_logo?.trim().isNotEmpty == true
+            ? currentBiz!.business_logo
+            : widget.business.business_logo;
+        if (fallbackLogo != null && fallbackLogo.trim().isNotEmpty) {
+          biz = biz.copyWith(business_logo: fallbackLogo);
+        }
+      }
+      return inv.copyWith(business: biz);
     }
     if (widget.invoice != null) {
-      var inv = widget.invoice!;
-      if (inv.business.phone.trim().isEmpty) {
+      final inv = widget.invoice!;
+      var biz = inv.business;
+      if (biz.phone.trim().isEmpty) {
         final fallbackPhone = currentBiz?.phone.trim().isNotEmpty == true
             ? currentBiz!.phone.trim()
             : widget.business.phone.trim();
         if (fallbackPhone.isNotEmpty) {
-          inv = inv.copyWith(
-            business: inv.business.copyWith(phone: fallbackPhone),
-          );
+          biz = biz.copyWith(phone: fallbackPhone);
         }
       }
-      return inv;
+      if (biz.business_logo == null || biz.business_logo!.trim().isEmpty) {
+        final fallbackLogo = currentBiz?.business_logo?.trim().isNotEmpty == true
+            ? currentBiz!.business_logo
+            : widget.business.business_logo;
+        if (fallbackLogo != null && fallbackLogo.trim().isNotEmpty) {
+          biz = biz.copyWith(business_logo: fallbackLogo);
+        }
+      }
+      return inv.copyWith(business: biz);
     }
 
     var currentBusiness = currentBiz ?? widget.business;
     if (currentBusiness.phone.trim().isEmpty && widget.business.phone.trim().isNotEmpty) {
       currentBusiness = currentBusiness.copyWith(phone: widget.business.phone.trim());
+    }
+    if ((currentBusiness.business_logo == null || currentBusiness.business_logo!.trim().isEmpty) &&
+        widget.business.business_logo != null &&
+        widget.business.business_logo!.trim().isNotEmpty) {
+      currentBusiness = currentBusiness.copyWith(business_logo: widget.business.business_logo!.trim());
     }
 
     final paid =
@@ -214,6 +239,8 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
   @override
   void initState() {
     super.initState();
+    final settings = ref.read(featureSettingsProvider);
+    _selectedFormat = settings.invoicePrintFormat;
     final rawMode =
         widget.invoice?.payment_mode ?? widget.initialPaymentMode ?? 'CASH';
     _paymentMode = rawMode.toUpperCase();
@@ -260,10 +287,10 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
     if (custId != null) return true;
 
     // 2. Check if name and phone are already available in state or widget
-    String? currentName = widget.customer?.name ?? billing.customerName;
-    String? currentPhone =
+    final String? currentName = widget.customer?.name ?? billing.customerName;
+    final String? currentPhone =
         widget.customer?.phoneNumber ?? billing.customerPhone;
-    String? currentCity = widget.customer?.city ?? billing.customerCity;
+    final String? currentCity = widget.customer?.city ?? billing.customerCity;
 
     if (currentName != null &&
         currentName.trim().isNotEmpty &&
@@ -404,6 +431,14 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
         business = business.copyWith(address: fallbackAddr);
       }
     }
+    if (business.business_logo == null || business.business_logo!.trim().isEmpty) {
+      final fallbackLogo = currentBiz?.business_logo?.trim().isNotEmpty == true
+          ? currentBiz!.business_logo
+          : widget.business.business_logo;
+      if (fallbackLogo != null && fallbackLogo.trim().isNotEmpty) {
+        business = business.copyWith(business_logo: fallbackLogo);
+      }
+    }
 
     final now = (_savedInvoice?.date ??
             widget.invoice?.date ??
@@ -418,8 +453,8 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: 380,
+        constraints: BoxConstraints(
+          maxWidth: _selectedFormat == 'a4' ? 520 : 380,
           minWidth: 280,
         ),
         child: SingleChildScrollView(
@@ -428,308 +463,101 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Header
-                Text(
-                  business.name.toUpperCase(),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    letterSpacing: 0,
-                    color: Colors.black,
+                // ── Invoice Format Switcher (Thermal vs A4) ──
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                if (business.address != null && business.address!.trim().isNotEmpty)
-                  Text(
-                    business.address!,
-                    style: const TextStyle(fontSize: 12, color: Colors.black87),
-                    textAlign: TextAlign.center,
-                  ),
-                if (business.phone.trim().isNotEmpty)
-                  Text(
-                    'Phone: ${business.phone}',
-                    style: const TextStyle(fontSize: 12, color: Colors.black87),
-                    textAlign: TextAlign.center,
-                  ),
-                if (business.gstin != null && business.gstin!.isNotEmpty)
-                  Text(
-                    'GSTIN: ${business.gstin}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                const SizedBox(height: 8),
-                Text(
-                  'INVOICE NO: ${widget.invoiceId}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                Consumer(
-                  builder: (context, ref, _) {
-                    final customers = ref.watch(customerProvider).value ?? [];
-                    final custId =
-                        widget.customerId ?? widget.invoice?.customer_id;
-                    final customer =
-                        widget.customer ??
-                        customers.where((c) => c.id == custId).firstOrNull;
-
-                    final customerName =
-                        customer?.name ??
-                        widget.invoice?.customer_name ??
-                        ref.watch(billingProvider).customerName;
-                    final customerPhone =
-                        customer?.phoneNumber ??
-                        widget.invoice?.customer_phone ??
-                        ref.watch(billingProvider).customerPhone;
-
-                    final customerCity =
-                        customer?.city ??
-                        ref.watch(billingProvider).customerCity;
-
-                    final hasCustomer =
-                        (customerName != null &&
-                            customerName.isNotEmpty &&
-                            customerName != 'Walk-in Customer') ||
-                        (customerPhone != null && customerPhone.isNotEmpty) ||
-                        (customerCity != null && customerCity.isNotEmpty) ||
-                        (widget.customerType == 'REGULAR' && widget.customerId != null);
-
-                    if (!hasCustomer) return const SizedBox.shrink();
-
-                    return Column(
-                      children: [
-                        const _DashedDivider(),
-                        if (customerName != null && customerName.isNotEmpty)
-                          Text(
-                            'CUSTOMER: ${customerName.toUpperCase()}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() => _selectedFormat = 'thermal'),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 7),
+                            decoration: BoxDecoration(
+                              color: _selectedFormat == 'thermal'
+                                  ? AppTheme.primaryTeal
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                          ),
-                        if (customerPhone != null && customerPhone.isNotEmpty)
-                          Text(
-                            'Phone: $customerPhone',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        if (customerCity != null && customerCity.isNotEmpty)
-                          Text(
-                            'City: $customerCity',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.black87,
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-                const _DashedDivider(),
-
-                // Date & Time
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Date: ${dateFormat.format(now)}',
-                      style: const TextStyle(fontSize: 11, color: Colors.black87),
-                    ),
-                    Text(
-                      'Time: ${timeFormat.format(now)}',
-                      style: const TextStyle(fontSize: 11, color: Colors.black87),
-                    ),
-                  ],
-                ),
-
-                const _DashedDivider(),
-
-                // Items Table Header
-                const Row(
-                  children: [
-                    Expanded(
-                      flex: 7,
-                      child: Text(
-                        'ITEM',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 4),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        'QTY',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                          color: Colors.black,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    SizedBox(width: 4),
-                    Expanded(
-                      flex: 5,
-                      child: Text(
-                        'PRICE',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                          color: Colors.black,
-                        ),
-                        textAlign: TextAlign.right,
-                      ),
-                    ),
-                    SizedBox(width: 4),
-                    Expanded(
-                      flex: 6,
-                      child: Text(
-                        'TOTAL',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                          color: Colors.black,
-                        ),
-                        textAlign: TextAlign.right,
-                      ),
-                    ),
-                  ],
-                ),
-                const _DashedDivider(),
-
-                // Items List
-                ...widget.items.map(
-                  (item) {
-                    final qtyStr = item.product.is_weighted
-                        ? item.quantity.toStringAsFixed(2)
-                        : (item.quantity % 1 == 0
-                            ? item.quantity.toInt().toString()
-                            : item.quantity.toString());
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2.5),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 7,
-                            child: Text(
-                              item.name,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.black,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            flex: 3,
-                            child: Text(
-                              qtyStr,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.black,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            flex: 5,
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  item.price.toStringAsFixed(2),
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.black,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.receipt_long_rounded,
+                                  size: 15,
+                                  color: _selectedFormat == 'thermal'
+                                      ? Colors.white
+                                      : Colors.grey.shade700,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Thermal (80mm)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: _selectedFormat == 'thermal'
+                                        ? Colors.white
+                                        : Colors.grey.shade700,
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            flex: 6,
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  item.subtotal.toStringAsFixed(2),
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
+                        ),
+                      ),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() => _selectedFormat = 'a4'),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 7),
+                            decoration: BoxDecoration(
+                              color: _selectedFormat == 'a4'
+                                  ? AppTheme.primaryTeal
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.description_outlined,
+                                  size: 15,
+                                  color: _selectedFormat == 'a4'
+                                      ? Colors.white
+                                      : Colors.grey.shade700,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Standard A4',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: _selectedFormat == 'a4'
+                                        ? Colors.white
+                                        : Colors.grey.shade700,
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 ),
+                if (_selectedFormat == 'a4')
+                  _buildA4Preview(business, now, dateFormat, timeFormat)
+                else
+                  _buildThermalPreview(business, now, dateFormat, timeFormat),
 
-                const _DashedDivider(),
-
-                // Totals
-                _PriceRow(label: 'SUBTOTAL', value: _subtotal),
-                if (_effectiveTaxAmount > 0)
-                  _PriceRow(
-                    label: _taxPercent > 0 ? 'TAX ($_taxPercent%)' : 'TAX',
-                    value: _effectiveTaxAmount,
-                  ),
-                if (_effectiveGstAmount > 0)
-                  _PriceRow(
-                    label: _gstPercent > 0 ? 'GST ($_gstPercent%)' : 'GST',
-                    value: _effectiveGstAmount,
-                  ),
-                const _DashedDivider(),
-                _PriceRow(
-                  label: _effectivePreviousBalance > 0 ? 'BILL TOTAL' : 'GRAND TOTAL',
-                  value: _effectiveTotal,
-                  isBold: true,
-                  fontSize: 14,
-                ),
-                if (_effectivePreviousBalance > 0) ...[
-                  const SizedBox(height: 2),
-                  _PriceRow(
-                    label: 'PREVIOUS BALANCE',
-                    value: _effectivePreviousBalance,
-                    isBold: true,
-                    fontSize: 12,
-                  ),
-                  const SizedBox(height: 2),
-                  _PriceRow(
-                    label: 'TOTAL DUE',
-                    value: _effectiveTotalDue,
-                    isBold: true,
-                    fontSize: 14,
-                  ),
-                ],
 
               // Tax & GST Toggle Switches for New Invoices
               if (!widget.isViewOnly && widget.invoice == null && !_isConfirmed)
@@ -1227,96 +1055,142 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                   ),
                   const SizedBox(height: 20),
                 ],
-                if (widget.customerType == 'REGULAR' ||
-                    widget.customerId != null ||
-                    widget.customer != null ||
-                    widget.invoice?.customer_id != null)
-                  Consumer(
-                    builder: (context, ref, _) {
-                      final customers = ref.watch(customerProvider).value ?? [];
-                      final custId =
-                          widget.customerId ?? widget.invoice?.customer_id;
-                      final customer =
-                          widget.customer ??
-                          customers.where((c) => c.id == custId).firstOrNull;
-
-                      final phone =
-                          customer?.phoneNumber ??
-                          widget.invoice?.customer_phone ??
-                          ref.watch(billingProvider).customerPhone;
-
-                      if (phone == null || phone.isEmpty) {
-                        return const SizedBox.shrink();
-                      }
-
-                      return Column(
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _isSharingInvoice
-                                  ? null
-                                  : () async {
-                                      setState(() => _isSharingInvoice = true);
-                                      try {
-                                        final inv = _effectiveInvoice;
-                                        final pdfFile =
-                                            await PdfService.generateInvoicePdf(
-                                              invoice: inv,
-                                            );
-                                        await Share.shareXFiles(
-                                          [XFile(pdfFile.path)],
-                                          text:
-                                              'Invoice No: ${inv.id}\nAmount: ₹${inv.final_amount.toStringAsFixed(2)}\nThank you for shopping with us!',
-                                        );
-                                      } catch (e) {
-                                        if (mounted) {
-                                          AppFeedback.showError(
-                                            context,
-                                            'Error sharing PDF: $e',
-                                          );
-                                        }
-                                      } finally {
-                                        if (mounted) {
-                                          setState(
-                                            () => _isSharingInvoice = false,
-                                          );
-                                        }
-                                      }
-                                    },
-                              icon: _isSharingInvoice
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Icon(
-                                      Icons.share,
-                                      size: 20,
-                                      color: Colors.white,
-                                    ),
-                              label: Text(
-                                _isSharingInvoice
-                                    ? 'PREPARING PDF...'
-                                    : 'SHARE INVOICE (PDF)',
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryTeal,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                              ),
+                // Action Buttons for Confirmed / View-Only Mode
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isPrinting
+                        ? null
+                        : () async {
+                            setState(() => _isPrinting = true);
+                            try {
+                              final inv = _effectiveInvoice;
+                              await PdfService.printInvoice(
+                                invoice: inv,
+                                format: _selectedFormat,
+                              );
+                            } catch (e) {
+                              if (mounted) {
+                                AppFeedback.showError(
+                                  context,
+                                  'Error printing invoice: $e',
+                                );
+                              }
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isPrinting = false);
+                              }
+                            }
+                          },
+                    icon: _isPrinting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
                             ),
+                          )
+                        : const Icon(
+                            Icons.print_rounded,
+                            size: 18,
+                            color: Colors.white,
                           ),
-                          const SizedBox(height: 12),
-                        ],
-                      );
-                    },
+                    label: Text(
+                      _isPrinting
+                          ? 'OPENING PRINT DIALOG...'
+                          : 'PRINT INVOICE (${_selectedFormat == 'a4' ? 'A4' : 'THERMAL'})',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryTeal,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                   ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _isSharingInvoice
+                        ? null
+                        : () async {
+                            setState(() => _isSharingInvoice = true);
+                            try {
+                              final inv = _effectiveInvoice;
+                              final pdfFile =
+                                  await PdfService.generateInvoicePdf(
+                                invoice: inv,
+                                format: _selectedFormat,
+                              );
+                              final fileName =
+                                  PdfService.getInvoiceFileName(inv);
+                              await Share.shareXFiles(
+                                [
+                                  XFile(
+                                    pdfFile.path,
+                                    name: fileName,
+                                    mimeType: 'application/pdf',
+                                  ),
+                                ],
+                                text:
+                                    'Invoice No: ${inv.id}\nAmount: ₹${inv.final_amount.toStringAsFixed(2)}\nThank you for shopping with us!',
+                              );
+                            } catch (e) {
+                              if (mounted) {
+                                AppFeedback.showError(
+                                  context,
+                                  'Error sharing PDF: $e',
+                                );
+                              }
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isSharingInvoice = false);
+                              }
+                            }
+                          },
+                    icon: _isSharingInvoice
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppTheme.primaryTeal,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.share_rounded,
+                            size: 18,
+                            color: AppTheme.primaryTeal,
+                          ),
+                    label: Text(
+                      _isSharingInvoice
+                          ? 'PREPARING PDF...'
+                          : 'SHARE PDF (${_selectedFormat.toUpperCase()})',
+                      style: const TextStyle(
+                        color: AppTheme.primaryTeal,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(
+                        color: AppTheme.primaryTeal,
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -1325,6 +1199,9 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                     label: const Text('DONE / CLOSE'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                 ),
@@ -1403,6 +1280,14 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                         true) {
                                   bizToUse = bizToUse.copyWith(
                                     address: currentBiz!.address,
+                                  );
+                                }
+                                if ((bizToUse.business_logo == null ||
+                                        bizToUse.business_logo!.trim().isEmpty) &&
+                                    currentBiz?.business_logo?.trim().isNotEmpty ==
+                                        true) {
+                                  bizToUse = bizToUse.copyWith(
+                                    business_logo: currentBiz!.business_logo,
                                   );
                                 }
 
@@ -1494,6 +1379,895 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
     ),
   );
 }
+
+  Widget _buildThermalPreview(
+    BusinessModel business,
+    DateTime now,
+    DateFormat dateFormat,
+    DateFormat timeFormat,
+  ) {
+    return Column(
+      children: [
+        if (business.business_logo != null &&
+            business.business_logo!.trim().isNotEmpty) ...[
+          Container(
+            width: 48,
+            height: 48,
+            margin: const EdgeInsets.only(bottom: 6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              image: DecorationImage(
+                image: MemoryImage(
+                  ImageUtils.decodeBase64(business.business_logo!),
+                ),
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ],
+        // Header
+        Text(
+          business.name.toUpperCase(),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            letterSpacing: 0,
+            color: Colors.black,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        if (business.address != null && business.address!.trim().isNotEmpty)
+          Text(
+            business.address!,
+            style: const TextStyle(fontSize: 12, color: Colors.black87),
+            textAlign: TextAlign.center,
+          ),
+        if (business.phone.trim().isNotEmpty)
+          Text(
+            'Phone: ${business.phone}',
+            style: const TextStyle(fontSize: 12, color: Colors.black87),
+            textAlign: TextAlign.center,
+          ),
+        if (business.gstin != null && business.gstin!.isNotEmpty)
+          Text(
+            'GSTIN: ${business.gstin}',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+        const SizedBox(height: 8),
+        Text(
+          'INVOICE NO: ${widget.invoiceId}',
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+          textAlign: TextAlign.center,
+        ),
+
+        Consumer(
+          builder: (context, ref, _) {
+            final customers = ref.watch(customerProvider).value ?? [];
+            final custId =
+                widget.customerId ?? widget.invoice?.customer_id;
+            final customer =
+                widget.customer ??
+                customers.where((c) => c.id == custId).firstOrNull;
+
+            final customerName =
+                customer?.name ??
+                widget.invoice?.customer_name ??
+                ref.watch(billingProvider).customerName;
+            final customerPhone =
+                customer?.phoneNumber ??
+                widget.invoice?.customer_phone ??
+                ref.watch(billingProvider).customerPhone;
+            final customerCity =
+                customer?.city ??
+                ref.watch(billingProvider).customerCity;
+
+            final hasCustomer =
+                (customerName != null &&
+                    customerName.isNotEmpty &&
+                    customerName != 'Walk-in Customer') ||
+                (customerPhone != null && customerPhone.isNotEmpty) ||
+                (customerCity != null && customerCity.isNotEmpty) ||
+                (widget.customerType == 'REGULAR' && widget.customerId != null);
+
+            if (!hasCustomer) return const SizedBox.shrink();
+
+            return Column(
+              children: [
+                const _DashedDivider(),
+                if (customerName != null && customerName.isNotEmpty)
+                  Text(
+                    'CUSTOMER: ${customerName.toUpperCase()}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                if (customerPhone != null && customerPhone.isNotEmpty)
+                  Text(
+                    'Phone: $customerPhone',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.black87,
+                    ),
+                  ),
+                if (customerCity != null && customerCity.isNotEmpty)
+                  Text(
+                    'City: $customerCity',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.black87,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        const _DashedDivider(),
+
+        // Date & Time
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Date: ${dateFormat.format(now)}',
+              style: const TextStyle(fontSize: 11, color: Colors.black87),
+            ),
+            Text(
+              'Time: ${timeFormat.format(now)}',
+              style: const TextStyle(fontSize: 11, color: Colors.black87),
+            ),
+          ],
+        ),
+
+        const _DashedDivider(),
+
+        // Items Table Header
+        const Row(
+          children: [
+            Expanded(
+              flex: 7,
+              child: Text(
+                'ITEM',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            SizedBox(width: 4),
+            Expanded(
+              flex: 3,
+              child: Text(
+                'QTY',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  color: Colors.black,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            SizedBox(width: 4),
+            Expanded(
+              flex: 5,
+              child: Text(
+                'PRICE',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  color: Colors.black,
+                ),
+                textAlign: TextAlign.right,
+              ),
+            ),
+            SizedBox(width: 4),
+            Expanded(
+              flex: 6,
+              child: Text(
+                'TOTAL',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  color: Colors.black,
+                ),
+                textAlign: TextAlign.right,
+              ),
+            ),
+          ],
+        ),
+        const _DashedDivider(),
+
+        // Items List
+        ...widget.items.map(
+          (item) {
+            final qtyStr = item.product.is_weighted
+                ? item.quantity.toStringAsFixed(2)
+                : (item.quantity % 1 == 0
+                    ? item.quantity.toInt().toString()
+                    : item.quantity.toString());
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2.5),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 7,
+                    child: Text(
+                      item.name,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.black,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      qtyStr,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.black,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    flex: 5,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          item.price.toStringAsFixed(2),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    flex: 6,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          item.subtotal.toStringAsFixed(2),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+
+        const _DashedDivider(),
+
+        // Totals
+        _PriceRow(label: 'SUBTOTAL', value: _subtotal),
+        if (_effectiveTaxAmount > 0)
+          _PriceRow(
+            label: _taxPercent > 0 ? 'TAX ($_taxPercent%)' : 'TAX',
+            value: _effectiveTaxAmount,
+          ),
+        if (_effectiveGstAmount > 0)
+          _PriceRow(
+            label: _gstPercent > 0 ? 'GST ($_gstPercent%)' : 'GST',
+            value: _effectiveGstAmount,
+          ),
+        const _DashedDivider(),
+        _PriceRow(
+          label: _effectivePreviousBalance > 0 ? 'BILL TOTAL' : 'GRAND TOTAL',
+          value: _effectiveTotal,
+          isBold: true,
+          fontSize: 14,
+        ),
+        if (_effectivePreviousBalance > 0) ...[
+          const SizedBox(height: 2),
+          _PriceRow(
+            label: 'PREVIOUS BALANCE',
+            value: _effectivePreviousBalance,
+            isBold: true,
+            fontSize: 12,
+          ),
+          const SizedBox(height: 2),
+          _PriceRow(
+            label: 'TOTAL DUE',
+            value: _effectiveTotalDue,
+            isBold: true,
+            fontSize: 14,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildA4Preview(
+    BusinessModel business,
+    DateTime now,
+    DateFormat dateFormat,
+    DateFormat timeFormat,
+  ) {
+    final customers = ref.watch(customerProvider).value ?? [];
+    final custId = widget.customerId ?? widget.invoice?.customer_id;
+    final customer = widget.customer ??
+        customers.where((c) => c.id == custId).firstOrNull;
+
+    final customerName = customer?.name ??
+        widget.invoice?.customer_name ??
+        ref.watch(billingProvider).customerName ??
+        (widget.customerId != null ? 'Regular Customer' : 'Walk-in Customer');
+    final customerPhone = customer?.phoneNumber ??
+        widget.invoice?.customer_phone ??
+        ref.watch(billingProvider).customerPhone;
+    final customerCity = customer?.city ??
+        ref.watch(billingProvider).customerCity;
+
+    final currentPaid = double.tryParse(_paidController.text) ?? _effectiveTotal;
+    final isFullyPaid = (_effectiveTotalDue - currentPaid).abs() < 0.01;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Business Header & Invoice Badge ──────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                flex: 6,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (business.business_logo != null &&
+                        business.business_logo!.trim().isNotEmpty)
+                      Container(
+                        width: 48,
+                        height: 48,
+                        margin: const EdgeInsets.only(right: 10),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          image: DecorationImage(
+                            image: MemoryImage(
+                              ImageUtils.decodeBase64(business.business_logo!),
+                            ),
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            business.name.toUpperCase(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: AppTheme.primaryTeal,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          if (business.address != null &&
+                              business.address!.trim().isNotEmpty)
+                            Text(
+                              business.address!,
+                              style: const TextStyle(
+                                fontSize: 9.5,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          if (business.phone.trim().isNotEmpty)
+                            Text(
+                              'Phone: ${business.phone}',
+                              style: const TextStyle(
+                                fontSize: 9.5,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          if (business.gstin != null &&
+                              business.gstin!.trim().isNotEmpty)
+                            Text(
+                              'GSTIN: ${business.gstin}',
+                              style: const TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                flex: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryTeal,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'TAX INVOICE',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'INV #: ${widget.invoiceId}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 9.5,
+                        color: Colors.black,
+                      ),
+                    ),
+                    Text(
+                      '${dateFormat.format(now)} ${timeFormat.format(now)}',
+                      style: const TextStyle(
+                        fontSize: 8.5,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      'Mode: ${_paymentMode.toUpperCase()}',
+                      style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryTeal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+          const Divider(height: 1, thickness: 1, color: AppTheme.primaryTeal),
+          const SizedBox(height: 8),
+
+          // ── Customer Details Box ─────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'BILLED TO:',
+                        style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      Text(
+                        customerName,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                      if (customerPhone != null && customerPhone.isNotEmpty)
+                        Text(
+                          'Phone: $customerPhone',
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      if (customerCity != null && customerCity.isNotEmpty)
+                        Text(
+                          'City: $customerCity',
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            color: Colors.black87,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isFullyPaid
+                        ? Colors.green.shade50
+                        : Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: isFullyPaid ? Colors.green : Colors.amber.shade700,
+                    ),
+                  ),
+                  child: Text(
+                    isFullyPaid ? 'PAID' : 'PENDING',
+                    style: TextStyle(
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.bold,
+                      color: isFullyPaid
+                          ? Colors.green.shade800
+                          : Colors.amber.shade900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // ── Items Table ──────────────────────────────────────
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                Container(
+                  color: AppTheme.primaryTeal,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  child: const Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        child: Text(
+                          '#',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 4,
+                        child: Text(
+                          'ITEM',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'QTY',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'RATE',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'TOTAL',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ...List.generate(widget.items.length, (idx) {
+                  final e = widget.items[idx];
+                  final item = e is CartItemModel
+                      ? e
+                      : CartItemModel.fromJson(e as Map<String, dynamic>);
+                  final qtyStr = item.product.is_weighted
+                      ? item.quantity.toStringAsFixed(3)
+                      : (item.quantity % 1 == 0
+                          ? item.quantity.toInt().toString()
+                          : item.quantity.toString());
+
+                  return Container(
+                    color: idx % 2 == 1 ? Colors.grey.shade50 : Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 5,
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          child: Text(
+                            '${idx + 1}',
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 4,
+                          child: Text(
+                            item.name,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            '$qtyStr ${item.product.uom}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            '₹${item.price.toStringAsFixed(2)}',
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            '₹${item.subtotal.toStringAsFixed(2)}',
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // ── Totals Grid ──────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              children: [
+                _A4SummaryRow(
+                  label: 'Subtotal',
+                  value: '₹${_subtotal.toStringAsFixed(2)}',
+                ),
+                if (_effectiveTaxAmount > 0)
+                  _A4SummaryRow(
+                    label: _taxPercent > 0 ? 'Tax ($_taxPercent%)' : 'Tax',
+                    value: '₹${_effectiveTaxAmount.toStringAsFixed(2)}',
+                  ),
+                if (_effectiveGstAmount > 0)
+                  _A4SummaryRow(
+                    label: _gstPercent > 0 ? 'GST ($_gstPercent%)' : 'GST',
+                    value: '₹${_effectiveGstAmount.toStringAsFixed(2)}',
+                  ),
+                if (_effectivePreviousBalance > 0) ...[
+                  _A4SummaryRow(
+                    label: 'Previous Balance',
+                    value: '₹${_effectivePreviousBalance.toStringAsFixed(2)}',
+                    isBold: true,
+                  ),
+                  _A4SummaryRow(
+                    label: 'Total Due',
+                    value: '₹${_effectiveTotalDue.toStringAsFixed(2)}',
+                    isBold: true,
+                  ),
+                ],
+                const Divider(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryTeal.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _effectivePreviousBalance > 0
+                            ? 'BILL TOTAL'
+                            : 'GRAND TOTAL',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: AppTheme.primaryTeal,
+                        ),
+                      ),
+                      Text(
+                        '₹${_effectiveTotal.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: AppTheme.primaryTeal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                _A4SummaryRow(
+                  label: 'Paid Amount',
+                  value: '₹${currentPaid.toStringAsFixed(2)}',
+                ),
+                if (_remaining > 0.01)
+                  _A4SummaryRow(
+                    label: 'Balance to Khata',
+                    value: '₹${_remaining.toStringAsFixed(2)}',
+                    valueColor: Colors.red.shade700,
+                    isBold: true,
+                  ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 10),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Thank you for your business!',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _A4SummaryRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool isBold;
+  final Color? valueColor;
+
+  const _A4SummaryRow({
+    required this.label,
+    required this.value,
+    this.isBold = false,
+    this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              color: Colors.black87,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              color: valueColor ?? Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _PriceRow extends StatelessWidget {

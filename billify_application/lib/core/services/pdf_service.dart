@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:billify/core/utils/app_logger.dart';
+import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/data/models/business_model.dart';
 import 'package:billify/data/models/invoice_model.dart';
 import 'package:billify/data/models/ledger_model.dart';
@@ -9,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class PdfService {
   static Future<File> generateCustomerLedgerPdf({
@@ -18,20 +20,7 @@ class PdfService {
   }) async {
     final pdf = pw.Document();
     final dateFormat = DateFormat('dd/MM/yyyy');
-
-    pw.MemoryImage? logoImage;
-    if (business.business_logo != null && business.business_logo!.isNotEmpty) {
-      try {
-        String base64Data = business.business_logo!;
-        if (base64Data.contains('base64,')) {
-          base64Data = base64Data.split('base64,').last;
-        }
-        final Uint8List logoBytes = base64Decode(base64Data);
-        logoImage = pw.MemoryImage(logoBytes);
-      } catch (e) {
-        AppLogger.warning("Error decoding logo: $e", tag: 'PdfService');
-      }
-    }
+    final logoImage = _decodeLogoImage(business);
 
     // Create a map of invoice ID to items for easy lookup
     final Map<String, List<String>> invoiceItems = {};
@@ -243,27 +232,61 @@ class PdfService {
     return file;
   }
 
-  static Future<File> generateInvoicePdf({
+  static pw.MemoryImage? _decodeLogoImage(BusinessModel business) {
+    final rawLogo = business.business_logo;
+    if (rawLogo != null && rawLogo.trim().isNotEmpty) {
+      try {
+        final Uint8List logoBytes = ImageUtils.decodeBase64(rawLogo);
+        if (logoBytes.isNotEmpty) {
+          return pw.MemoryImage(logoBytes);
+        }
+      } catch (e) {
+        AppLogger.warning('Error decoding logo: $e', tag: 'PdfService');
+      }
+    }
+    return null;
+  }
+
+  static pw.Widget _buildSummaryRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    PdfColor? textColor,
+  }) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            label,
+            style: pw.TextStyle(
+              fontSize: 8.5,
+              fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
+              color: textColor ?? PdfColors.grey800,
+            ),
+          ),
+          pw.Text(
+            value,
+            style: pw.TextStyle(
+              fontSize: 8.5,
+              fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
+              color: textColor ?? PdfColors.black,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Future<pw.Document> buildThermalInvoicePdfDoc({
     required InvoiceModel invoice,
   }) async {
     final pdf = pw.Document();
     final dateFormat = DateFormat('dd/MM/yyyy');
     final timeFormat = DateFormat('hh:mm a');
     final business = invoice.business;
-
-    pw.MemoryImage? logoImage;
-    if (business.business_logo != null && business.business_logo!.isNotEmpty) {
-      try {
-        String base64Data = business.business_logo!;
-        if (base64Data.contains('base64,')) {
-          base64Data = base64Data.split('base64,').last;
-        }
-        final Uint8List logoBytes = base64Decode(base64Data);
-        logoImage = pw.MemoryImage(logoBytes);
-      } catch (e) {
-        AppLogger.warning("Error decoding logo: $e", tag: 'PdfService');
-      }
-    }
+    final logoImage = _decodeLogoImage(business);
 
     pdf.addPage(
       pw.Page(
@@ -619,10 +642,485 @@ class PdfService {
       ),
     );
 
+    return pdf;
+  }
+
+  static Future<pw.Document> buildA4InvoicePdfDoc({
+    required InvoiceModel invoice,
+  }) async {
+    final pdf = pw.Document();
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    final timeFormat = DateFormat('hh:mm a');
+    final business = invoice.business;
+    final logoImage = _decodeLogoImage(business);
+
+    final isFullyPaid = ((invoice.final_amount + invoice.previous_balance) - invoice.paid_amount).abs() < 0.01;
+    final balanceDue = (invoice.final_amount + invoice.previous_balance) - invoice.paid_amount;
+
+    final customerName = invoice.customer_name ?? 'Walk-in Customer';
+    final customerPhone = invoice.customer_phone ?? '';
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+        footer: (context) => pw.Container(
+          alignment: pw.Alignment.center,
+          margin: const pw.EdgeInsets.only(top: 10),
+          child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                "Page ${context.pageNumber} of ${context.pagesCount}",
+                style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey),
+              ),
+              pw.Text(
+                "Generated by Billify - Business Billing & Management",
+                style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey),
+              ),
+            ],
+          ),
+        ),
+        build: (context) => [
+          // ── Top Header ──────────────────────────────────────────
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              // Business Brand & Contact
+              pw.Expanded(
+                flex: 6,
+                child: pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    if (logoImage != null)
+                      pw.Container(
+                        width: 55,
+                        height: 55,
+                        margin: const pw.EdgeInsets.only(right: 12),
+                        child: pw.Image(logoImage),
+                      ),
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            business.name.toUpperCase(),
+                            style: pw.TextStyle(
+                              fontSize: 18,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.teal900,
+                            ),
+                          ),
+                          pw.SizedBox(height: 2),
+                          if (business.address != null && business.address!.trim().isNotEmpty)
+                            pw.Text(
+                              business.address!,
+                              style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+                            ),
+                          if (business.phone.trim().isNotEmpty)
+                            pw.Text(
+                              "Phone: ${business.phone}",
+                              style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+                            ),
+                          if (business.gstin != null && business.gstin!.trim().isNotEmpty)
+                            pw.Text(
+                              "GSTIN: ${business.gstin}",
+                              style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.grey900),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Invoice Details Card
+              pw.Expanded(
+                flex: 4,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      decoration: const pw.BoxDecoration(
+                        color: PdfColors.teal,
+                        borderRadius: pw.BorderRadius.all(pw.Radius.circular(4)),
+                      ),
+                      child: pw.Text(
+                        "TAX INVOICE",
+                        style: pw.TextStyle(
+                          color: PdfColors.white,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                    pw.SizedBox(height: 6),
+                    pw.Text(
+                      "Invoice #: ${invoice.id}",
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                    ),
+                    pw.Text(
+                      "Date: ${dateFormat.format(invoice.date.toLocal())}",
+                      style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+                    ),
+                    pw.Text(
+                      "Time: ${timeFormat.format(invoice.date.toLocal())}",
+                      style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+                    ),
+                    pw.Text(
+                      "Payment Mode: ${invoice.payment_mode.toUpperCase()}",
+                      style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.teal800),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          pw.SizedBox(height: 12),
+          pw.Divider(thickness: 1, color: PdfColors.teal200),
+          pw.SizedBox(height: 8),
+
+          // ── Customer Information (Billed To) ────────────────────
+          pw.Container(
+            padding: const pw.EdgeInsets.all(10),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey50,
+              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+              border: pw.Border.all(color: PdfColors.grey300, width: 0.8),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      "BILLED TO:",
+                      style: pw.TextStyle(
+                        fontSize: 8,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.grey700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      customerName,
+                      style: pw.TextStyle(
+                        fontSize: 11,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.black,
+                      ),
+                    ),
+                    if (customerPhone.isNotEmpty)
+                      pw.Text(
+                        "Phone: $customerPhone",
+                        style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+                      ),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text(
+                      "PAYMENT STATUS:",
+                      style: pw.TextStyle(
+                        fontSize: 8,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.grey700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: pw.BoxDecoration(
+                        color: isFullyPaid ? PdfColors.green50 : PdfColors.amber50,
+                        border: pw.Border.all(
+                          color: isFullyPaid ? PdfColors.green600 : PdfColors.amber700,
+                          width: 0.8,
+                        ),
+                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                      ),
+                      child: pw.Text(
+                        isFullyPaid
+                            ? "PAID"
+                            : (invoice.paid_amount > 0 ? "PARTIALLY PAID" : "PENDING (KHATA)"),
+                        style: pw.TextStyle(
+                          fontSize: 9,
+                          fontWeight: pw.FontWeight.bold,
+                          color: isFullyPaid ? PdfColors.green900 : PdfColors.amber900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          pw.SizedBox(height: 14),
+
+          // ── Items Table ─────────────────────────────────────────
+          pw.TableHelper.fromTextArray(
+            border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.6),
+            headerStyle: pw.TextStyle(
+              fontWeight: pw.FontWeight.bold,
+              fontSize: 9,
+              color: PdfColors.white,
+            ),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.teal),
+            cellStyle: const pw.TextStyle(fontSize: 9),
+            cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            columnWidths: {
+              0: const pw.FixedColumnWidth(26), // Sr. No
+              1: const pw.FlexColumnWidth(4.5), // Item
+              2: const pw.FixedColumnWidth(65), // Qty
+              3: const pw.FixedColumnWidth(75), // Rate
+              4: const pw.FixedColumnWidth(85), // Total
+            },
+            headers: ['#', 'ITEM DESCRIPTION', 'QTY', 'RATE (Rs)', 'TOTAL (Rs)'],
+            data: List.generate(invoice.items.length, (idx) {
+              final item = invoice.items[idx];
+              final qtyStr = item.product.is_weighted
+                  ? item.quantity.toStringAsFixed(3)
+                  : item.quantity.toStringAsFixed(0);
+              return [
+                '${idx + 1}',
+                item.name,
+                '$qtyStr ${item.product.uom}',
+                item.price.toStringAsFixed(2),
+                item.subtotal.toStringAsFixed(2),
+              ];
+            }),
+            cellAlignments: {
+              0: pw.Alignment.center,
+              1: pw.Alignment.centerLeft,
+              2: pw.Alignment.centerRight,
+              3: pw.Alignment.centerRight,
+              4: pw.Alignment.centerRight,
+            },
+            oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
+          ),
+
+          pw.SizedBox(height: 12),
+
+          // ── Financial Totals Summary ────────────────────────────
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              // Terms & Notes Box
+              pw.Expanded(
+                flex: 5,
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey50,
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                    border: pw.Border.all(color: PdfColors.grey200),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        "TERMS & CONDITIONS",
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 8,
+                          color: PdfColors.grey700,
+                        ),
+                      ),
+                      pw.SizedBox(height: 3),
+                      pw.Text(
+                        "1. Goods once sold will not be accepted back or exchanged without receipt.",
+                        style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600),
+                      ),
+                      pw.Text(
+                        "2. All disputes are subject to local jurisdiction.",
+                        style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600),
+                      ),
+                      pw.Text(
+                        "3. This is a computer generated invoice and does not require physical stamp.",
+                        style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              pw.SizedBox(width: 20),
+
+              // Calculations Table (Right)
+              pw.Expanded(
+                flex: 5,
+                child: pw.Container(
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey300, width: 0.8),
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                  ),
+                  child: pw.Column(
+                    children: [
+                      _buildSummaryRow('Subtotal', 'Rs ${invoice.total_amount.toStringAsFixed(2)}'),
+                      if (invoice.tax_amount > 0)
+                        _buildSummaryRow(
+                          business.tax_percentage > 0
+                              ? 'Tax (${business.tax_percentage}%)'
+                              : 'Tax',
+                          'Rs ${invoice.tax_amount.toStringAsFixed(2)}',
+                        ),
+                      if (invoice.gst_amount > 0)
+                        _buildSummaryRow(
+                          business.gst_percentage > 0
+                              ? 'GST (${business.gst_percentage}%)'
+                              : 'GST',
+                          'Rs ${invoice.gst_amount.toStringAsFixed(2)}',
+                        ),
+                      if (invoice.previous_balance > 0) ...[
+                        _buildSummaryRow(
+                          'Previous Balance',
+                          'Rs ${invoice.previous_balance.toStringAsFixed(2)}',
+                          isBold: true,
+                        ),
+                        pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          color: PdfColors.grey100,
+                          child: pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('Total Due', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                              pw.Text(
+                                'Rs ${(invoice.final_amount + invoice.previous_balance).toStringAsFixed(2)}',
+                                style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      // Grand Total Box
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        color: PdfColors.teal50,
+                        child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text(
+                              invoice.previous_balance > 0 ? 'BILL TOTAL' : 'GRAND TOTAL',
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 11,
+                                color: PdfColors.teal900,
+                              ),
+                            ),
+                            pw.Text(
+                              'Rs ${invoice.final_amount.toStringAsFixed(2)}',
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 11,
+                                color: PdfColors.teal900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _buildSummaryRow('Amount Paid', 'Rs ${invoice.paid_amount.toStringAsFixed(2)}'),
+                      if (balanceDue > 0.01)
+                        _buildSummaryRow(
+                          'Balance to Khata',
+                          'Rs ${balanceDue.toStringAsFixed(2)}',
+                          textColor: PdfColors.red800,
+                          isBold: true,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          pw.SizedBox(height: 25),
+
+          // ── Bottom Note ───────────────────────────────────────
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'Thank you for shopping with us!',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.teal800,
+                ),
+              ),
+              if (business.phone.trim().isNotEmpty)
+                pw.Text(
+                  'For inquiries: ${business.phone}',
+                  style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    return pdf;
+  }
+
+  static Future<pw.Document> buildInvoicePdfDocument({
+    required InvoiceModel invoice,
+    String format = 'thermal',
+  }) async {
+    if (format.toLowerCase() == 'a4') {
+      return buildA4InvoicePdfDoc(invoice: invoice);
+    }
+    return buildThermalInvoicePdfDoc(invoice: invoice);
+  }
+
+  static String getInvoiceFileName(InvoiceModel invoice) {
+    final cleanId = invoice.id.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
+    final rawCustomerName = invoice.customer_name?.trim();
+    final isCustomerApplicable = rawCustomerName != null &&
+        rawCustomerName.isNotEmpty &&
+        rawCustomerName.toLowerCase() != 'walkin' &&
+        rawCustomerName.toLowerCase() != 'walk-in' &&
+        rawCustomerName.toLowerCase() != 'walk-in customer' &&
+        rawCustomerName.toLowerCase() != 'walkin customer';
+
+    if (isCustomerApplicable) {
+      final cleanCustName =
+          rawCustomerName.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
+      return '$cleanId - $cleanCustName.pdf';
+    }
+    return '$cleanId.pdf';
+  }
+
+  static Future<File> generateInvoicePdf({
+    required InvoiceModel invoice,
+    String format = 'thermal',
+  }) async {
+    final pdf = await buildInvoicePdfDocument(invoice: invoice, format: format);
     final output = await getTemporaryDirectory();
-    final sanitizedId = invoice.id.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
-    final file = File("${output.path}/INV_$sanitizedId.pdf");
+    final fileName = getInvoiceFileName(invoice);
+    final file = File('${output.path}/$fileName');
     await file.writeAsBytes(await pdf.save());
     return file;
+  }
+
+  static Future<void> printInvoice({
+    required InvoiceModel invoice,
+    String format = 'thermal',
+  }) async {
+    final pdf = await buildInvoicePdfDocument(invoice: invoice, format: format);
+    final isA4 = format.toLowerCase() == 'a4';
+    await Printing.layoutPdf(
+      onLayout: (pageFormat) async => await pdf.save(),
+      name: 'Invoice_${invoice.id}_${isA4 ? 'A4' : 'Receipt'}',
+      format: isA4 ? PdfPageFormat.a4 : PdfPageFormat.roll80,
+    );
   }
 }

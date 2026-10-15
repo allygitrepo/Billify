@@ -35,6 +35,11 @@ class FeatureSettingsNotifier extends Notifier<FeatureSettingsModel> {
     await _save();
   }
 
+  Future<void> updateInvoicePrintFormat(String format) async {
+    state = state.copyWith(invoicePrintFormat: format);
+    await _save();
+  }
+
   Future<void> _save() async {
     final storage = ref.read(localStorageServiceProvider);
     await storage.setString(_storageKey, jsonEncode(state.toJson()));

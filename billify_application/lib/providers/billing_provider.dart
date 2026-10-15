@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:billify/core/utils/app_logger.dart';
 import 'package:billify/data/models/business_model.dart';
 import 'package:billify/data/models/cart_item_model.dart';
@@ -232,9 +233,9 @@ class BillingNotifier extends Notifier<BillingState> {
       }
 
       // Sync products mathematically from the server
-      ref
-          .read(productProvider.notifier)
-          .fetchAndSyncProducts(); // Async background update
+      unawaited(
+        ref.read(productProvider.notifier).fetchAndSyncProducts(),
+      ); // Async background update
 
       // Clear cart
       clearCart();
@@ -318,6 +319,23 @@ class BillingNotifier extends Notifier<BillingState> {
           )
           .toList(),
     );
+  }
+
+  void restoreCartItem(CartItemModel item, {int? atIndex}) {
+    final newItems = List<CartItemModel>.from(state.items);
+    final existingIndex = newItems.indexWhere(
+      (i) =>
+          i.product.id == item.product.id &&
+          i.product.selectedVariantId == item.product.selectedVariantId,
+    );
+    if (existingIndex >= 0) {
+      newItems[existingIndex] = item;
+    } else if (atIndex != null && atIndex >= 0 && atIndex <= newItems.length) {
+      newItems.insert(atIndex, item);
+    } else {
+      newItems.add(item);
+    }
+    state = state.copyWith(items: newItems);
   }
 
   void clearCart() {

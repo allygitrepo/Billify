@@ -443,6 +443,30 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
     });
   }
 
+  void _removeItemWithUndo(CartItemModel item, {int? index}) {
+    ref.read(billingProvider.notifier).removeFromCart(
+      item.product.id,
+      variantId: item.product.selectedVariantId,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${item.name} removed from cart'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'UNDO',
+          textColor: AppTheme.primaryTeal,
+          onPressed: () {
+            ref
+                .read(billingProvider.notifier)
+                .restoreCartItem(item, atIndex: index);
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final billingState = ref.watch(billingProvider);
@@ -507,177 +531,187 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
             ),
           ],
         ),
-      body: Column(
-        children: [
-          // Static Scanner At Top
-          SizedBox(
-            height: 250,
-            child: Stack(
-              children: [
-                MobileScanner(
-                  controller: _controller,
-                  onDetect: _handleScan,
-                  errorBuilder: (context, error) {
-                    return Container(
-                      color: Colors.black,
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              color: Colors.red,
-                              size: 48,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Scanner Error: ${error.errorCode.name}',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Please check permissions',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                _controller.start();
-                                setState(() {});
-                              },
-                              child: const Text('RETRY'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                CustomPaint(
-                  painter: _ScannerOverlayPainter(),
-                  child: Container(),
-                ),
-                if (_isProcessing)
-                  const Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.primaryTeal,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-
-          // Scrollable List Below
-          Expanded(
-            child: Container(
-              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
-              child: Column(
+        body: Column(
+          children: [
+            // Static Scanner At Top
+            SizedBox(
+              height: 250,
+              child: Stack(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Scanned Items (${billingState.items.length})',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Theme.of(
-                              context,
-                            ).textTheme.titleLarge?.color,
-                          ),
-                        ),
-                        Text(
-                          'Total: ₹${billingState.getTotal(taxPercent, gstPercent).toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: AppTheme.primaryTeal,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: billingState.items.isEmpty
-                        ? Center(
-                            child: Text(
-                              'No items scanned yet',
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).textTheme.bodySmall?.color,
+                  MobileScanner(
+                    controller: _controller,
+                    onDetect: _handleScan,
+                    errorBuilder: (context, error) {
+                      return Container(
+                        color: Colors.black,
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Colors.red,
+                                size: 48,
                               ),
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: billingState.items.length,
-                            itemBuilder: (context, index) {
-                              final item = billingState.items[index];
-                              return _PanelItemTile(item: item);
-                            },
-                          ),
-                  ),
-
-                  // Checkout Section
-                  if (ref
-                      .watch(authProvider)
-                      .hasPermission(
-                        PermissionModule.billing,
-                        PermissionAction.add,
-                      ))
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, -5),
-                          ),
-                        ],
-                      ),
-                      child: ElevatedButton(
-                        onPressed: billingState.items.isEmpty
-                            ? null
-                            : () => _showCustomerSelector(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryTeal,
-                          minimumSize: const Size(double.infinity, 54),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.print, color: Colors.white),
-                            const SizedBox(width: 8),
-                            Text(
-                              'CONFIRM & PRINT - ₹${billingState.getTotal(taxPercent, gstPercent).toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                              const SizedBox(height: 12),
+                              Text(
+                                'Scanner Error: ${error.errorCode.name}',
+                                style: const TextStyle(color: Colors.white),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Please check permissions',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () {
+                                  _controller.start();
+                                  setState(() {});
+                                },
+                                child: const Text('RETRY'),
+                              ),
+                            ],
+                          ),
                         ),
+                      );
+                    },
+                  ),
+                  CustomPaint(
+                    painter: _ScannerOverlayPainter(),
+                    child: Container(),
+                  ),
+                  if (_isProcessing)
+                    const Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.primaryTeal,
                       ),
                     ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
+
+            // Scrollable List Below
+            Expanded(
+              child: Container(
+                color: Theme.of(
+                  context,
+                ).colorScheme.surface.withValues(alpha: 0.8),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Scanned Items (${billingState.items.length})',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.titleLarge?.color,
+                            ),
+                          ),
+                          Text(
+                            'Total: ₹${billingState.getTotal(taxPercent, gstPercent).toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: AppTheme.primaryTeal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: billingState.items.isEmpty
+                          ? Center(
+                              child: Text(
+                                'No items scanned yet',
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.color,
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              itemCount: billingState.items.length,
+                              itemBuilder: (context, index) {
+                                final item = billingState.items[index];
+                                return _PanelItemTile(
+                                  item: item,
+                                  onRemove: () => _removeItemWithUndo(
+                                    item,
+                                    index: index,
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+
+                    // Checkout Section
+                    if (ref
+                        .watch(authProvider)
+                        .hasPermission(
+                          PermissionModule.billing,
+                          PermissionAction.add,
+                        ))
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, -5),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: billingState.items.isEmpty
+                              ? null
+                              : () => _showCustomerSelector(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryTeal,
+                            minimumSize: const Size(double.infinity, 54),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.print, color: Colors.white),
+                              const SizedBox(width: 8),
+                              Text(
+                                'CONFIRM & PRINT - ₹${billingState.getTotal(taxPercent, gstPercent).toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1471,8 +1505,9 @@ class _ProductListTile extends ConsumerWidget {
 
 class _PanelItemTile extends ConsumerWidget {
   final CartItemModel item;
+  final VoidCallback onRemove;
 
-  const _PanelItemTile({required this.item});
+  const _PanelItemTile({required this.item, required this.onRemove});
 
   void _showEditWeightSheet(
     BuildContext context,
@@ -1561,21 +1596,44 @@ class _PanelItemTile extends ConsumerWidget {
             ),
           ],
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryTeal,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              final val = int.tryParse(controller.text.trim());
-              Navigator.pop(ctx, val);
-            },
-            child: const Text('SAVE'),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(
+                        color: Theme.of(ctx).dividerColor,
+                      ),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('CANCEL'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () {
+                    final val = int.tryParse(controller.text.trim());
+                    Navigator.pop(ctx, val);
+                  },
+                  child: const Text('SAVE'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1583,27 +1641,7 @@ class _PanelItemTile extends ConsumerWidget {
 
     if (updated != null) {
       if (updated <= 0) {
-        ref
-            .read(billingProvider.notifier)
-            .removeFromCart(
-              item.product.id,
-              variantId: item.product.selectedVariantId,
-            );
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${item.name} removed from cart'),
-              action: SnackBarAction(
-                label: 'UNDO',
-                onPressed: () {
-                  ref
-                      .read(billingProvider.notifier)
-                      .addToCart(item.product, quantity: item.quantity);
-                },
-              ),
-            ),
-          );
-        }
+        onRemove();
       } else {
         final success = ref
             .read(billingProvider.notifier)
@@ -1641,25 +1679,7 @@ class _PanelItemTile extends ConsumerWidget {
         child: const Icon(Icons.delete_outline, color: Colors.white),
       ),
       onDismissed: (direction) {
-        ref
-            .read(billingProvider.notifier)
-            .removeFromCart(
-              item.product.id,
-              variantId: item.product.selectedVariantId,
-            );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${item.name} removed from cart'),
-            action: SnackBarAction(
-              label: 'UNDO',
-              onPressed: () {
-                ref
-                    .read(billingProvider.notifier)
-                    .addToCart(item.product, quantity: item.quantity);
-              },
-            ),
-          ),
-        );
+        onRemove();
       },
       child: Container(
         margin: const EdgeInsets.only(top: 12),
@@ -1857,29 +1877,18 @@ class _PanelItemTile extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(4),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
+                            horizontal: 6,
                             vertical: 2,
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                item.quantity.toInt().toString(),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  color: Theme.of(
-                                    context,
-                                  ).textTheme.bodyLarge?.color,
-                                ),
-                              ),
-                              const SizedBox(width: 2),
-                              const Icon(
-                                Icons.edit,
-                                size: 10,
-                                color: Colors.grey,
-                              ),
-                            ],
+                          child: Text(
+                            item.quantity.toInt().toString(),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyLarge?.color,
+                            ),
                           ),
                         ),
                       ),
@@ -1934,27 +1943,7 @@ class _PanelItemTile extends ConsumerWidget {
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               tooltip: 'Remove',
-              onPressed: () {
-                ref
-                    .read(billingProvider.notifier)
-                    .removeFromCart(
-                      item.product.id,
-                      variantId: item.product.selectedVariantId,
-                    );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${item.name} removed from cart'),
-                    action: SnackBarAction(
-                      label: 'UNDO',
-                      onPressed: () {
-                        ref
-                            .read(billingProvider.notifier)
-                            .addToCart(item.product, quantity: item.quantity);
-                      },
-                    ),
-                  ),
-                );
-              },
+              onPressed: onRemove,
             ),
           ],
         ),

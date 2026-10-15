@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/core/utils/image_utils.dart';
 import 'package:billify/core/utils/number_format_utils.dart';
@@ -35,6 +36,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
   bool _isProcessing = false;
   bool _hasPermission = false;
   DateTime? _lastScanTime;
+  Timer? _snackBarTimer;
 
   @override
   void initState() {
@@ -82,12 +84,17 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
 
   @override
   void deactivate() {
+    _snackBarTimer?.cancel();
+    try {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    } catch (_) {}
     _stopCamera();
     super.deactivate();
   }
 
   @override
   void dispose() {
+    _snackBarTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _stopCamera();
     _controller.dispose();
@@ -450,15 +457,21 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
       variantId: item.product.selectedVariantId,
     );
     if (!mounted) return;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
+    _snackBarTimer?.cancel();
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    final controller = messenger.showSnackBar(
       SnackBar(
         content: Text('${item.name} removed from cart'),
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+        dismissDirection: DismissDirection.horizontal,
         action: SnackBarAction(
           label: 'UNDO',
           textColor: AppTheme.primaryTeal,
           onPressed: () {
+            _snackBarTimer?.cancel();
+            messenger.hideCurrentSnackBar();
             ref
                 .read(billingProvider.notifier)
                 .restoreCartItem(item, atIndex: index);
@@ -466,6 +479,19 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
         ),
       ),
     );
+
+    _snackBarTimer = Timer(const Duration(seconds: 3), () {
+      _snackBarTimer = null;
+      try {
+        controller.close();
+      } catch (_) {
+        if (mounted) {
+          try {
+            messenger.hideCurrentSnackBar();
+          } catch (_) {}
+        }
+      }
+    });
   }
 
   @override

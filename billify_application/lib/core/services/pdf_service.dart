@@ -82,9 +82,9 @@ class PdfService {
                             fontWeight: pw.FontWeight.bold,
                           ),
                         ),
-                        if (business.address != null) pw.Text(business.address!),
-                        pw.Text("Phone: ${business.phone}"),
-                        if (business.gstin != null)
+                        if (business.address != null && business.address!.trim().isNotEmpty) pw.Text(business.address!),
+                        if (business.phone.trim().isNotEmpty) pw.Text("Phone: ${business.phone}"),
+                        if (business.gstin != null && business.gstin!.trim().isNotEmpty)
                           pw.Text("GSTIN: ${business.gstin}"),
                       ],
                     ),
@@ -290,18 +290,19 @@ class PdfService {
               textAlign: pw.TextAlign.center,
             ),
             pw.SizedBox(height: 2),
-            if (invoice.business.address != null)
+            if (invoice.business.address != null && invoice.business.address!.trim().isNotEmpty)
               pw.Text(
                 invoice.business.address!,
                 style: const pw.TextStyle(fontSize: 7),
                 textAlign: pw.TextAlign.center,
               ),
-            pw.Text(
-              "Ph: ${invoice.business.phone}",
-              style: const pw.TextStyle(fontSize: 7),
-              textAlign: pw.TextAlign.center,
-            ),
-            if (invoice.business.gstin != null)
+            if (invoice.business.phone.trim().isNotEmpty)
+              pw.Text(
+                "Ph: ${invoice.business.phone}",
+                style: const pw.TextStyle(fontSize: 7),
+                textAlign: pw.TextAlign.center,
+              ),
+            if (invoice.business.gstin != null && invoice.business.gstin!.trim().isNotEmpty)
               pw.Text(
                 "GSTIN: ${invoice.business.gstin}",
                 style: const pw.TextStyle(fontSize: 7),

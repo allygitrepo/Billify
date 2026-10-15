@@ -16,7 +16,10 @@ class BusinessRepository {
     try {
       if (int.tryParse(business.id) != null) {
         // ID is numeric, likely from server, so update
-        await _remoteDatasource.updateBusiness(business);
+        final remoteBusiness = await _remoteDatasource.updateBusiness(business);
+        if (remoteBusiness != null) {
+          await _datasource.saveBusiness(remoteBusiness);
+        }
       } else {
         // New business, create on server
         final remoteBusiness = await _remoteDatasource.createBusiness(business);

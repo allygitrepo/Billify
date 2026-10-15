@@ -139,11 +139,41 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
   }
 
   InvoiceModel get _effectiveInvoice {
-    if (_savedInvoice != null) return _savedInvoice!;
-    if (widget.invoice != null) return widget.invoice!;
+    final currentBiz = ref.read(businessProvider).currentBusiness;
 
-    final currentBusiness =
-        ref.read(businessProvider).currentBusiness ?? widget.business;
+    if (_savedInvoice != null) {
+      var inv = _savedInvoice!;
+      if (inv.business.phone.trim().isEmpty) {
+        final fallbackPhone = currentBiz?.phone.trim().isNotEmpty == true
+            ? currentBiz!.phone.trim()
+            : widget.business.phone.trim();
+        if (fallbackPhone.isNotEmpty) {
+          inv = inv.copyWith(
+            business: inv.business.copyWith(phone: fallbackPhone),
+          );
+        }
+      }
+      return inv;
+    }
+    if (widget.invoice != null) {
+      var inv = widget.invoice!;
+      if (inv.business.phone.trim().isEmpty) {
+        final fallbackPhone = currentBiz?.phone.trim().isNotEmpty == true
+            ? currentBiz!.phone.trim()
+            : widget.business.phone.trim();
+        if (fallbackPhone.isNotEmpty) {
+          inv = inv.copyWith(
+            business: inv.business.copyWith(phone: fallbackPhone),
+          );
+        }
+      }
+      return inv;
+    }
+
+    var currentBusiness = currentBiz ?? widget.business;
+    if (currentBusiness.phone.trim().isEmpty && widget.business.phone.trim().isNotEmpty) {
+      currentBusiness = currentBusiness.copyWith(phone: widget.business.phone.trim());
+    }
 
     final paid =
         double.tryParse(_paidController.text) ??
@@ -353,8 +383,27 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
   @override
   Widget build(BuildContext context) {
     final businessState = ref.watch(businessProvider);
-    final business =
-        widget.invoice?.business ?? businessState.currentBusiness ?? widget.business;
+    final currentBiz = businessState.currentBusiness;
+    var business =
+        widget.invoice?.business ?? currentBiz ?? widget.business;
+
+    // Fallback if the business object on the invoice has empty phone
+    if (business.phone.trim().isEmpty) {
+      final fallbackPhone = currentBiz?.phone.trim().isNotEmpty == true
+          ? currentBiz!.phone.trim()
+          : widget.business.phone.trim();
+      if (fallbackPhone.isNotEmpty) {
+        business = business.copyWith(phone: fallbackPhone);
+      }
+    }
+    if (business.address == null || business.address!.trim().isEmpty) {
+      final fallbackAddr = currentBiz?.address?.trim().isNotEmpty == true
+          ? currentBiz!.address
+          : widget.business.address;
+      if (fallbackAddr != null && fallbackAddr.trim().isNotEmpty) {
+        business = business.copyWith(address: fallbackAddr);
+      }
+    }
 
     final now = (_savedInvoice?.date ??
             widget.invoice?.date ??
@@ -390,17 +439,18 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                if (business.address != null)
+                if (business.address != null && business.address!.trim().isNotEmpty)
                   Text(
                     business.address!,
                     style: const TextStyle(fontSize: 12, color: Colors.black87),
                     textAlign: TextAlign.center,
                   ),
-                Text(
-                  'Phone: ${business.phone}',
-                  style: const TextStyle(fontSize: 12, color: Colors.black87),
-                  textAlign: TextAlign.center,
-                ),
+                if (business.phone.trim().isNotEmpty)
+                  Text(
+                    'Phone: ${business.phone}',
+                    style: const TextStyle(fontSize: 12, color: Colors.black87),
+                    textAlign: TextAlign.center,
+                  ),
                 if (business.gstin != null && business.gstin!.isNotEmpty)
                   Text(
                     'GSTIN: ${business.gstin}',
@@ -1172,10 +1222,28 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                       paymentMode: _paymentMode,
                                     );
 
+                                final currentBiz =
+                                    ref.read(businessProvider).currentBusiness;
+                                var bizToUse = widget.business;
+                                if (bizToUse.phone.trim().isEmpty &&
+                                    currentBiz?.phone.trim().isNotEmpty == true) {
+                                  bizToUse = bizToUse.copyWith(
+                                    phone: currentBiz!.phone.trim(),
+                                  );
+                                }
+                                if ((bizToUse.address == null ||
+                                        bizToUse.address!.trim().isEmpty) &&
+                                    currentBiz?.address?.trim().isNotEmpty ==
+                                        true) {
+                                  bizToUse = bizToUse.copyWith(
+                                    address: currentBiz!.address,
+                                  );
+                                }
+
                                 final invoice = await ref
                                     .read(billingProvider.notifier)
                                     .confirmInvoice(
-                                      widget.business,
+                                      bizToUse,
                                       customTaxAmount: _effectiveTaxAmount,
                                       customGstAmount: _effectiveGstAmount,
                                       customFinalAmount: _effectiveTotal,

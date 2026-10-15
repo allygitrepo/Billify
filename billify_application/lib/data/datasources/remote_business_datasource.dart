@@ -29,13 +29,21 @@ class RemoteBusinessDatasource {
         '/businesses',
         data: {
           'businessName': business.name,
+          'name': business.name,
           'phone': business.phone,
+          'business_phone': business.phone,
+          'businessPhone': business.phone,
           'gstin': business.gstin,
           'address': business.address,
+          'business_address': business.address,
           'photo': business.business_logo,
+          'business_logo': business.business_logo,
           'taxPercentage': business.tax_percentage,
+          'tax': business.tax_percentage,
           'gstPercentage': business.gst_percentage,
+          'gst_percentage': business.gst_percentage,
           'invoicePrefix': business.invoice_prefix,
+          'invoice_prefix': business.invoice_prefix,
         },
       );
       if (response.statusCode == 201) {
@@ -53,14 +61,24 @@ class RemoteBusinessDatasource {
       final response = await _apiService.put(
         '/businesses/${business.id}',
         data: {
+          'business_id': business.id,
           'name': business.name,
+          'business_name': business.name,
           'phone': business.phone,
+          'business_phone': business.phone,
+          'businessPhone': business.phone,
           'gstin': business.gstin,
+          'gst_number': business.gstin,
           'address': business.address,
+          'business_address': business.address,
           'photo': business.business_logo,
+          'business_logo': business.business_logo,
           'tax': business.tax_percentage,
+          'taxPercentage': business.tax_percentage,
           'gst_percentage': business.gst_percentage,
+          'gstPercentage': business.gst_percentage,
           'invoice_prefix': business.invoice_prefix,
+          'invoicePrefix': business.invoice_prefix,
         },
       );
       if (response.statusCode == 200) {

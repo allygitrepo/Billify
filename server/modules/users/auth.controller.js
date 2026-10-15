@@ -260,10 +260,11 @@ const sent = await sendOTPSMS(formattedPhone, otp);
             console.log("User created:", user.id);
 
             // 6. Create Business
+            const finalBusinessPhone = phone || req.body.business_phone || req.body.businessPhone || req.body.phone_number || '';
             const business = await Business.create({
                 owner_user_id: user.id,
                 name: business_name,
-                phone,
+                phone: finalBusinessPhone,
                 gstin,
                 address
             }, { transaction: t });
@@ -273,7 +274,7 @@ const sent = await sendOTPSMS(formattedPhone, otp);
             await Settings.create({
                 business_id: business.id,
                 business_name: business_name,
-                business_phone: phone,
+                business_phone: finalBusinessPhone,
                 business_address: address,
                 gst_number: gstin,
                 business_logo: businessPhoto,
@@ -406,10 +407,14 @@ const sent = await sendOTPSMS(formattedPhone, otp);
                     return {
                         ...b,
                         // Override/Fallback from settings table
-                        business_logo: s.business_logo || b.business_logo,
-                        tax: s.tax_percentage || b.tax,
-                        gst_percentage: s.gst_percentage || b.gst_percentage,
-                        invoice_prefix: s.invoice_prefix || b.invoice_prefix,
+                        phone: s.business_phone || b.phone || '',
+                        name: s.business_name || b.name || '',
+                        address: s.business_address || b.address || '',
+                        gstin: s.gst_number || b.gstin || '',
+                        business_logo: s.business_logo || b.business_logo || '',
+                        tax: s.tax_percentage !== undefined && s.tax_percentage !== null ? s.tax_percentage : b.tax,
+                        gst_percentage: s.gst_percentage !== undefined && s.gst_percentage !== null ? s.gst_percentage : b.gst_percentage,
+                        invoice_prefix: s.invoice_prefix || b.invoice_prefix || 'INV',
                         role: ub.role ? ub.role.name : 'User',
                         role_id: ub.role_id
                     };
@@ -500,10 +505,14 @@ const sent = await sendOTPSMS(formattedPhone, otp);
                     const s = b.settings || {};
                     return {
                         ...b,
-                        business_logo: s.business_logo || b.business_logo,
-                        tax: s.tax_percentage || b.tax,
-                        gst_percentage: s.gst_percentage || b.gst_percentage,
-                        invoice_prefix: s.invoice_prefix || b.invoice_prefix,
+                        phone: s.business_phone || b.phone || '',
+                        name: s.business_name || b.name || '',
+                        address: s.business_address || b.address || '',
+                        gstin: s.gst_number || b.gstin || '',
+                        business_logo: s.business_logo || b.business_logo || '',
+                        tax: s.tax_percentage !== undefined && s.tax_percentage !== null ? s.tax_percentage : b.tax,
+                        gst_percentage: s.gst_percentage !== undefined && s.gst_percentage !== null ? s.gst_percentage : b.gst_percentage,
+                        invoice_prefix: s.invoice_prefix || b.invoice_prefix || 'INV',
                         role: ub.role ? ub.role.name : 'User',
                         role_id: ub.role_id
                     };

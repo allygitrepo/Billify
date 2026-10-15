@@ -24,29 +24,79 @@ class BusinessModel {
   });
 
   factory BusinessModel.fromJson(Map<String, dynamic> json) {
+    final settingsMap = json['settings'] is Map<String, dynamic>
+        ? json['settings'] as Map<String, dynamic>
+        : (json['settings'] is Map ? Map<String, dynamic>.from(json['settings']) : null);
+
     return BusinessModel(
       id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      gstin: json['gstin']?.toString() ?? 
-             json['gstNumber']?.toString() ?? 
-             json['gst_number']?.toString(),
-      phone: json['phone']?.toString() ?? '',
-      address: json['address']?.toString() ?? json['business_address']?.toString(),
+      name: _firstNonEmpty([
+            json['name'],
+            json['business_name'],
+            json['businessName'],
+            settingsMap?['business_name'],
+            settingsMap?['name'],
+          ]) ??
+          '',
+      gstin: _firstNonEmpty([
+        json['gstin'],
+        json['gstNumber'],
+        json['gst_number'],
+        settingsMap?['gst_number'],
+        settingsMap?['gstin'],
+      ]),
+      phone: _firstNonEmpty([
+            json['phone'],
+            json['business_phone'],
+            json['businessPhone'],
+            json['phoneNumber'],
+            json['phone_number'],
+            settingsMap?['business_phone'],
+            settingsMap?['phone'],
+          ]) ??
+          '',
+      address: _firstNonEmpty([
+        json['address'],
+        json['business_address'],
+        json['businessAddress'],
+        settingsMap?['business_address'],
+        settingsMap?['address'],
+      ]),
       tax_percentage: _toDouble(json['tax_percentage']) ?? 
                       _toDouble(json['taxPercentage']) ?? 
-                      _toDouble(json['tax']) ?? 0.0,
+                      _toDouble(json['tax']) ?? 
+                      _toDouble(settingsMap?['tax_percentage']) ?? 0.0,
       gst_percentage: _toDouble(json['gst_percentage']) ?? 
-                      _toDouble(json['gstPercentage']) ?? 0.0,
-      business_logo: json['business_logo']?.toString() ?? 
-                     json['logoBase64']?.toString() ?? 
-                     json['photo']?.toString() ?? 
-                     json['businessPhoto']?.toString(),
-      invoice_prefix: json['invoice_prefix']?.toString() ?? 
-                      json['invoicePrefix']?.toString() ?? 'INV-',
+                      _toDouble(json['gstPercentage']) ?? 
+                      _toDouble(settingsMap?['gst_percentage']) ?? 0.0,
+      business_logo: _firstNonEmpty([
+        json['business_logo'],
+        json['logoBase64'],
+        json['photo'],
+        json['businessPhoto'],
+        settingsMap?['business_logo'],
+        settingsMap?['photo'],
+      ]),
+      invoice_prefix: _firstNonEmpty([
+            json['invoice_prefix'],
+            json['invoicePrefix'],
+            settingsMap?['invoice_prefix'],
+          ]) ??
+          'INV-',
       starting_invoice_number: (json['starting_invoice_number'] as num?)?.toInt() ?? 
                                (json['startingNumber'] as num?)?.toInt() ?? 
-                               (json['nextInvoiceNumber'] as num?)?.toInt() ?? 1,
+                               (json['nextInvoiceNumber'] as num?)?.toInt() ?? 
+                               (settingsMap?['starting_invoice_number'] as num?)?.toInt() ?? 1,
     );
+  }
+
+  static String? _firstNonEmpty(List<dynamic> candidates) {
+    for (final c in candidates) {
+      if (c != null && c.toString().trim().isNotEmpty) {
+        return c.toString().trim();
+      }
+    }
+    return null;
   }
 
   static double? _toDouble(dynamic value) {

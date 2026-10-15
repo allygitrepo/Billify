@@ -36,10 +36,14 @@ const businessController = {
                     return {
                         ...b,
                         // Override/Fallback fields from settings for UI consistency
-                        business_logo: s.business_logo || b.business_logo,
-                        tax: s.tax_percentage || b.tax,
-                        gst_percentage: s.gst_percentage || b.gst_percentage,
-                        invoice_prefix: s.invoice_prefix || b.invoice_prefix,
+                        phone: s.business_phone || b.phone || '',
+                        name: s.business_name || b.name || '',
+                        address: s.business_address || b.address || '',
+                        gstin: s.gst_number || b.gstin || '',
+                        business_logo: s.business_logo || b.business_logo || '',
+                        tax: s.tax_percentage !== undefined && s.tax_percentage !== null ? s.tax_percentage : b.tax,
+                        gst_percentage: s.gst_percentage !== undefined && s.gst_percentage !== null ? s.gst_percentage : b.gst_percentage,
+                        invoice_prefix: s.invoice_prefix || b.invoice_prefix || 'INV',
                         role: ub.role ? ub.role.name : 'User',
                         role_id: ub.role_id
                     };
@@ -58,7 +62,13 @@ const businessController = {
             const { businessName, phone, gstin, address, photo } = req.body;
             const userId = req.user.id;
 
-            if (!businessName) {
+            const finalBusinessName = businessName || req.body.name;
+            const finalPhone = phone || req.body.business_phone || req.body.businessPhone || req.body.phone_number || '';
+            const finalGstin = gstin || req.body.gst_number || req.body.gstNumber || '';
+            const finalAddress = address || req.body.business_address || req.body.businessAddress || '';
+            const finalPhoto = photo || req.body.business_logo || req.body.businessLogo || '';
+
+            if (!finalBusinessName) {
                 return res.status(400).json({ message: "Business Name is required" });
             }
 
@@ -68,11 +78,11 @@ const businessController = {
 
             const business = await Business.create({
                 owner_user_id: userId,
-                name: businessName,
-                phone: phone || '',
-                gstin: gstin || '',
-                address: address || '',
-                business_logo: photo || '',
+                name: finalBusinessName,
+                phone: finalPhone,
+                gstin: finalGstin,
+                address: finalAddress,
+                business_logo: finalPhoto,
                 tax: String(taxVal),
                 gst_percentage: parseFloat(gstVal) || 0,
                 invoice_prefix: req.body.invoicePrefix || req.body.invoice_prefix || 'INV'
@@ -147,15 +157,20 @@ const businessController = {
                 return res.status(404).json({ message: "Business not found" });
             }
 
+            const phoneInput = phone !== undefined ? phone : (req.body.business_phone !== undefined ? req.body.business_phone : (req.body.businessPhone !== undefined ? req.body.businessPhone : req.body.phone_number));
+            const nameInput = name !== undefined ? name : (req.body.business_name !== undefined ? req.body.business_name : req.body.businessName);
+            const gstinInput = gstin !== undefined ? gstin : (req.body.gst_number !== undefined ? req.body.gst_number : req.body.gstNumber);
+            const addressInput = address !== undefined ? address : (req.body.business_address !== undefined ? req.body.business_address : req.body.businessAddress);
+            const photoInput = photo !== undefined ? photo : (req.body.business_logo !== undefined ? req.body.business_logo : req.body.businessLogo);
             const taxInput = tax !== undefined ? tax : req.body.taxPercentage;
             const gstInput = gst_percentage !== undefined ? gst_percentage : req.body.gstPercentage;
 
             await business.update({
-                name: name !== undefined ? name : business.name,
-                phone: phone !== undefined ? phone : business.phone,
-                gstin: gstin !== undefined ? gstin : business.gstin,
-                address: address !== undefined ? address : business.address,
-                business_logo: photo !== undefined ? photo : business.business_logo,
+                name: nameInput !== undefined ? nameInput : business.name,
+                phone: phoneInput !== undefined ? phoneInput : business.phone,
+                gstin: gstinInput !== undefined ? gstinInput : business.gstin,
+                address: addressInput !== undefined ? addressInput : business.address,
+                business_logo: photoInput !== undefined ? photoInput : business.business_logo,
                 tax: taxInput !== undefined ? String(taxInput) : business.tax,
                 gst_percentage: gstInput !== undefined ? parseFloat(gstInput) : business.gst_percentage,
                 invoice_prefix: invoice_prefix !== undefined ? invoice_prefix : (req.body.invoicePrefix || business.invoice_prefix),
@@ -167,11 +182,11 @@ const businessController = {
             const settings = await Settings.findOne({ where: { business_id: id } });
             if (settings) {
                 await settings.update({
-                    business_name: name || settings.business_name,
-                    business_phone: phone || settings.business_phone,
-                    gst_number: gstin || settings.gst_number,
-                    business_address: address || settings.business_address,
-                    business_logo: photo || settings.business_logo,
+                    business_name: nameInput || settings.business_name,
+                    business_phone: phoneInput || settings.business_phone,
+                    gst_number: gstinInput || settings.gst_number,
+                    business_address: addressInput || settings.business_address,
+                    business_logo: photoInput || settings.business_logo,
                     tax_percentage: taxInput !== undefined ? parseFloat(taxInput) : settings.tax_percentage,
                     gst_percentage: gstInput !== undefined ? parseFloat(gstInput) : settings.gst_percentage,
                     invoice_prefix: invoice_prefix || req.body.invoicePrefix || settings.invoice_prefix
@@ -180,7 +195,15 @@ const businessController = {
 
             return res.status(200).json({
                 message: "Business updated successfully",
-                business
+                business: {
+                    ...business.get({ plain: true }),
+                    phone: business.phone || (settings ? settings.business_phone : ''),
+                    business_phone: business.phone || (settings ? settings.business_phone : ''),
+                    name: business.name || (settings ? settings.business_name : ''),
+                    address: business.address || (settings ? settings.business_address : ''),
+                    gstin: business.gstin || (settings ? settings.gst_number : ''),
+                    business_logo: business.business_logo || (settings ? settings.business_logo : '')
+                }
             });
         } catch (error) {
             console.error("Update Business Error:", error);

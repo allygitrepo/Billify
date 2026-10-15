@@ -590,6 +590,19 @@ export const DataProvider = ({ children }) => {
       
       // Update local state with camelCase
       setSettings(newSettings);
+      setBusinesses(prev => prev.map(b => {
+        if (String(b.id) === String(businessId)) {
+          return {
+            ...b,
+            name: newSettings.businessName || b.name,
+            phone: newSettings.phone || b.phone,
+            gstin: newSettings.gstNumber || b.gstin,
+            address: newSettings.address || b.address,
+            business_logo: newSettings.photo || b.business_logo
+          };
+        }
+        return b;
+      }));
       showToast('Settings saved');
       return result;
     } catch (error) {

@@ -123,7 +123,7 @@ const authorize = (module_name, action) => {
     return async (req, res, next) => {
         try {
             const user_id = req.user ? req.user.id : null;
-            const business_id = req.headers['x-business-id'] || req.params.business_id || (req.body ? req.body.business_id : null) || (req.query ? req.query.business_id : null);
+            const business_id = req.headers['x-business-id'] || req.params.business_id || req.params.id || (req.body ? req.body.business_id : null) || (req.query ? req.query.business_id : null);
 
             if (!user_id) {
                 return res.status(403).json({ message: "Access denied. User not identified." });

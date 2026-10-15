@@ -12,6 +12,25 @@ const Payment = require("../payments/payments.model");
 const sequelize = require("../../config/db");
 const { getNextSequenceNumber } = require("../../utils/sequence");
 
+const formatInvoiceBusiness = (inv) => {
+    if (!inv) return inv;
+    const plainInv = typeof inv.get === 'function' ? inv.get({ plain: true }) : JSON.parse(JSON.stringify(inv));
+    if (plainInv.business) {
+        const b = plainInv.business;
+        const s = b.settings || {};
+        plainInv.business = {
+            ...b,
+            phone: b.phone || s.business_phone || '',
+            business_phone: b.phone || s.business_phone || '',
+            name: b.name || s.business_name || '',
+            address: b.address || s.business_address || '',
+            gstin: b.gstin || s.gst_number || '',
+            business_logo: s.business_logo || b.business_logo || ''
+        };
+    }
+    return plainInv;
+};
+
 const invoiceController = {
     // ============ Create Invoice ============
     createInvoice: async (req, res) => {
@@ -219,7 +238,11 @@ const invoiceController = {
                     },
                     { model: User, as: 'user' },
                     { model: Customer, as: 'customer' },
-                    { model: Business, as: 'business' }
+                    { 
+                        model: Business, 
+                        as: 'business',
+                        include: [{ model: Settings, as: 'settings' }]
+                    }
                 ],
                 transaction: t
             });
@@ -227,7 +250,7 @@ const invoiceController = {
             await t.commit();
             return res.status(201).json({
                 message: "Invoice created successfully",
-                invoice: completeInvoice || invoice
+                invoice: formatInvoiceBusiness(completeInvoice || invoice)
             });
         } catch (error) {
             await t.rollback();
@@ -257,11 +280,15 @@ const invoiceController = {
                     },
                     { model: User, as: 'user' },
                     { model: Customer, as: 'customer' },
-                    { model: Business, as: 'business' }
+                    { 
+                        model: Business, 
+                        as: 'business',
+                        include: [{ model: Settings, as: 'settings' }]
+                    }
                 ],
                 order: [['createdAt', 'DESC']]
             });
-            return res.status(200).json({ invoices });
+            return res.status(200).json({ invoices: invoices.map(formatInvoiceBusiness) });
         } catch (error) {
             console.error("Get Invoices Error:", error);
             return res.status(500).json({ message: "Internal server error" });
@@ -285,7 +312,11 @@ const invoiceController = {
                         },
                         { model: User, as: 'user' },
                         { model: Customer, as: 'customer' },
-                        { model: Business, as: 'business' }
+                        { 
+                            model: Business, 
+                            as: 'business',
+                            include: [{ model: Settings, as: 'settings' }]
+                        }
                     ]
                 });
             }
@@ -302,7 +333,11 @@ const invoiceController = {
                         },
                         { model: User, as: 'user' },
                         { model: Customer, as: 'customer' },
-                        { model: Business, as: 'business' }
+                        { 
+                            model: Business, 
+                            as: 'business',
+                            include: [{ model: Settings, as: 'settings' }]
+                        }
                     ]
                 });
             }
@@ -311,7 +346,7 @@ const invoiceController = {
                 return res.status(404).json({ message: "Invoice not found" });
             }
 
-            return res.status(200).json({ invoice });
+            return res.status(200).json({ invoice: formatInvoiceBusiness(invoice) });
         } catch (error) {
             console.error("Get Invoice Error:", error);
             return res.status(500).json({ message: "Internal server error" });

@@ -29,7 +29,15 @@ class LocalBusinessDatasource implements BusinessDatasource {
     final index = businesses.indexWhere((b) => b.id == business.id);
 
     if (index >= 0) {
-      businesses[index] = business;
+      final existing = businesses[index];
+      final merged = business.copyWith(
+        name: business.name.trim().isNotEmpty ? business.name : existing.name,
+        phone: business.phone.trim().isNotEmpty ? business.phone : existing.phone,
+        gstin: (business.gstin != null && business.gstin!.trim().isNotEmpty) ? business.gstin : existing.gstin,
+        address: (business.address != null && business.address!.trim().isNotEmpty) ? business.address : existing.address,
+        business_logo: (business.business_logo != null && business.business_logo!.isNotEmpty) ? business.business_logo : existing.business_logo,
+      );
+      businesses[index] = merged;
     } else {
       businesses.add(business);
     }

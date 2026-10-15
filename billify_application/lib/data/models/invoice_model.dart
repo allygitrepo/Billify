@@ -69,15 +69,24 @@ class InvoiceModel {
       date: parseDateTime(
         json['createdAt'] ?? json['created_at'] ?? json['date'],
       ),
-      business: json['business'] != null
-          ? BusinessModel.fromJson(json['business'])
-          : BusinessModel(
-              id: json['business_id']?.toString() ?? '',
-              name: 'Business',
-              phone: '',
-              tax_percentage: 0.0,
-              gst_percentage: 0.0,
-            ), // Fallback if backend omits business
+      business: () {
+        if (json['business'] is Map) {
+          final bMap = Map<String, dynamic>.from(json['business'] as Map);
+          if ((bMap['phone'] == null || bMap['phone'].toString().trim().isEmpty) && json['business_phone'] != null) {
+            bMap['phone'] = json['business_phone'];
+          }
+          return BusinessModel.fromJson(bMap);
+        }
+        return BusinessModel(
+          id: json['business_id']?.toString() ?? '',
+          name: json['business_name']?.toString() ?? 'Business',
+          phone: json['business_phone']?.toString() ?? json['phone']?.toString() ?? '',
+          address: json['business_address']?.toString() ?? json['address']?.toString(),
+          gstin: json['gst_number']?.toString() ?? json['gstin']?.toString(),
+          tax_percentage: 0.0,
+          gst_percentage: 0.0,
+        );
+      }(),
       items: json['items'] != null
           ? (json['items'] as List)
                 .map((e) => CartItemModel.fromJson(e))

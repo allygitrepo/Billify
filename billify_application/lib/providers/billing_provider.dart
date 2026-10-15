@@ -7,6 +7,7 @@ import 'package:billify/providers/auth_provider.dart';
 import 'package:billify/providers/invoice_provider.dart';
 import 'package:billify/providers/product_provider.dart';
 import 'package:billify/providers/customer_provider.dart';
+import 'package:billify/providers/business_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class BillingState {
@@ -184,10 +185,26 @@ class BillingNotifier extends Notifier<BillingState> {
         effectivePreviousBal = cust?.remainingBalance ?? 0.0;
       }
 
+      final currentBiz = ref.read(businessProvider).currentBusiness;
+      var effectiveBusiness = business;
+      if (effectiveBusiness.phone.trim().isEmpty &&
+          currentBiz?.phone.trim().isNotEmpty == true) {
+        effectiveBusiness = effectiveBusiness.copyWith(
+          phone: currentBiz!.phone.trim(),
+        );
+      }
+      if ((effectiveBusiness.address == null ||
+              effectiveBusiness.address!.trim().isEmpty) &&
+          currentBiz?.address?.trim().isNotEmpty == true) {
+        effectiveBusiness = effectiveBusiness.copyWith(
+          address: currentBiz!.address,
+        );
+      }
+
       final invoice = InvoiceModel(
         id: invoiceId,
         date: DateTime.now(),
-        business: business,
+        business: effectiveBusiness,
         items: state.items,
         total_amount: state.subtotal,
         tax_amount: effectiveTax,

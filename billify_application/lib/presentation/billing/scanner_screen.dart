@@ -471,10 +471,6 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
   @override
   Widget build(BuildContext context) {
     final billingState = ref.watch(billingProvider);
-    final businessState = ref.watch(businessProvider);
-    final business = businessState.currentBusiness;
-    final taxPercent = business?.tax_percentage ?? 0.0;
-    final gstPercent = business?.gst_percentage ?? 0.0;
 
     if (!_hasPermission) {
       return Scaffold(
@@ -619,7 +615,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                             ),
                           ),
                           Text(
-                            'Total: ${NumberFormatUtils.formatCurrency(billingState.getTotal(taxPercent, gstPercent), compactThreshold: 100000)}',
+                            'Total: ${NumberFormatUtils.formatCurrency(billingState.subtotal, compactThreshold: 100000)}',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -696,7 +692,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                               const Icon(Icons.print, color: Colors.white),
                               const SizedBox(width: 8),
                               Text(
-                                'CONFIRM & PRINT - ${NumberFormatUtils.formatCurrency(billingState.getTotal(taxPercent, gstPercent), compactThreshold: 100000)}',
+                                'CONFIRM & PRINT - ${NumberFormatUtils.formatCurrency(billingState.subtotal, compactThreshold: 100000)}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,

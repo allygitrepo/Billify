@@ -28,7 +28,8 @@ class ScannerScreen extends ConsumerStatefulWidget {
   ConsumerState<ScannerScreen> createState() => _ScannerScreenState();
 }
 
-class _ScannerScreenState extends ConsumerState<ScannerScreen> {
+class _ScannerScreenState extends ConsumerState<ScannerScreen>
+    with WidgetsBindingObserver {
   final MobileScannerController _controller = MobileScannerController();
   bool _isProcessing = false;
   bool _hasPermission = false;
@@ -37,6 +38,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkPermission();
   }
 
@@ -49,7 +51,44 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (!mounted) return;
+
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden) {
+      _stopCamera();
+    } else if (state == AppLifecycleState.resumed) {
+      if (_hasPermission) {
+        try {
+          _controller.start();
+        } catch (_) {}
+      }
+    }
+  }
+
+  Future<void> _stopCamera() async {
+    try {
+      if (_controller.value.torchState == TorchState.on) {
+        await _controller.toggleTorch();
+      }
+    } catch (_) {}
+    try {
+      await _controller.stop();
+    } catch (_) {}
+  }
+
+  @override
+  void deactivate() {
+    _stopCamera();
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopCamera();
     _controller.dispose();
     super.dispose();
   }
@@ -59,7 +98,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
 
     final barcodes = capture.barcodes;
     if (barcodes.isEmpty) return;
-    
+
     final barcode = barcodes.first.rawValue;
     if (barcode == null || barcode.isEmpty) return;
 
@@ -142,6 +181,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       if (ref
           .read(authProvider)
           .hasPermission(PermissionModule.products, PermissionAction.add)) {
+        try {
+          _controller.pause();
+        } catch (_) {}
         Navigator.push<ProductModel>(
           context,
           MaterialPageRoute(
@@ -152,7 +194,12 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           if (newProduct != null) {
             billingNotifier.addToCart(newProduct);
           }
-          _resumeScanner();
+          if (mounted) {
+            try {
+              _controller.start();
+            } catch (_) {}
+            _resumeScanner();
+          }
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -176,6 +223,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   }
 
   void _showCustomerSelector(BuildContext context) {
+    try {
+      _controller.pause();
+    } catch (_) {}
     showModalBottomSheet(
       context: context,
       useRootNavigator: true,
@@ -186,36 +236,46 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: _CustomerSelectorSheet(
-        onSelected: (
-          customerId,
-          customerType, {
-          String? name,
-          String? phone,
-          String? city,
-          Customer? customer,
-        }) {
-          final resolvedCustomer = customer ??
-              (customerId != null
-                  ? ref
-                      .read(customerProvider)
-                      .value
-                      ?.where((c) => c.id == customerId)
-                      .firstOrNull
-                  : null);
-          ref.read(billingProvider.notifier).setCustomer(
-            customerId,
-            customerType,
-            name: name ?? resolvedCustomer?.name,
-            phone: phone ?? resolvedCustomer?.phoneNumber,
-            city: city ?? resolvedCustomer?.city,
-          );
-          _showInvoice(ref, context, customer: resolvedCustomer);
-        },
+            onSelected:
+                (
+                  customerId,
+                  customerType, {
+                  String? name,
+                  String? phone,
+                  String? city,
+                  Customer? customer,
+                }) {
+                  final resolvedCustomer =
+                      customer ??
+                      (customerId != null
+                          ? ref
+                                .read(customerProvider)
+                                .value
+                                ?.where((c) => c.id == customerId)
+                                .firstOrNull
+                          : null);
+                  ref
+                      .read(billingProvider.notifier)
+                      .setCustomer(
+                        customerId,
+                        customerType,
+                        name: name ?? resolvedCustomer?.name,
+                        phone: phone ?? resolvedCustomer?.phoneNumber,
+                        city: city ?? resolvedCustomer?.city,
+                      );
+                  _showInvoice(ref, context, customer: resolvedCustomer);
+                },
+          ),
+        ),
       ),
-    ),
-  ),
-);
-}
+    ).then((_) {
+      if (mounted) {
+        try {
+          _controller.start();
+        } catch (_) {}
+      }
+    });
+  }
 
   void _showInvoice(WidgetRef ref, BuildContext context, {Customer? customer}) {
     final billingState = ref.read(billingProvider);
@@ -235,16 +295,20 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
         .read(invoiceProvider.notifier)
         .getNextInvoiceNumber(currentBusiness);
 
-    final resolvedCustomer = customer ??
+    final resolvedCustomer =
+        customer ??
         (billingState.selectedCustomerId != null
             ? ref
-                .read(customerProvider)
-                .value
-                ?.where((c) => c.id == billingState.selectedCustomerId)
-                .firstOrNull
+                  .read(customerProvider)
+                  .value
+                  ?.where((c) => c.id == billingState.selectedCustomerId)
+                  .firstOrNull
             : null);
     final prevBalance = resolvedCustomer?.remainingBalance ?? 0.0;
 
+    try {
+      _controller.pause();
+    } catch (_) {}
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -264,10 +328,19 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
         customer: resolvedCustomer,
         previousBalance: prevBalance,
       ),
-    );
+    ).then((_) {
+      if (mounted) {
+        try {
+          _controller.start();
+        } catch (_) {}
+      }
+    });
   }
 
   void _showProductPicker() {
+    try {
+      _controller.pause();
+    } catch (_) {}
     final allProducts = ref.read(productsListProvider);
     showModalBottomSheet(
       context: context,
@@ -292,10 +365,19 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           ),
         ),
       ),
-    );
+    ).then((_) {
+      if (mounted) {
+        try {
+          _controller.start();
+        } catch (_) {}
+      }
+    });
   }
 
   void _showWeightInput(ProductModel product, {double? initialQuantity}) {
+    try {
+      _controller.pause();
+    } catch (_) {}
     showModalBottomSheet(
       context: context,
       useRootNavigator: true,
@@ -308,11 +390,14 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           child: WeightInputSheet(
             product: product,
             initialQuantity: initialQuantity,
-            buttonLabel:
-                initialQuantity != null ? 'UPDATE QUANTITY' : 'ADD TO CART',
+            buttonLabel: initialQuantity != null
+                ? 'UPDATE QUANTITY'
+                : 'ADD TO CART',
             onAdd: (quantity) {
               if (initialQuantity != null) {
-                if (ref.read(billingProvider.notifier).updateQuantity(
+                if (ref
+                    .read(billingProvider.notifier)
+                    .updateQuantity(
                       product.id,
                       quantity,
                       variantId: product.selectedVariantId,
@@ -334,7 +419,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                     .read(billingProvider.notifier)
                     .addToCart(product, quantity: quantity)) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${product.name} added: $quantity KG')),
+                    SnackBar(
+                      content: Text('${product.name} added: $quantity KG'),
+                    ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -346,7 +433,14 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           ),
         ),
       ),
-    ).then((_) => _resumeScanner());
+    ).then((_) {
+      if (mounted) {
+        try {
+          _controller.start();
+        } catch (_) {}
+        _resumeScanner();
+      }
+    });
   }
 
   @override
@@ -382,21 +476,37 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Checkout Terminal'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: _showProductPicker,
-          ),
-          IconButton(
-            icon: const Icon(Icons.flash_on),
-            onPressed: () => _controller.toggleTorch(),
-          ),
-        ],
-      ),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        _stopCamera();
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: const Text('Checkout Terminal'),
+          leading: Navigator.canPop(context)
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () async {
+                    await _stopCamera();
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                )
+              : null,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: _showProductPicker,
+            ),
+            IconButton(
+              icon: const Icon(Icons.flash_on),
+              onPressed: () => _controller.toggleTorch(),
+            ),
+          ],
+        ),
       body: Column(
         children: [
           // Static Scanner At Top
@@ -463,7 +573,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           // Scrollable List Below
           Expanded(
             child: Container(
-              color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
               child: Column(
                 children: [
                   Padding(
@@ -528,7 +638,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                         color: Theme.of(context).cardColor,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 10,
                             offset: const Offset(0, -5),
                           ),
@@ -568,18 +678,20 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 }
 
-typedef CustomerSelectionCallback = void Function(
-  int? customerId,
-  String customerType, {
-  String? name,
-  String? phone,
-  String? city,
-  Customer? customer,
-});
+typedef CustomerSelectionCallback =
+    void Function(
+      int? customerId,
+      String customerType, {
+      String? name,
+      String? phone,
+      String? city,
+      Customer? customer,
+    });
 
 class _CustomerSelectorSheet extends ConsumerStatefulWidget {
   final CustomerSelectionCallback onSelected;
@@ -642,222 +754,230 @@ class _CustomerSelectorSheetState
         child: SizedBox(
           height: MediaQuery.of(context).size.height * 0.75,
           child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                children: [
-                  Text(
-                    'Select Customer',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.person_add_alt_1,
-                      color: AppTheme.primaryTeal,
-                    ),
-                    tooltip: 'Add New Customer',
-                    onPressed: _openAddCustomer,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: AppTheme.primaryTeal,
-                child: Icon(Icons.person_outline, color: Colors.white),
-              ),
-              title: const Text('Walk-in Customer'),
-              subtitle: const Text('Add optional details or skip for quick sales'),
-              onTap: () {
-                Navigator.pop(context);
-                WalkInCustomerSheet.show(
-                  context,
-                  onProceed: ({
-                    customerId,
-                    required customerType,
-                    name,
-                    phone,
-                    city,
-                    customer,
-                  }) {
-                    widget.onSelected(
-                      customerId,
-                      customerType,
-                      name: name,
-                      phone: phone,
-                      city: city,
-                      customer: customer,
-                    );
-                  },
-                );
-              },
-            ),
-            const Divider(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search or filter customers...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, size: 20),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = '');
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: Theme.of(context).brightness == Brightness.dark
-                      ? Theme.of(context).cardColor
-                      : Colors.grey.shade50,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white.withValues(alpha: 0.15)
-                          : Colors.grey.shade300,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white.withValues(alpha: 0.15)
-                          : Colors.grey.shade300,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppTheme.primaryTeal,
-                      width: 2,
-                    ),
-                  ),
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                onChanged: (val) {
-                  setState(() => _searchQuery = val.trim());
-                },
               ),
-            ),
-            Expanded(
-              child: customersAsync.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      'Select Customer',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.person_add_alt_1,
                         color: AppTheme.primaryTeal,
                       ),
-                    )
-                  : customers.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _searchQuery.isEmpty
-                                    ? 'No customers found'
-                                    : 'No matching customers found',
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.color,
+                      tooltip: 'Add New Customer',
+                      onPressed: _openAddCustomer,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: AppTheme.primaryTeal,
+                  child: Icon(Icons.person_outline, color: Colors.white),
+                ),
+                title: const Text('Walk-in Customer'),
+                subtitle: const Text(
+                  'Add optional details or skip for quick sales',
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  WalkInCustomerSheet.show(
+                    context,
+                    onProceed:
+                        ({
+                          customerId,
+                          required customerType,
+                          name,
+                          phone,
+                          city,
+                          customer,
+                        }) {
+                          widget.onSelected(
+                            customerId,
+                            customerType,
+                            name: name,
+                            phone: phone,
+                            city: city,
+                            customer: customer,
+                          );
+                        },
+                  );
+                },
+              ),
+              const Divider(),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search or filter customers...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 20),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).cardColor
+                        : Colors.grey.shade50,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.15)
+                            : Colors.grey.shade300,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.15)
+                            : Colors.grey.shade300,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppTheme.primaryTeal,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  onChanged: (val) {
+                    setState(() => _searchQuery = val.trim());
+                  },
+                ),
+              ),
+              Expanded(
+                child: customersAsync.isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppTheme.primaryTeal,
+                        ),
+                      )
+                    : customers.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _searchQuery.isEmpty
+                                  ? 'No customers found'
+                                  : 'No matching customers found',
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium?.color,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed: _openAddCustomer,
+                              icon: const Icon(Icons.add, color: Colors.white),
+                              label: const Text(
+                                'Add New Customer',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryTeal,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              ElevatedButton.icon(
-                                onPressed: _openAddCustomer,
-                                icon: const Icon(Icons.add, color: Colors.white),
-                                label: const Text(
-                                  'Add New Customer',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primaryTeal,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: customers.length,
+                        itemBuilder: (context, index) {
+                          final customer = customers[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: AppTheme.primaryTeal.withValues(
+                                alpha: 0.2,
                               ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: customers.length,
-                          itemBuilder: (context, index) {
-                            final customer = customers[index];
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: AppTheme.primaryTeal
-                                    .withValues(alpha: 0.2),
-                                child: Text(
-                                  customer.name.isNotEmpty
-                                      ? customer.name[0].toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(
-                                    color: AppTheme.primaryTeal,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              title: Text(
-                                customer.name,
+                              child: Text(
+                                customer.name.isNotEmpty
+                                    ? customer.name[0].toUpperCase()
+                                    : '?',
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              subtitle: Text(customer.phoneNumber),
-                              trailing: Text(
-                                'Bal: ₹${customer.remainingBalance.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  color: customer.remainingBalance > 0
-                                      ? Colors.red
-                                      : customer.remainingBalance < 0
-                                          ? Colors.green
-                                          : Colors.grey,
+                                  color: AppTheme.primaryTeal,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                               onTap: () {
-                                 Navigator.pop(context);
-                                 widget.onSelected(
-                                   customer.id,
-                                   'REGULAR',
-                                   name: customer.name,
-                                   phone: customer.phoneNumber,
-                                   city: customer.city,
-                                   customer: customer,
-                                 );
-                               },
-                            );
-                          },
-                        ),
-            ),
-          ],
+                            ),
+                            title: Text(
+                              customer.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(customer.phoneNumber),
+                            trailing: Text(
+                              'Bal: ₹${customer.remainingBalance.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                color: customer.remainingBalance > 0
+                                    ? Colors.red
+                                    : customer.remainingBalance < 0
+                                    ? Colors.green
+                                    : Colors.grey,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            onTap: () {
+                              Navigator.pop(context);
+                              widget.onSelected(
+                                customer.id,
+                                'REGULAR',
+                                name: customer.name,
+                                phone: customer.phoneNumber,
+                                city: customer.city,
+                                customer: customer,
+                              );
+                            },
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _ScannerOverlayPainter extends CustomPainter {
@@ -983,118 +1103,125 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
         child: SizedBox(
           height: MediaQuery.of(context).size.height * 0.85,
           child: Column(
-        children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Theme.of(context).dividerColor,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                const Text(
-                  'Select Product',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).dividerColor,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by name or barcode...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Theme.of(context).dividerColor),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Theme.of(context).dividerColor),
-                ),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
               ),
-              onChanged: _filterProducts,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: _filteredProducts.isEmpty
-                ? const Center(child: Text('No products found'))
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _filteredProducts.length,
-                    itemBuilder: (context, index) {
-                      final p = _filteredProducts[index];
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Select Product',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search by name or barcode...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(context).colorScheme.surface,
+                  ),
+                  onChanged: _filterProducts,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: _filteredProducts.isEmpty
+                    ? const Center(child: Text('No products found'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: _filteredProducts.length,
+                        itemBuilder: (context, index) {
+                          final p = _filteredProducts[index];
 
-                      if (!p.hasVariants || p.variants.isEmpty) {
-                        return _ProductListTile(
-                          product: p,
-                          billingState: billingState,
-                          onSelected: widget.onSelected,
-                        );
-                      }
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 4,
-                            ),
-                            child: Text(
-                              p.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                          ...p.variants.map((v) {
-                            final variantProduct = p.copyWith(
-                              name: v.name.isNotEmpty
-                                  ? '${p.name} (${v.name})'
-                                  : p.name,
-                              basePrice: v.price,
-                              stock: v.stock,
-                              barcode: v.sku,
-                              selectedVariantId: v.id,
-                              uom: v.uom,
-                            );
+                          if (!p.hasVariants || p.variants.isEmpty) {
                             return _ProductListTile(
-                              product: variantProduct,
+                              product: p,
                               billingState: billingState,
                               onSelected: widget.onSelected,
-                              isVariant: true,
                             );
-                          }),
-                          const Divider(height: 24),
-                        ],
-                      );
-                    },
-                  ),
+                          }
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 4,
+                                ),
+                                child: Text(
+                                  p.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ),
+                              ...p.variants.map((v) {
+                                final variantProduct = p.copyWith(
+                                  name: v.name.isNotEmpty
+                                      ? '${p.name} (${v.name})'
+                                      : p.name,
+                                  basePrice: v.price,
+                                  stock: v.stock,
+                                  barcode: v.sku,
+                                  selectedVariantId: v.id,
+                                  uom: v.uom,
+                                );
+                                return _ProductListTile(
+                                  product: variantProduct,
+                                  billingState: billingState,
+                                  onSelected: widget.onSelected,
+                                  isVariant: true,
+                                );
+                              }),
+                              const Divider(height: 24),
+                            ],
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 }
 
 class _ProductListTile extends ConsumerWidget {
@@ -1240,8 +1367,9 @@ class _ProductListTile extends ConsumerWidget {
                             builder: (ctx) => Align(
                               alignment: Alignment.bottomCenter,
                               child: ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxWidth: 600),
+                                constraints: const BoxConstraints(
+                                  maxWidth: 600,
+                                ),
                                 child: WeightInputSheet(
                                   product: product,
                                   initialQuantity: quantity.toDouble(),
@@ -1252,8 +1380,7 @@ class _ProductListTile extends ConsumerWidget {
                                         .updateQuantity(
                                           product.id,
                                           newQty,
-                                          variantId:
-                                              product.selectedVariantId,
+                                          variantId: product.selectedVariantId,
                                         );
                                   },
                                 ),
@@ -1271,8 +1398,9 @@ class _ProductListTile extends ConsumerWidget {
                               product.is_weighted
                                   ? quantity.toStringAsFixed(3)
                                   : quantity.toInt().toString(),
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             if (product.is_weighted) ...[
                               const SizedBox(width: 2),
@@ -1365,7 +1493,9 @@ class _PanelItemTile extends ConsumerWidget {
             initialQuantity: item.quantity,
             buttonLabel: 'UPDATE QUANTITY',
             onAdd: (quantity) {
-              if (ref.read(billingProvider.notifier).updateQuantity(
+              if (ref
+                  .read(billingProvider.notifier)
+                  .updateQuantity(
                     item.product.id,
                     quantity,
                     variantId: item.product.selectedVariantId,
@@ -1453,7 +1583,9 @@ class _PanelItemTile extends ConsumerWidget {
 
     if (updated != null) {
       if (updated <= 0) {
-        ref.read(billingProvider.notifier).removeFromCart(
+        ref
+            .read(billingProvider.notifier)
+            .removeFromCart(
               item.product.id,
               variantId: item.product.selectedVariantId,
             );
@@ -1464,17 +1596,18 @@ class _PanelItemTile extends ConsumerWidget {
               action: SnackBarAction(
                 label: 'UNDO',
                 onPressed: () {
-                  ref.read(billingProvider.notifier).addToCart(
-                        item.product,
-                        quantity: item.quantity,
-                      );
+                  ref
+                      .read(billingProvider.notifier)
+                      .addToCart(item.product, quantity: item.quantity);
                 },
               ),
             ),
           );
         }
       } else {
-        final success = ref.read(billingProvider.notifier).updateQuantity(
+        final success = ref
+            .read(billingProvider.notifier)
+            .updateQuantity(
               item.product.id,
               updated.toDouble(),
               variantId: item.product.selectedVariantId,
@@ -1508,7 +1641,9 @@ class _PanelItemTile extends ConsumerWidget {
         child: const Icon(Icons.delete_outline, color: Colors.white),
       ),
       onDismissed: (direction) {
-        ref.read(billingProvider.notifier).removeFromCart(
+        ref
+            .read(billingProvider.notifier)
+            .removeFromCart(
               item.product.id,
               variantId: item.product.selectedVariantId,
             );
@@ -1518,10 +1653,9 @@ class _PanelItemTile extends ConsumerWidget {
             action: SnackBarAction(
               label: 'UNDO',
               onPressed: () {
-                ref.read(billingProvider.notifier).addToCart(
-                      item.product,
-                      quantity: item.quantity,
-                    );
+                ref
+                    .read(billingProvider.notifier)
+                    .addToCart(item.product, quantity: item.quantity);
               },
             ),
           ),
@@ -1547,19 +1681,18 @@ class _PanelItemTile extends ConsumerWidget {
               clipBehavior: Clip.antiAlias,
               child:
                   item.product.photo != null && item.product.photo!.isNotEmpty
-                      ? Image.memory(
-                          ImageUtils.decodeBase64(item.product.photo!),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(
-                            Icons.image_not_supported_outlined,
-                            size: 20,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.shopping_bag_outlined,
-                          color: AppTheme.primaryTeal,
-                        ),
+                  ? Image.memory(
+                      ImageUtils.decodeBase64(item.product.photo!),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 20,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.shopping_bag_outlined,
+                      color: AppTheme.primaryTeal,
+                    ),
             ),
             const SizedBox(width: 10),
 
@@ -1576,11 +1709,11 @@ class _PanelItemTile extends ConsumerWidget {
                     .firstOrNull;
                 final displayUom = matchedUom != null
                     ? (matchedUom.shortCode.isNotEmpty
-                        ? matchedUom.shortCode
-                        : matchedUom.name)
+                          ? matchedUom.shortCode
+                          : matchedUom.name)
                     : (int.tryParse(item.product.uom) != null
-                        ? ''
-                        : item.product.uom);
+                          ? ''
+                          : item.product.uom);
 
                 return Expanded(
                   child: Column(
@@ -1605,10 +1738,9 @@ class _PanelItemTile extends ConsumerWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.color,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.color,
                                 fontSize: 11,
                               ),
                             ),
@@ -1632,7 +1764,9 @@ class _PanelItemTile extends ConsumerWidget {
             const SizedBox(width: 8),
 
             // Quantity / Weight Controls
-            if (ref.watch(authProvider).hasPermission(
+            if (ref
+                .watch(authProvider)
+                .hasPermission(
                   PermissionModule.billing,
                   PermissionAction.update,
                 )) ...[
@@ -1658,8 +1792,7 @@ class _PanelItemTile extends ConsumerWidget {
                           color: AppTheme.primaryTeal.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: AppTheme.primaryTeal
-                                .withValues(alpha: 0.35),
+                            color: AppTheme.primaryTeal.withValues(alpha: 0.35),
                           ),
                         ),
                         child: Row(
@@ -1735,10 +1868,9 @@ class _PanelItemTile extends ConsumerWidget {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge
-                                      ?.color,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyLarge?.color,
                                 ),
                               ),
                               const SizedBox(width: 2),
@@ -1800,13 +1932,12 @@ class _PanelItemTile extends ConsumerWidget {
                 color: Colors.redAccent,
               ),
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(
-                minWidth: 32,
-                minHeight: 32,
-              ),
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               tooltip: 'Remove',
               onPressed: () {
-                ref.read(billingProvider.notifier).removeFromCart(
+                ref
+                    .read(billingProvider.notifier)
+                    .removeFromCart(
                       item.product.id,
                       variantId: item.product.selectedVariantId,
                     );
@@ -1816,10 +1947,9 @@ class _PanelItemTile extends ConsumerWidget {
                     action: SnackBarAction(
                       label: 'UNDO',
                       onPressed: () {
-                        ref.read(billingProvider.notifier).addToCart(
-                              item.product,
-                              quantity: item.quantity,
-                            );
+                        ref
+                            .read(billingProvider.notifier)
+                            .addToCart(item.product, quantity: item.quantity);
                       },
                     ),
                   ),

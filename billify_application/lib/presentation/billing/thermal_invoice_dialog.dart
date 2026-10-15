@@ -362,19 +362,20 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
     setState(() {
       _paymentMode = mode;
       if (mode == 'CASH') {
-        _paidController.text = widget.total.toStringAsFixed(2);
-        _remaining = 0.0;
+        _paidController.text = _effectiveTotal.toStringAsFixed(2);
+        _remaining = _effectivePreviousBalance;
       } else if (mode == 'KHATA') {
         _paidController.text = '0.00';
-        _remaining = widget.total;
+        _remaining = _effectiveTotalDue;
       } else if (mode == 'SPLIT') {
         final currentPaid = double.tryParse(_paidController.text) ?? 0.0;
-        if (currentPaid <= 0 || currentPaid >= widget.total) {
-          final half = (widget.total / 2);
+        if (currentPaid <= 0 || currentPaid >= _effectiveTotalDue) {
+          final half = (_effectiveTotalDue / 2);
           _paidController.text = half.toStringAsFixed(2);
-          _remaining = widget.total - half;
+          _remaining = _effectiveTotalDue - half;
         } else {
-          _remaining = (widget.total - currentPaid).clamp(0.0, double.infinity);
+          _remaining =
+              (_effectiveTotalDue - currentPaid).clamp(0.0, double.infinity);
         }
       }
     });
@@ -961,7 +962,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                         ),
                       ),
                       Text(
-                        '₹${widget.total.toStringAsFixed(2)}',
+                        '₹${_effectiveTotalDue.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -971,63 +972,178 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                     ],
                   ),
                 ] else if (_paymentMode == 'SPLIT') ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'AMOUNT PAID (CASH)',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF9F0),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.orange.shade300,
+                        width: 1.2,
                       ),
-                      SizedBox(
-                        width: 80,
-                        height: 25,
-                        child: TextField(
-                          controller: _paidController,
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.right,
-                          autofocus: true,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                          decoration: const InputDecoration(
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                            border: UnderlineInputBorder(),
-                            hintText: '0.00',
-                            prefixText: '₹',
-                          ),
-                          onChanged: _updateRemaining,
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                const Text(
+                                  'AMOUNT PAID (CASH)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              width: 120,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.orange.shade400,
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              child: Theme(
+                                data: Theme.of(context).copyWith(
+                                  inputDecorationTheme:
+                                      const InputDecorationTheme(
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                  ),
+                                ),
+                                child: TextField(
+                                  controller: _paidController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                                  textAlign: TextAlign.right,
+                                  autofocus: true,
+                                  cursorColor: Colors.orange.shade700,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1E293B),
+                                  ),
+                                  decoration: const InputDecoration(
+                                    isDense: true,
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 9,
+                                    ),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    hintText: '0.00',
+                                    hintStyle: TextStyle(
+                                      color: Colors.black38,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    prefixIcon: Padding(
+                                      padding: EdgeInsets.only(
+                                        left: 8,
+                                        top: 9,
+                                        bottom: 9,
+                                        right: 2,
+                                      ),
+                                      child: Text(
+                                        '₹',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1E293B),
+                                        ),
+                                      ),
+                                    ),
+                                    prefixIconConstraints: BoxConstraints(
+                                      minWidth: 0,
+                                      minHeight: 0,
+                                    ),
+                                  ),
+                                  onChanged: _updateRemaining,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'REMAINING TO KHATA',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
+                        const SizedBox(height: 8),
+                        Divider(
+                          height: 1,
+                          thickness: 0.8,
+                          color: Colors.orange.shade200,
                         ),
-                      ),
-                      Text(
-                        '₹${_remaining.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                const Text(
+                                  'REMAINING TO KHATA',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              '₹${_remaining.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ],

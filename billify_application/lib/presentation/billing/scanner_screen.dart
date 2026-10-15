@@ -1,5 +1,6 @@
 import 'package:billify/core/theme/app_theme.dart';
 import 'package:billify/core/utils/image_utils.dart';
+import 'package:billify/core/utils/number_format_utils.dart';
 import 'package:billify/presentation/billing/thermal_invoice_dialog.dart';
 import 'package:billify/presentation/product/product_management_page.dart';
 import 'package:billify/providers/billing_provider.dart';
@@ -618,7 +619,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                             ),
                           ),
                           Text(
-                            'Total: ₹${billingState.getTotal(taxPercent, gstPercent).toStringAsFixed(2)}',
+                            'Total: ${NumberFormatUtils.formatCurrency(billingState.getTotal(taxPercent, gstPercent), compactThreshold: 100000)}',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -695,7 +696,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                               const Icon(Icons.print, color: Colors.white),
                               const SizedBox(width: 8),
                               Text(
-                                'CONFIRM & PRINT - ₹${billingState.getTotal(taxPercent, gstPercent).toStringAsFixed(2)}',
+                                'CONFIRM & PRINT - ${NumberFormatUtils.formatCurrency(billingState.getTotal(taxPercent, gstPercent), compactThreshold: 100000)}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -1754,7 +1755,7 @@ class _PanelItemTile extends ConsumerWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              '₹${item.product.is_weighted ? item.product.price_per_unit.toStringAsFixed(2) : item.price.toStringAsFixed(2)}${displayUom.isNotEmpty ? ' / $displayUom' : ''}',
+                              '₹${item.product.is_weighted ? NumberFormatUtils.formatCurrency(item.product.price_per_unit, symbol: '') : NumberFormatUtils.formatCurrency(item.price, symbol: '')}${displayUom.isNotEmpty ? ' / $displayUom' : ''}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -1765,13 +1766,17 @@ class _PanelItemTile extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '• ₹${item.subtotal.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              color: AppTheme.primaryTeal,
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              '• ${NumberFormatUtils.formatCurrency(item.subtotal)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: AppTheme.primaryTeal,
+                              ),
                             ),
                           ),
                         ],
@@ -1825,7 +1830,7 @@ class _PanelItemTile extends ConsumerWidget {
                             ),
                             const SizedBox(width: 3),
                             Text(
-                              '${item.quantity.toStringAsFixed(3)} $unitStr',
+                              '${NumberFormatUtils.formatQuantity(item.quantity)} $unitStr',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
@@ -1846,6 +1851,10 @@ class _PanelItemTile extends ConsumerWidget {
                 )
               else
                 Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(8),
@@ -1853,35 +1862,37 @@ class _PanelItemTile extends ConsumerWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.remove,
-                          size: 16,
-                          color: Theme.of(context).iconTheme.color,
-                        ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 28,
-                          minHeight: 28,
-                        ),
-                        onPressed: () => ref
+                      InkWell(
+                        onTap: () => ref
                             .read(billingProvider.notifier)
                             .updateQuantity(
                               item.product.id,
                               item.quantity - 1,
                               variantId: item.product.selectedVariantId,
                             ),
+                        borderRadius: BorderRadius.circular(4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 4,
+                          ),
+                          child: Icon(
+                            Icons.remove,
+                            size: 15,
+                            color: Theme.of(context).iconTheme.color,
+                          ),
+                        ),
                       ),
                       InkWell(
                         onTap: () => _showQuantityDialog(context, ref, item),
                         borderRadius: BorderRadius.circular(4),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
+                            horizontal: 4,
                             vertical: 2,
                           ),
                           child: Text(
-                            item.quantity.toInt().toString(),
+                            NumberFormatUtils.formatQuantity(item.quantity),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
@@ -1892,18 +1903,8 @@ class _PanelItemTile extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.add,
-                          size: 16,
-                          color: Theme.of(context).iconTheme.color,
-                        ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 28,
-                          minHeight: 28,
-                        ),
-                        onPressed: () {
+                      InkWell(
+                        onTap: () {
                           if (!ref
                               .read(billingProvider.notifier)
                               .updateQuantity(
@@ -1918,6 +1919,18 @@ class _PanelItemTile extends ConsumerWidget {
                             );
                           }
                         },
+                        borderRadius: BorderRadius.circular(4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 4,
+                          ),
+                          child: Icon(
+                            Icons.add,
+                            size: 15,
+                            color: Theme.of(context).iconTheme.color,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -1926,7 +1939,7 @@ class _PanelItemTile extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
-                  'x${item.product.is_weighted ? item.quantity.toStringAsFixed(3) : item.quantity.toInt()}',
+                  'x${NumberFormatUtils.formatQuantity(item.quantity)}',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),

@@ -90,12 +90,89 @@ class AuthNotifier extends Notifier<AuthState> {
     final user = repo.getUser();
     final isLoggedIn = repo.isLoggedIn();
 
+    RoleModel? initialRole;
     if (isLoggedIn && user != null) {
-      // Load role async (initial load)
-      _loadRoleForUser(user);
+      initialRole = _resolveInitialRole(user);
+      // Load and sync full permissions asynchronously once provider is mounted
+      Future.microtask(() => _loadRoleForUser(user));
     }
 
-    return AuthState(user: user, isLoggedIn: isLoggedIn);
+    return AuthState(
+      user: user,
+      isLoggedIn: isLoggedIn,
+      currentRole: initialRole,
+    );
+  }
+
+  RoleModel? _resolveInitialRole(UserModel user) {
+    try {
+      final storage = ref.read(localStorageServiceProvider);
+
+      final userId = (user.businessOwnerId?.isNotEmpty == true)
+          ? user.businessOwnerId!
+          : (user.email?.isNotEmpty == true)
+              ? user.email!
+              : user.mobile;
+
+      final String? businessId = storage.getString(
+        AppConstants.userKey(userId, AppConstants.keyCurrentBusinessId),
+      );
+
+      String? fallbackRoleId;
+      final businessDataStr = storage.getString(
+        AppConstants.userKey(userId, AppConstants.keyBusinessData),
+      );
+      if (businessDataStr != null) {
+        try {
+          final List<dynamic> bList = jsonDecode(businessDataStr);
+          if (bList.isNotEmpty) {
+            final currentB = bList.firstWhere(
+              (b) => b['id']?.toString() == businessId,
+              orElse: () => bList.first,
+            );
+            fallbackRoleId = currentB['role_id']?.toString();
+          }
+        } catch (_) {}
+      }
+
+      final effectiveRoleId = user.roleId ?? fallbackRoleId;
+
+      final isExplicitOwner = (user.businessOwnerId != null &&
+              user.businessOwnerId!.isNotEmpty &&
+              (user.businessOwnerId == user.id ||
+                  user.businessOwnerId == user.mobile ||
+                  user.businessOwnerId == user.email)) ||
+          effectiveRoleId == '1';
+
+      if (isExplicitOwner &&
+          (effectiveRoleId == null ||
+              effectiveRoleId.isEmpty ||
+              effectiveRoleId == '1')) {
+        return RoleModel(
+          id: 'owner_admin',
+          name: 'Owner',
+          permissions: {
+            for (var module in PermissionModule.values)
+              module: [PermissionAction.all],
+          },
+        );
+      }
+
+      if (businessId == null || int.tryParse(businessId) == null) {
+        if (effectiveRoleId == '1' ||
+            effectiveRoleId?.toLowerCase() == 'admin') {
+          return RoleModel(
+            id: 'global_admin',
+            name: 'Global Admin',
+            permissions: {
+              for (var module in PermissionModule.values)
+                module: [PermissionAction.all],
+            },
+          );
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<void> reloadPermissions() async {

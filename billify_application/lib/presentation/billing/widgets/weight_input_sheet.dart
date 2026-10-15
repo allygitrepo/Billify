@@ -9,12 +9,14 @@ class WeightInputSheet extends ConsumerStatefulWidget {
   final ProductModel product;
   final Function(double quantity) onAdd;
   final String buttonLabel;
+  final double? initialQuantity;
 
   const WeightInputSheet({
     super.key,
     required this.product,
     required this.onAdd,
     this.buttonLabel = 'ADD TO CART',
+    this.initialQuantity,
   });
 
   @override
@@ -22,8 +24,23 @@ class WeightInputSheet extends ConsumerStatefulWidget {
 }
 
 class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
-  final TextEditingController _weightController = TextEditingController();
+  late final TextEditingController _weightController;
   bool _isSubUnit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    String initialText = '';
+    if (widget.initialQuantity != null && widget.initialQuantity! > 0) {
+      final qty = widget.initialQuantity!;
+      if (qty % 1 == 0) {
+        initialText = qty.toInt().toString();
+      } else {
+        initialText = qty.toStringAsFixed(3).replaceAll(RegExp(r'0+$'), '');
+      }
+    }
+    _weightController = TextEditingController(text: initialText);
+  }
 
   @override
   void dispose() {
@@ -42,6 +59,9 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
 
     setState(() {
       _weightController.text += value;
+      _weightController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _weightController.text.length),
+      );
     });
   }
 
@@ -51,6 +71,9 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
         _weightController.text = _weightController.text.substring(
           0,
           _weightController.text.length - 1,
+        );
+        _weightController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _weightController.text.length),
         );
       });
     }
@@ -106,7 +129,7 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.3),
+              color: Colors.grey.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -117,30 +140,50 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
           ),
           const SizedBox(height: 24),
 
-          // Weight Display Area
+          // Weight Display & Input Area
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.primaryTeal.withOpacity(0.3)),
+              border: Border.all(
+                color: AppTheme.primaryTeal.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  _weightController.text.isEmpty
-                      ? '0.000'
-                      : _weightController.text,
-                  style: TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                    color: _weightController.text.isEmpty
-                        ? Colors.grey
-                        : AppTheme.primaryTeal,
+                Expanded(
+                  child: TextField(
+                    controller: _weightController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryTeal,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: '0.000',
+                      hintStyle: TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    onChanged: (val) {
+                      setState(() {});
+                    },
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Text(
                   currentUnit,
                   style: const TextStyle(
@@ -163,13 +206,35 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
                 _UnitToggleButton(
                   label: baseUnit,
                   isSelected: !_isSubUnit,
-                  onTap: () => setState(() => _isSubUnit = false),
+                  onTap: () {
+                    if (_isSubUnit) {
+                      final val = double.tryParse(_weightController.text);
+                      if (val != null && val > 0) {
+                        final inKg = val / 1000.0;
+                        _weightController.text = inKg
+                            .toStringAsFixed(3)
+                            .replaceAll(RegExp(r'0+$'), '');
+                      }
+                      setState(() => _isSubUnit = false);
+                    }
+                  },
                 ),
                 const SizedBox(width: 12),
                 _UnitToggleButton(
                   label: subUnit,
                   isSelected: _isSubUnit,
-                  onTap: () => setState(() => _isSubUnit = true),
+                  onTap: () {
+                    if (!_isSubUnit) {
+                      final val = double.tryParse(_weightController.text);
+                      if (val != null && val > 0) {
+                        final inGm = val * 1000.0;
+                        _weightController.text = inGm % 1 == 0
+                            ? inGm.toInt().toString()
+                            : inGm.toStringAsFixed(1);
+                      }
+                      setState(() => _isSubUnit = true);
+                    }
+                  },
                 ),
               ],
             ),
@@ -202,7 +267,7 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
               _KeyButton(
                 icon: Icons.backspace_outlined,
                 onTap: _onBackspace,
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 iconColor: Colors.red,
               ),
             ],
@@ -223,7 +288,7 @@ class _WeightInputSheetState extends ConsumerState<WeightInputSheet> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+              disabledBackgroundColor: Colors.grey.withValues(alpha: 0.3),
             ),
             child: Text(
               widget.buttonLabel,
@@ -267,7 +332,7 @@ class _UnitToggleButton extends StatelessWidget {
           border: Border.all(
             color: isSelected
                 ? AppTheme.primaryTeal
-                : Colors.grey.withOpacity(0.3),
+                : Colors.grey.withValues(alpha: 0.3),
           ),
         ),
         child: Text(
@@ -308,7 +373,7 @@ class _KeyButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: color ?? Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.withOpacity(0.1)),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
           ),
           child: Center(
             child: label != null

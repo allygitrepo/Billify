@@ -134,7 +134,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
       _remaining = totalDue;
     } else if (_paymentMode == 'SPLIT') {
       final currentPaid = double.tryParse(_paidController.text) ?? (total / 2);
-      _remaining = (totalDue - currentPaid).clamp(0.0, double.infinity);
+      _remaining = totalDue - currentPaid;
     }
   }
 
@@ -234,7 +234,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
     final totalDue = widget.invoice != null
         ? (widget.invoice!.final_amount + widget.invoice!.previous_balance)
         : _effectiveTotalDue;
-    _remaining = (totalDue - initialPaid).clamp(0.0, double.infinity);
+    _remaining = totalDue - initialPaid;
   }
 
   @override
@@ -246,7 +246,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
   void _updateRemaining(String val) {
     final paid = double.tryParse(val) ?? 0.0;
     setState(() {
-      _remaining = (_effectiveTotalDue - paid).clamp(0.0, double.infinity);
+      _remaining = _effectiveTotalDue - paid;
     });
   }
 
@@ -374,8 +374,7 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
           _paidController.text = half.toStringAsFixed(2);
           _remaining = _effectiveTotalDue - half;
         } else {
-          _remaining =
-              (_effectiveTotalDue - currentPaid).clamp(0.0, double.infinity);
+          _remaining = _effectiveTotalDue - currentPaid;
         }
       }
     });
@@ -890,6 +889,31 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                         ),
                       ],
                     ),
+                  )
+                else if (_remaining < -0.01)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'JAMA TO KHATA',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                        Text(
+                          '₹${(-_remaining).toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
               ] else ...[
                 // Payment Mode Selection
@@ -979,10 +1003,14 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF9F0),
+                      color: _remaining < -0.001
+                          ? const Color(0xFFF0FDF4)
+                          : const Color(0xFFFFF9F0),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: Colors.orange.shade300,
+                        color: _remaining < -0.001
+                            ? Colors.green.shade300
+                            : Colors.orange.shade300,
                         width: 1.2,
                       ),
                     ),
@@ -1020,7 +1048,9 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: Colors.orange.shade400,
+                                  color: _remaining < -0.001
+                                      ? Colors.green.shade400
+                                      : Colors.orange.shade400,
                                   width: 1.5,
                                 ),
                                 boxShadow: [
@@ -1050,7 +1080,9 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                   ),
                                   textAlign: TextAlign.right,
                                   autofocus: true,
-                                  cursorColor: Colors.orange.shade700,
+                                  cursorColor: _remaining < -0.001
+                                      ? Colors.green.shade700
+                                      : Colors.orange.shade700,
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -1104,7 +1136,9 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                         Divider(
                           height: 1,
                           thickness: 0.8,
-                          color: Colors.orange.shade200,
+                          color: _remaining < -0.001
+                              ? Colors.green.shade200
+                              : Colors.orange.shade200,
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -1115,29 +1149,45 @@ class _ThermalInvoiceDialogState extends ConsumerState<ThermalInvoiceDialog> {
                                 Container(
                                   width: 8,
                                   height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
+                                  decoration: BoxDecoration(
+                                    color: _remaining < -0.001
+                                        ? Colors.green
+                                        : (_remaining > 0.001
+                                            ? Colors.red
+                                            : Colors.green),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
                                 const SizedBox(width: 6),
-                                const Text(
-                                  'REMAINING TO KHATA',
+                                Text(
+                                  _remaining < -0.001
+                                      ? 'JAMA TO KHATA'
+                                      : (_remaining > 0.001
+                                          ? 'REMAINING TO KHATA'
+                                          : 'BALANCE SETTLED'),
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.red,
+                                    color: _remaining < -0.001
+                                        ? Colors.green.shade700
+                                        : (_remaining > 0.001
+                                            ? Colors.red
+                                            : Colors.green.shade700),
                                     letterSpacing: 0.3,
                                   ),
                                 ),
                               ],
                             ),
                             Text(
-                              '₹${_remaining.toStringAsFixed(2)}',
-                              style: const TextStyle(
+                              '₹${(_remaining < 0 ? -_remaining : _remaining).toStringAsFixed(2)}',
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.red,
+                                color: _remaining < -0.001
+                                    ? Colors.green.shade700
+                                    : (_remaining > 0.001
+                                        ? Colors.red
+                                        : Colors.green.shade700),
                               ),
                             ),
                           ],

@@ -295,7 +295,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     );
   }
 
-  void _showWeightInput(ProductModel product) {
+  void _showWeightInput(ProductModel product, {double? initialQuantity}) {
     showModalBottomSheet(
       context: context,
       useRootNavigator: true,
@@ -307,24 +307,47 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           constraints: const BoxConstraints(maxWidth: 600),
           child: WeightInputSheet(
             product: product,
-        onAdd: (quantity) {
-          if (ref
-              .read(billingProvider.notifier)
-              .addToCart(product, quantity: quantity)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('${product.name} added: $quantity KG')),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Limited stock available')),
-            );
-          }
-        },
+            initialQuantity: initialQuantity,
+            buttonLabel:
+                initialQuantity != null ? 'UPDATE QUANTITY' : 'ADD TO CART',
+            onAdd: (quantity) {
+              if (initialQuantity != null) {
+                if (ref.read(billingProvider.notifier).updateQuantity(
+                      product.id,
+                      quantity,
+                      variantId: product.selectedVariantId,
+                    )) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${product.name} quantity updated to ${quantity.toStringAsFixed(3)}',
+                      ),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Limited stock available')),
+                  );
+                }
+              } else {
+                if (ref
+                    .read(billingProvider.notifier)
+                    .addToCart(product, quantity: quantity)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${product.name} added: $quantity KG')),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Limited stock available')),
+                  );
+                }
+              }
+            },
+          ),
+        ),
       ),
-    ),
-  ),
-).then((_) => _resumeScanner());
-}
+    ).then((_) => _resumeScanner());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1206,13 +1229,61 @@ class _ProductListTile extends ConsumerWidget {
                             variantId: product.selectedVariantId,
                           ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        product.is_weighted
-                            ? quantity.toStringAsFixed(3)
-                            : quantity.toInt().toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                    InkWell(
+                      onTap: () {
+                        if (product.is_weighted) {
+                          showModalBottomSheet(
+                            context: context,
+                            useRootNavigator: true,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (ctx) => Align(
+                              alignment: Alignment.bottomCenter,
+                              child: ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 600),
+                                child: WeightInputSheet(
+                                  product: product,
+                                  initialQuantity: quantity.toDouble(),
+                                  buttonLabel: 'UPDATE QUANTITY',
+                                  onAdd: (newQty) {
+                                    ref
+                                        .read(billingProvider.notifier)
+                                        .updateQuantity(
+                                          product.id,
+                                          newQty,
+                                          variantId:
+                                              product.selectedVariantId,
+                                        );
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              product.is_weighted
+                                  ? quantity.toStringAsFixed(3)
+                                  : quantity.toInt().toString(),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            if (product.is_weighted) ...[
+                              const SizedBox(width: 2),
+                              const Icon(
+                                Icons.edit,
+                                size: 10,
+                                color: AppTheme.primaryTeal,
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
                     IconButton(
@@ -1271,9 +1342,153 @@ class _ProductListTile extends ConsumerWidget {
 }
 
 class _PanelItemTile extends ConsumerWidget {
-  final CartItemModel item; // Corrected type
+  final CartItemModel item;
 
   const _PanelItemTile({required this.item});
+
+  void _showEditWeightSheet(
+    BuildContext context,
+    WidgetRef ref,
+    CartItemModel item,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: WeightInputSheet(
+            product: item.product,
+            initialQuantity: item.quantity,
+            buttonLabel: 'UPDATE QUANTITY',
+            onAdd: (quantity) {
+              if (ref.read(billingProvider.notifier).updateQuantity(
+                    item.product.id,
+                    quantity,
+                    variantId: item.product.selectedVariantId,
+                  )) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '${item.name} quantity updated to ${quantity.toStringAsFixed(3)}',
+                    ),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Limited stock available')),
+                );
+              }
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showQuantityDialog(
+    BuildContext context,
+    WidgetRef ref,
+    CartItemModel item,
+  ) async {
+    final controller = TextEditingController(
+      text: item.quantity.toInt().toString(),
+    );
+
+    final updated = await showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Edit Quantity',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(ctx).textTheme.titleMedium?.color,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              item.name,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Quantity',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              final val = int.tryParse(controller.text.trim());
+              Navigator.pop(ctx, val);
+            },
+            child: const Text('SAVE'),
+          ),
+        ],
+      ),
+    );
+
+    if (updated != null) {
+      if (updated <= 0) {
+        ref.read(billingProvider.notifier).removeFromCart(
+              item.product.id,
+              variantId: item.product.selectedVariantId,
+            );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${item.name} removed from cart'),
+              action: SnackBarAction(
+                label: 'UNDO',
+                onPressed: () {
+                  ref.read(billingProvider.notifier).addToCart(
+                        item.product,
+                        quantity: item.quantity,
+                      );
+                },
+              ),
+            ),
+          );
+        }
+      } else {
+        final success = ref.read(billingProvider.notifier).updateQuantity(
+              item.product.id,
+              updated.toDouble(),
+              variantId: item.product.selectedVariantId,
+            );
+        if (!success) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Limited stock available')),
+            );
+          }
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1293,9 +1508,7 @@ class _PanelItemTile extends ConsumerWidget {
         child: const Icon(Icons.delete_outline, color: Colors.white),
       ),
       onDismissed: (direction) {
-        ref
-            .read(billingProvider.notifier)
-            .removeFromCart(
+        ref.read(billingProvider.notifier).removeFromCart(
               item.product.id,
               variantId: item.product.selectedVariantId,
             );
@@ -1305,9 +1518,10 @@ class _PanelItemTile extends ConsumerWidget {
             action: SnackBarAction(
               label: 'UNDO',
               onPressed: () {
-                ref
-                    .read(billingProvider.notifier)
-                    .addToCart(item.product, quantity: item.quantity);
+                ref.read(billingProvider.notifier).addToCart(
+                      item.product,
+                      quantity: item.quantity,
+                    );
               },
             ),
           ),
@@ -1324,8 +1538,8 @@ class _PanelItemTile extends ConsumerWidget {
           children: [
             // Product Image
             Container(
-              width: 50,
-              height: 50,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(8),
@@ -1333,20 +1547,21 @@ class _PanelItemTile extends ConsumerWidget {
               clipBehavior: Clip.antiAlias,
               child:
                   item.product.photo != null && item.product.photo!.isNotEmpty
-                  ? Image.memory(
-                      ImageUtils.decodeBase64(item.product.photo!),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.image_not_supported_outlined,
-                        size: 20,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.shopping_bag_outlined,
-                      color: AppTheme.primaryTeal,
-                    ),
+                      ? Image.memory(
+                          ImageUtils.decodeBase64(item.product.photo!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(
+                            Icons.image_not_supported_outlined,
+                            size: 20,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.shopping_bag_outlined,
+                          color: AppTheme.primaryTeal,
+                        ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
 
             Builder(
               builder: (context) {
@@ -1373,113 +1588,243 @@ class _PanelItemTile extends ConsumerWidget {
                     children: [
                       Text(
                         item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                          fontSize: 14,
                           color: Theme.of(context).textTheme.titleMedium?.color,
                         ),
                       ),
-                      Text(
-                        '₹${item.product.is_weighted ? item.product.price_per_unit.toStringAsFixed(2) : item.price.toStringAsFixed(2)}${displayUom.isNotEmpty ? ' / $displayUom' : ''}',
-                        style: TextStyle(
-                          color: Theme.of(context).textTheme.bodySmall?.color,
-                          fontSize: 12,
-                        ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              '₹${item.product.is_weighted ? item.product.price_per_unit.toStringAsFixed(2) : item.price.toStringAsFixed(2)}${displayUom.isNotEmpty ? ' / $displayUom' : ''}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.color,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '• ₹${item.subtotal.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: AppTheme.primaryTeal,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 );
               },
             ),
+            const SizedBox(width: 8),
 
-            if (ref
-                .watch(authProvider)
-                .hasPermission(
+            // Quantity / Weight Controls
+            if (ref.watch(authProvider).hasPermission(
                   PermissionModule.billing,
                   PermissionAction.update,
-                ))
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.remove,
-                        size: 18,
-                        color: Theme.of(context).iconTheme.color,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 32,
-                        minHeight: 32,
-                      ),
-                      onPressed: () => ref
-                          .read(billingProvider.notifier)
-                          .updateQuantity(
-                            item.product.id,
-                            item.quantity - 1,
-                            variantId: item.product.selectedVariantId,
+                )) ...[
+              if (item.product.is_weighted)
+                Builder(
+                  builder: (context) {
+                    final uoms = ref.watch(uomProvider);
+                    final matchedUom = uoms
+                        .where((u) => u.id == item.product.uom)
+                        .firstOrNull;
+                    final unitStr =
+                        matchedUom?.shortCode ?? matchedUom?.name ?? 'KG';
+
+                    return InkWell(
+                      onTap: () => _showEditWeightSheet(context, ref, item),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryTeal.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppTheme.primaryTeal
+                                .withValues(alpha: 0.35),
                           ),
-                    ),
-                    Text(
-                      item.product.is_weighted
-                          ? item.quantity.toStringAsFixed(3)
-                          : item.quantity.toInt().toString(),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.scale,
+                              size: 13,
+                              color: AppTheme.primaryTeal,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${item.quantity.toStringAsFixed(3)} $unitStr',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: AppTheme.primaryTeal,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            const Icon(
+                              Icons.edit_outlined,
+                              size: 12,
+                              color: AppTheme.primaryTeal,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.add,
-                        size: 18,
-                        color: Theme.of(context).iconTheme.color,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 32,
-                        minHeight: 32,
-                      ),
-                      onPressed: () {
-                        if (!ref
+                    );
+                  },
+                )
+              else
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.remove,
+                          size: 16,
+                          color: Theme.of(context).iconTheme.color,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 28,
+                          minHeight: 28,
+                        ),
+                        onPressed: () => ref
                             .read(billingProvider.notifier)
                             .updateQuantity(
                               item.product.id,
-                              item.quantity + 1,
+                              item.quantity - 1,
                               variantId: item.product.selectedVariantId,
-                            )) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Limited stock available'),
                             ),
-                          );
-                        }
-                      },
-                    ),
-                  ],
+                      ),
+                      InkWell(
+                        onTap: () => _showQuantityDialog(context, ref, item),
+                        borderRadius: BorderRadius.circular(4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                item.quantity.toInt().toString(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.color,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              const Icon(
+                                Icons.edit,
+                                size: 10,
+                                color: Colors.grey,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.add,
+                          size: 16,
+                          color: Theme.of(context).iconTheme.color,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 28,
+                          minHeight: 28,
+                        ),
+                        onPressed: () {
+                          if (!ref
+                              .read(billingProvider.notifier)
+                              .updateQuantity(
+                                item.product.id,
+                                item.quantity + 1,
+                                variantId: item.product.selectedVariantId,
+                              )) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Limited stock available'),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              )
-            else
+            ] else
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
                   'x${item.product.is_weighted ? item.quantity.toStringAsFixed(3) : item.quantity.toInt()}',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-            const SizedBox(width: 8),
-            Text(
-              '₹${item.subtotal.toStringAsFixed(2)}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
+
+            const SizedBox(width: 2),
+
+            // Delete Icon Button for every item
+            IconButton(
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                size: 20,
+                color: Colors.redAccent,
               ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: 32,
+                minHeight: 32,
+              ),
+              tooltip: 'Remove',
+              onPressed: () {
+                ref.read(billingProvider.notifier).removeFromCart(
+                      item.product.id,
+                      variantId: item.product.selectedVariantId,
+                    );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${item.name} removed from cart'),
+                    action: SnackBarAction(
+                      label: 'UNDO',
+                      onPressed: () {
+                        ref.read(billingProvider.notifier).addToCart(
+                              item.product,
+                              quantity: item.quantity,
+                            );
+                      },
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),
